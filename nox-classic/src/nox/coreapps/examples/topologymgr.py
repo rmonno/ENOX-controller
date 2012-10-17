@@ -37,7 +37,41 @@ logger = logging.getLogger('nox.coreapps.examples.topologymgr')
 
 # Global topologymgr instance
 inst     = None
-topology = { }
+
+class Port(object):
+    def __init__(self, data = None):
+        self.data = data
+
+class Switch(object):
+    def __init__(self, data = None):
+        self.data = data
+
+class Topology(object):
+    def __init__(self, data = { }):
+        assert(type(data) == dict)
+        self.data = data
+
+    def get(self):
+        return self.data
+
+    def __str__(self):
+        ret = ""
+        for i in self.data:
+            ret += "SWITCH '%s': " % i
+            if self.data[i].has_key("n_tables"):
+                ret += "NumberTables=%d, "  % int(self.data[i]["n_tables"])
+            if self.data[i].has_key("n_bufs"):
+                ret += "NumberBuffers=%d, " % int(self.data[i]["n_bufs"])
+            if self.data[i].has_key("caps"):
+                ret += "Capabilities=%s, "  % str(self.data[i]["caps"])
+            if self.data[i].has_key("actions"):
+                ret += "Actions=%s, "       % str(self.data[i]["actions"])
+            # XXX FIXME: Return a more readable string for ports
+            if self.data[i].has_key("ports"):
+                ret += "Ports=%s "         % str(self.data[i]["ports"])
+        return ret
+
+topology = Topology()
 
 def flow_removed_callback(dpid, attrs, priority, reason, cookie, dur_sec,
 	                  dur_nsec, byte_count, packet_count):
@@ -48,12 +82,12 @@ def datapath_join_callback(dpid, attrs):
     assert(attrs is not None)
 
     logger.info("Registred Switch '%s'"  % str(dpid))
-    if topology.has_key(dpid):
+    if topology.data.has_key(dpid):
         logger.error("A switch with dpid '%s' has already registred" % \
                       str(dpid))
         return
 
-    topology[dpid] = attrs
+    topology.data[dpid] = attrs
     logger.debug(topology)
     return CONTINUE
 
@@ -61,10 +95,10 @@ def datapath_leave_callback(dpid):
     assert(dpid is not None)
 
     logger.info("Switch '%s' has left the network" % str(dpid))
-    if not topology.has_key(dpid):
+    if not topology.data.has_key(dpid):
         logger.debug("No switches to be deleted from topology data structure")
     else:
-        topology.pop(dpid)
+        topology.data.pop(dpid)
         logger.info("Deleted info for switch '%s'" % str(dpid))
 
 class topologymgr(Component):
