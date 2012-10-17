@@ -5,42 +5,49 @@
             "dependencies": [
                 "python"
             ],
-            "python": "nox.coreapps.examples.monitor" 
+            "python": "nox.coreapps.examples.monitor"
         },
         {
             "name": "countdown" ,
             "dependencies": [
                 "python"
             ],
-            "python": "nox.coreapps.examples.countdown" 
+            "python": "nox.coreapps.examples.countdown"
         },
         {
             "name": "packetdump" ,
             "dependencies": [
                 "python"
             ],
-            "python": "nox.coreapps.examples.packetdump" 
+            "python": "nox.coreapps.examples.packetdump"
         },
         {
             "name": "pyloop" ,
             "dependencies": [
                 "python"
             ],
-            "python": "nox.coreapps.examples.pyloop" 
+            "python": "nox.coreapps.examples.pyloop"
         },
         {
             "name": "pyswitch" ,
             "dependencies": [
                 "python"
             ],
-            "python": "nox.coreapps.examples.pyswitch" 
+            "python": "nox.coreapps.examples.pyswitch"
         },
         {
             "name": "dnsspy" ,
             "dependencies": [
                 "python"
             ],
-            "python": "nox.coreapps.examples.dnsspy" 
+            "python": "nox.coreapps.examples.dnsspy"
+        },
+        {
+            "name": "topologymgr" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.topologymgr"
         }
     ]
 }
