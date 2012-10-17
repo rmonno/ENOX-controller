@@ -28,16 +28,6 @@
 # Python L2 learning switch
 #
 # ----------------------------------------------------------------------
-#
-# This app functions as the control logic of an L2 learning switch for
-# all switches in the network. On each new switch join, it creates
-# an L2 MAC cache for that switch.
-#
-# In addition to learning, flows are set up in the switch for learned
-# destination MAC addresses.  Therefore, in the absence of flow-timeout,
-# pyswitch should only see one packet per flow (where flows are
-# considered to be unidirectional)
-#
 
 from nox.lib.core     import *
 
@@ -51,9 +41,9 @@ from time import time
 from socket import htons
 from struct import unpack
 
-logger = logging.getLogger('nox.coreapps.examples.pyswitch')
+logger = logging.getLogger('nox.coreapps.examples.topologymgr')
 
-# Global pyswitch instance
+# Global topologymgr instance
 inst = None
 
 # Timeout for cached MAC entries
@@ -72,11 +62,11 @@ def do_l2_learning(dpid, inport, packet):
     if inst.st[dpid].has_key(srcaddr):
         dst = inst.st[dpid][srcaddr]
         if dst[0] != inport:
-            log.msg('MAC has moved from '+str(dst)+'to'+str(inport), system='pyswitch')
+            log.msg('MAC has moved from '+str(dst)+'to'+str(inport), system='topologymgr')
         else:
             return
     else:
-        log.msg('learned MAC '+mac_to_str(packet.src)+' on %d %d'% (dpid,inport), system="pyswitch")
+        log.msg('learned MAC '+mac_to_str(packet.src)+' on %d %d'% (dpid,inport), system="topologymgr")
 
     # learn or update timestamp of entry
     inst.st[dpid][srcaddr] = (inport, time(), packet)
@@ -93,11 +83,11 @@ def forward_l2_packet(dpid, inport, packet, buf, bufid):
     if not ord(dstaddr[0]) & 1 and inst.st[dpid].has_key(dstaddr):
         prt = inst.st[dpid][dstaddr]
         if  prt[0] == inport:
-            log.err('**warning** learned port = inport', system="pyswitch")
+            log.err('**warning** learned port = inport', system="topologymgr")
             inst.send_openflow(dpid, bufid, buf, openflow.OFPP_FLOOD, inport)
         else:
             # We know the outport, set up a flow
-            log.msg('installing flow for ' + str(packet), system="pyswitch")
+            log.msg('installing flow for ' + str(packet), system="topologymgr")
             flow = extract_flow(packet)
             flow[core.IN_PORT] = inport
             actions = [[openflow.OFPAT_OUTPUT, [0, prt[0]]]]
@@ -119,7 +109,7 @@ def timer_callback():
     for dpid in inst.st.keys():
         for entry in inst.st[dpid].keys():
             if (curtime - inst.st[dpid][entry][1]) > CACHE_TIMEOUT:
-                log.msg('timing out entry'+mac_to_str(entry)+str(inst.st[dpid][entry])+' on switch %x' % dpid, system='pyswitch')
+                log.msg('timing out entry'+mac_to_str(entry)+str(inst.st[dpid][entry])+' on switch %x' % dpid, system='topologymgr')
                 inst.st[dpid].pop(entry)
 
     inst.post_callback(1, timer_callback)
@@ -143,10 +133,10 @@ def packet_in_callback(dpid, inport, reason, len, bufid, packet):
 
     print("PACKET_IN_CALLBACK")
     if not packet.parsed:
-        log.msg('Ignoring incomplete packet',system='pyswitch')
+        log.msg('Ignoring incomplete packet',system='topologymgr')
 
     if not inst.st.has_key(dpid):
-        log.msg('registering new switch %x' % dpid,system='pyswitch')
+        log.msg('registering new switch %x' % dpid,system='topologymgr')
         inst.st[dpid] = {}
 
     # don't forward lldp packets
@@ -184,7 +174,7 @@ def datapath_join_callback(dpid, attrs):
 
 	return CONTINUE
 
-class pyswitch(Component):
+class topologymgr(Component):
 
     def __init__(self, ctxt):
         global inst
@@ -205,11 +195,11 @@ class pyswitch(Component):
         inst.post_callback(1, timer_callback)
 
     def getInterface(self):
-        return str(pyswitch)
+        return str(topologymgr)
 
 def getFactory():
     class Factory:
         def instance(self, ctxt):
-            return pyswitch(ctxt)
+            return topologymgr(ctxt)
 
     return Factory()
