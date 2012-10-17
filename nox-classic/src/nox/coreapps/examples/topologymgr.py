@@ -44,7 +44,8 @@ from struct import unpack
 logger = logging.getLogger('nox.coreapps.examples.topologymgr')
 
 # Global topologymgr instance
-inst = None
+inst     = None
+topology = { }
 
 # Timeout for cached MAC entries
 CACHE_TIMEOUT = 5
@@ -134,8 +135,6 @@ def datapath_leave_callback(dpid):
 # forwarding
 # --
 def packet_in_callback(dpid, inport, reason, len, bufid, packet):
-
-    print("PACKET_IN_CALLBACK")
     if not packet.parsed:
         log.msg('Ignoring incomplete packet',system='topologymgr')
 
@@ -156,35 +155,40 @@ def packet_in_callback(dpid, inport, reason, len, bufid, packet):
 
 def flow_removed_callback(dpid, attrs, priority, reason, cookie, dur_sec,
 	                  dur_nsec, byte_count, packet_count):
-	print("IN MY FLOW_REMOVED_CALLBACK")
-	print("SWITCH PID  = '%s'" % str(dpid))
-	print("REASON      = '%s'" % str(reason))
-	print("BYTE COUNT  = '%s'" % str(byte_count))
+    print("IN MY FLOW_REMOVED_CALLBACK")
+    print("SWITCH PID  = '%s'" % str(dpid))
+    print("REASON      = '%s'" % str(reason))
+    print("BYTE COUNT  = '%s'" % str(byte_count))
 
-	return CONTINUE
+    return CONTINUE
 
 def datapath_join_callback(dpid, attrs):
-	print("SWITCH ID  = '%s'" % str(dpid))
-	print(type("Type DPID = '%s'" % type(dpid)))
-	print("ATTRIBUTES = '%s'" % str(attrs))
-	print(type("Type attrs = '%s'" % type(attrs)))
-	print("Test in order to send a flow entry when a switch is " + \
-              "connected to NOX....")
-	actions = [ ]
-	#inst.send_openflow_packet(dpid, packet, actions)
-	idle_timeout = 5
-	hard_timeout = 10
-	attrs = { }
-	inst.install_datapath_flow(dpid,
-                                   attrs,
-                                   idle_timeout,
-                                   hard_timeout,
-                                   actions)
+    assert(dpid  is not None)
+    assert(attrs is not None)
 
-	return CONTINUE
+    logger.info("Registred Switch '%s'"  % str(dpid))
+    if topology.has_key(dpid):
+        logger.error("A switch with dpid '%s' has already registred" % \
+                      str(dpid))
+        return
+
+    topology[dpid] = attrs
+    logger.debug(topology)
+    return CONTINUE
+
+def datapath_leave_callback(dpid):
+    assert(dpid is not None)
+
+    logger.info("Switch '%s' has left the network" % str(dpid))
+    if inst.st.has_key(dpid):
+        del inst.st[dpid]
+    if not topology[dpid].has_key(dpid):
+        logger.debug("No switches to be deleted from topology data structure")
+    else:
+        topology.pop(dpid)
+        log.info("Deleted info for switch '%s'" % str(dpid))
 
 class topologymgr(Component):
-
     def __init__(self, ctxt):
         global inst
         Component.__init__(self, ctxt)
