@@ -62,11 +62,13 @@ def do_l2_learning(dpid, inport, packet):
     if inst.st[dpid].has_key(srcaddr):
         dst = inst.st[dpid][srcaddr]
         if dst[0] != inport:
-            log.msg('MAC has moved from '+str(dst)+'to'+str(inport), system='topologymgr')
+            log.msg('MAC has moved from '+ str(dst) + 'to' + str(inport),
+                    system='topologymgr')
         else:
             return
     else:
-        log.msg('learned MAC '+mac_to_str(packet.src)+' on %d %d'% (dpid,inport), system="topologymgr")
+        log.msg('learned MAC '+ mac_to_str(packet.src) + ' on %d %d' % \
+                (dpid,inport), system="topologymgr")
 
     # learn or update timestamp of entry
     inst.st[dpid][srcaddr] = (inport, time(), packet)
@@ -109,7 +111,9 @@ def timer_callback():
     for dpid in inst.st.keys():
         for entry in inst.st[dpid].keys():
             if (curtime - inst.st[dpid][entry][1]) > CACHE_TIMEOUT:
-                log.msg('timing out entry'+mac_to_str(entry)+str(inst.st[dpid][entry])+' on switch %x' % dpid, system='topologymgr')
+                log.msg('timing out entry' + mac_to_str(entry) + \
+                        str(inst.st[dpid][entry]) + ' on switch %x' % dpid,
+                        system='topologymgr')
                 inst.st[dpid].pop(entry)
 
     inst.post_callback(1, timer_callback)
@@ -164,13 +168,18 @@ def datapath_join_callback(dpid, attrs):
 	print(type("Type DPID = '%s'" % type(dpid)))
 	print("ATTRIBUTES = '%s'" % str(attrs))
 	print(type("Type attrs = '%s'" % type(attrs)))
-	print("Test in order to send a flow entry when a switch is connected to NOX....")
+	print("Test in order to send a flow entry when a switch is " + \
+              "connected to NOX....")
 	actions = [ ]
 	#inst.send_openflow_packet(dpid, packet, actions)
 	idle_timeout = 5
 	hard_timeout = 10
 	attrs = { }
-	inst.install_datapath_flow(dpid, attrs, idle_timeout, hard_timeout, actions)
+	inst.install_datapath_flow(dpid,
+                                   attrs,
+                                   idle_timeout,
+                                   hard_timeout,
+                                   actions)
 
 	return CONTINUE
 
