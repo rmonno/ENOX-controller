@@ -29,17 +29,9 @@
 #
 # ----------------------------------------------------------------------
 
-from nox.lib.core     import *
-
-from nox.lib.packet.ethernet     import ethernet
-from nox.lib.packet.packet_utils import mac_to_str, mac_to_int
-
-from twisted.python import log
-
+from   nox.lib.core     import *
+from   twisted.python   import log
 import logging
-from time import time
-from socket import htons
-from struct import unpack
 
 logger = logging.getLogger('nox.coreapps.examples.topologymgr')
 
@@ -47,17 +39,8 @@ logger = logging.getLogger('nox.coreapps.examples.topologymgr')
 inst     = None
 topology = { }
 
-def datapath_leave_callback(dpid):
-    logger.info('Switch %x has left the network' % dpid)
-    if inst.st.has_key(dpid):
-        del inst.st[dpid]
-
 def flow_removed_callback(dpid, attrs, priority, reason, cookie, dur_sec,
 	                  dur_nsec, byte_count, packet_count):
-    print("SWITCH PID  = '%s'" % str(dpid))
-    print("REASON      = '%s'" % str(reason))
-    print("BYTE COUNT  = '%s'" % str(byte_count))
-
     return CONTINUE
 
 def datapath_join_callback(dpid, attrs):
@@ -78,13 +61,11 @@ def datapath_leave_callback(dpid):
     assert(dpid is not None)
 
     logger.info("Switch '%s' has left the network" % str(dpid))
-    if inst.st.has_key(dpid):
-        del inst.st[dpid]
-    if not topology[dpid].has_key(dpid):
+    if not topology.has_key(dpid):
         logger.debug("No switches to be deleted from topology data structure")
     else:
         topology.pop(dpid)
-        log.info("Deleted info for switch '%s'" % str(dpid))
+        logger.info("Deleted info for switch '%s'" % str(dpid))
 
 class topologymgr(Component):
     def __init__(self, ctxt):
