@@ -1,0 +1,21 @@
+1) Start mininet with the following command:
+
+   sudo mn --topo linear --mac --switch ovsk --controller remote
+
+   This command will create the following simple topology:
+
+        s1===========s2
+        ||           ||
+        ||           ||
+        ||           ||
+        h3           h4
+    (10.0.0.3)    (10.0.0.4)
+
+2) Start NOX (from the folder nox-classic/build/src) with the following
+   command:
+
+    ./nox_core -v -i ptcp:6633 pyswitch diovery monitoring pytopology
+
+3) Verify the correct behaviuor of the discovery application. In particular,
+   the port_status_change() function must be called whenever a port status
+   change is detected.
