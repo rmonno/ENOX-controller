@@ -66,10 +66,11 @@ class Switch(object):
         self.actions = None
         self.ports   = None
 
-class Topology(object):
-    def __init__(self, data = { }):
-        assert(type(data) == dict)
-        self.data     = data
+class TopologyManager(Component):
+    def __init__(self, ctxt):
+        Component.__init__(self, ctxt)
+        self.st   = { }
+        self.data = { }
 
     def topology_get(self):
         return self.data
@@ -91,57 +92,49 @@ class Topology(object):
                 ret += "Ports=%s "         % str(self.data[i]["ports"])
         return ret
 
-topology = Topology()
+    def datapath_join_callback(self, dpid, attrs):
+        assert(dpid  is not None)
+        assert(attrs is not None)
 
-def datapath_join_callback(dpid, attrs):
-    assert(dpid  is not None)
-    assert(attrs is not None)
+        logger.info("Registred Switch '%s'"  % str(dpid))
+        if self.data.has_key(dpid):
+            logger.error("A switch with dpid '%s' has already registred" % \
+                         str(dpid))
+            return
 
-    logger.info("Registred Switch '%s'"  % str(dpid))
-    if topology.data.has_key(dpid):
-        logger.error("A switch with dpid '%s' has already registred" % \
-                     str(dpid))
-        return
+        self.data[dpid] = attrs
+        logger.debug(self.data)
+        return CONTINUE
 
-    topology.data[dpid] = attrs
-    logger.debug(topology)
-    return CONTINUE
+    def datapath_leave_callback(self, dpid):
+        assert(dpid is not None)
 
-def datapath_leave_callback(dpid):
-    assert(dpid is not None)
+        logger.info("Switch '%s' has left the network" % str(dpid))
+        if not self.data.has_key(dpid):
+            logger.debug("No switches to be deleted from topology data model")
+        else:
+            self.data.pop(dpid)
+            logger.info("Deleted info for switch '%s'" % str(dpid))
 
-    logger.info("Switch '%s' has left the network" % str(dpid))
-    if not topology.data.has_key(dpid):
-        logger.debug("No switches to be deleted from topology data model")
-    else:
-        topology.data.pop(dpid)
-        logger.info("Deleted info for switch '%s'" % str(dpid))
-
-def handle_link_event(e):
-    logger.debug("%s got the following event %s" % (me,
-                                                 str(e)))
-    logger.debug("Processing the following information: %s" % str(e.__dict__))
-    return CONTINUE
-
-class topologymgr(Component):
-    def __init__(self, ctxt):
-        global inst
-        Component.__init__(self, ctxt)
-        self.st  = { }
-        inst = self
+    def handle_link_event(self, e):
+        logger.debug("%s got the following event %s" % (me,
+                                                        str(e)))
+        logger.debug("Processing the following information: %s"
+                      % str(e.__dict__))
+        return CONTINUE
 
     def install(self):
-        inst.register_for_datapath_leave(datapath_leave_callback)
-        inst.register_for_datapath_join(datapath_join_callback)
-        inst.register_handler(event.Link_event_static_get_name(),
-                              handle_link_event)
+        self.register_for_datapath_leave(self.datapath_leave_callback)
+        self.register_for_datapath_join(self.datapath_join_callback)
+        self.register_handler(event.Link_event_static_get_name(),
+                              self.handle_link_event)
 
     def getInterface(self):
-        return str(topologymgr)
+        return str(TopologyManager)
 
 def getFactory():
     class Factory:
         def instance(self, ctxt):
-            return topologymgr(ctxt)
+            return TopologyManager(ctxt)
 
     return Factory()
