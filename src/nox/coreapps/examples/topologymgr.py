@@ -25,26 +25,19 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with NOX.  If not, see <http://www.gnu.org/licenses/>.
-# Python L2 learning switch
 #
 # ----------------------------------------------------------------------
 
 from   nox.lib.core                      import *
 from   twisted.python                    import log
-from   nox.netapps.discovery.pylinkevent import Link_event
-from   nox.lib.packet.packet_utils       import array_to_octstr
-from   nox.lib.packet.ethernet           import LLDP_MULTICAST, NDP_MULTICAST
-from   nox.lib.packet.ethernet           import ethernet
-from   nox.lib.packet.lldp               import lldp, chassis_id, port_id, end_tlv
-from   nox.lib.packet.lldp               import ttl
-from   nox.lib.openflow                  import OFPP_LOCAL
 
 import logging
 
 logger = logging.getLogger('nox.coreapps.examples.topologymgr')
+lg     = logging.getLogger('topologymgr')
 
 # Global topologymgr instance
-inst     = None
+inst   = None
 
 class Port(object):
     def __init__(self):
@@ -95,14 +88,7 @@ class Topology(object):
                 ret += "Ports=%s "         % str(self.data[i]["ports"])
         return ret
 
-topology       = Topology()
-dps            = { }
-adjacency_list = { }
-lldp_packets   = { }
-
-#def flow_removed_callback(dpid, attrs, priority, reason, cookie, dur_sec,
-#	                  dur_nsec, byte_count, packet_count):
-#    return CONTINUE
+topology = Topology()
 
 def datapath_join_callback(dpid, attrs):
     assert(dpid  is not None)
@@ -111,17 +97,8 @@ def datapath_join_callback(dpid, attrs):
     logger.info("Registred Switch '%s'"  % str(dpid))
     if topology.data.has_key(dpid):
         logger.error("A switch with dpid '%s' has already registred" % \
-                      str(dpid))
+                     str(dpid))
         return
-
-    dps[dpid] = attrs
-    lldp_packets[dpid]  = {}
-    for port in attrs[PORTS]:
-        if port[PORT_NO] == OFPP_LOCAL:
-            continue
-        #lldp_packets[dpid][port[PORT_NO]] = create_discovery_packet(dpid,
-        #                                                                 port[PORT_NO],
-        #                                                                 LLDP_TTL);
 
     topology.data[dpid] = attrs
     logger.debug(topology)
@@ -132,76 +109,10 @@ def datapath_leave_callback(dpid):
 
     logger.info("Switch '%s' has left the network" % str(dpid))
     if not topology.data.has_key(dpid):
-        logger.debug("No switches to be deleted from topology data structure")
+        logger.debug("No switches to be deleted from topology data model")
     else:
         topology.data.pop(dpid)
         logger.info("Deleted info for switch '%s'" % str(dpid))
-
-def lldp_input_handler(dp_id, inport, ofp_reason, total_frame_len, buffer_id, packet):
-
-    assert (packet.type == ethernet.LLDP_TYPE)
-
-    if not packet.next:
-        lg.error("lldp_input_handler lldp packet could not be parsed")
-        return
-
-    #assert (isinstance(packet.next, lldp))
-
-    lldph = packet.next
-    if  (len(lldph.tlvs) < 4) or \
-    (lldph.tlvs[0].type != lldp.CHASSIS_ID_TLV) or\
-    (lldph.tlvs[1].type != lldp.PORT_ID_TLV) or\
-    (lldph.tlvs[2].type != lldp.TTL_TLV):
-        lg.error("lldp_input_handler invalid lldp packet")
-        return
-
-    # parse out chassis id
-    if lldph.tlvs[0].subtype != chassis_id.SUB_LOCAL:
-        lg.error("lldp chassis ID subtype is not 'local', ignoring")
-        return
-    if not lldph.tlvs[0].id.tostring().startswith('dpid:'):
-        lg.error("lldp chassis ID is not a dpid, ignoring")
-        return
-    try:
-        chassid = int(lldph.tlvs[0].id.tostring()[5:], 16)
-    except:
-        lg.error("lldp chassis ID is not numeric', ignoring")
-        return
-
-    # if chassid is from a switch we're not connected to, ignore
-    if chassid not in dps:
-        lg.debug('Recieved LLDP packet from unconnected switch')
-        return
-
-    # grab 16bit port ID from port tlv
-    if lldph.tlvs[1].subtype != port_id.SUB_PORT:
-        return # not one of ours
-    if len(lldph.tlvs[1].id) != 2:
-        lg.error("invalid lldph port_id format")
-        return
-    (portid,)  =  struct.unpack("!H", lldph.tlvs[1].id)
-
-    if (dp_id, inport) == (chassid, portid):
-        lg.error('Loop detected, received our own LLDP event')
-        return
-
-    # print 'LLDP packet in from',longlong_to_octstr(chassid),' port',str(portid)
-
-    linktuple = (dp_id, inport, chassid, portid)
-    print(linktuple)
-
-    #if linktuple not in adjacency_list:
-    #    self.add_link(linktuple)
-    #    lg.warn('new link detected ('+longlong_to_octstr(linktuple[0])+' p:'\
-    #               +str(linktuple[1]) +' -> '+\
-    #               longlong_to_octstr(linktuple[2])+\
-    #               ' p:'+str(linktuple[3])+')')
-
-    # add to adjaceny list or update timestamp
-    #adjacency_list[(dp_id, inport, chassid, portid)] = time.time()
-
-#def handle_link_event(self, e):
-#    print("AAAAAAAAAAAAAAAAAAAAAAAAAA")
 
 class topologymgr(Component):
     def __init__(self, ctxt):
@@ -213,25 +124,7 @@ class topologymgr(Component):
     def install(self):
         inst.register_for_datapath_leave(datapath_leave_callback)
         inst.register_for_datapath_join(datapath_join_callback)
-        #inst.register_handler(Link_event.static_get_name(),
-        #                      handle_link_event)
 	#inst.register_for_flow_removed(flow_removed_callback)
-        #self.register_for_port_status( lambda dp, reason, port : discovery.port_status_change(self, dp, reason, port) )
-        # register handler for all LLDP packets
-        match = {DL_DST : array_to_octstr(array.array('B',NDP_MULTICAST)),
-                 DL_TYPE: ethernet.LLDP_TYPE}
-        self.register_for_packet_match(lambda dp,inport,reason,len,bid,packet :
-                                        lldp_input_handler(dp,
-                                                           inport,
-                                                           reason,
-                                                           len,
-                                                           bid,
-                                                           packet),
-                                        0xffff,
-                                        match)
-
-        #self.start_lldp_timer_thread()
-
 
     def getInterface(self):
         return str(topologymgr)
