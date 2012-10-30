@@ -32,7 +32,10 @@ from   nox.lib.core                      import *
 from   twisted.python                    import log
 
 import logging
+import nox.netapps.discovery.pylinkevent as event
+import nox.netapps.discovery.discovery   as discovery
 
+me     = "TopologyManager"
 logger = logging.getLogger('nox.coreapps.examples.topologymgr')
 lg     = logging.getLogger('topologymgr')
 
@@ -114,6 +117,12 @@ def datapath_leave_callback(dpid):
         topology.data.pop(dpid)
         logger.info("Deleted info for switch '%s'" % str(dpid))
 
+def handle_link_event(e):
+    logger.debug("%s got the following event %s" % (me,
+                                                 str(e)))
+    logger.debug("Processing the following information: %s" % str(e.__dict__))
+    return CONTINUE
+
 class topologymgr(Component):
     def __init__(self, ctxt):
         global inst
@@ -124,7 +133,8 @@ class topologymgr(Component):
     def install(self):
         inst.register_for_datapath_leave(datapath_leave_callback)
         inst.register_for_datapath_join(datapath_join_callback)
-	#inst.register_for_flow_removed(flow_removed_callback)
+        inst.register_handler(event.Link_event_static_get_name(),
+                              handle_link_event)
 
     def getInterface(self):
         return str(topologymgr)
