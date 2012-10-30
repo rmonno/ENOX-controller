@@ -1,5 +1,3 @@
-#*#
-*~
 .#*
 .*.swp
 /_debian
@@ -15,3 +13,9 @@ Makefile.in
 TAGS
 cscope.*
 tags
+*~
+*.swp
+*.log
+*.m4
+*Makefile
+*/doc/*
