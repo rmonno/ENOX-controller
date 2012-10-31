@@ -4,7 +4,8 @@
 # @LICENSE_BEGIN@
 # @LICENSE_END@
 #
-# Written by: Francesco Salvestrini <f DOT salvestrini AT nextworks DOT it>
+# Written by: Francesco  Salvestrini <f DOT salvestrini AT nextworks DOT it>
+#             Alessandro Canessa     <a DOT canessa AT nextworks DOT it>
 #
 
 import time
@@ -12,7 +13,7 @@ import socket
 import threading
 import struct
 
-from siglib.utils.log import log
+from libs.log import log
 
 default_server_retry_time  = 5
 default_server_listen      = 10
@@ -177,27 +178,14 @@ class Server(threading.Thread):
                 handlers.append(self.__handlers_factory.create(name, sock))
                 log.debug("Handler '%s' created" % name)
 
-            #except Exception, e:
-            #    msg = "Got unknown exception"
-            #    if e is not None:
-            #        msg = str(e)
-            #    log.debug("%s: %s" % (self.__name, msg))
-            #
-            #    time.sleep(self.__retry_time)
-
         log.debug("Socket server '%s' execution completed" % self.__name)
 
 def message_receive_LV(sock):
     assert(sock is not None)
-    #log.debug("Receiving LV message")
-    #log.debug("Receiving L")
     length = len(struct.pack("@I", 0))
-    #log.debug("Message L must be %d bytes long" % length)
 
     try:
-        #log.debug("Receiving message from socket")
         buff = sock.recv(length)
-        #log.debug("Received message from socket")
     except Exception:
         log.error("Error in receiving message form socket...")
 
