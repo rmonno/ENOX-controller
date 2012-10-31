@@ -1,0 +1,25 @@
+#!/bin/sh
+# -*- sh -*-
+
+#
+# bootstrap
+#
+# (C) 2012 Nextworks SRL
+#
+# Written by: Francesco Salvestrini <f DOT salvestrini AT nextworks DOT it>
+#
+
+ME=bootstrap
+
+DIRS=". `cat configure.ac|grep AC_CONFIG_SUBDIRS|sed -e 's,^.*\[,,' -e 's,\].*,,'`"
+
+echo "${ME}: Bootstrapping $DIRS"
+
+for i in $DIRS ; do
+    echo "${ME}: Bootstrapping directory $PWD"
+    (cd $i && autoreconf -i -f -Wall $@) || exit 1
+done
+
+echo "${ME}: Done"
+
+exit 0
