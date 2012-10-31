@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!/usr/bin/env python
 # -*- python -*-
 
 #
@@ -29,14 +29,14 @@ except Exception, e:
 
 sys.path.insert(0, "@pythondir@")
 
-try:
-    import libs.network as     network
-except Exception, e:
-    m = ""
-    if e is not None :
-        m = " (" + str(e) + ")"
-    print("Cannot import required package modules" + m + ", bailing out ...")
-    sys.exit(1)
+#try:
+#    import libs.network as     network
+#except Exception, e:
+#    m = ""
+#    if e is not None :
+#        m = " (" + str(e) + ")"
+#    print("Cannot import required package modules" + m + ", bailing out ...")
+#    sys.exit(1)
 
 class BaseError(Exception):
     def __init__(self, m = None):
@@ -81,7 +81,7 @@ def command_exit(parms):
     """Exit from CLI"""
     check_args_count(parms, 0, 0)
 
-    log.debug("Explicit exit ...")
+    print("Explicit exit ...")
     sys.exit(0)
 
 def command_help(parms):
@@ -100,7 +100,7 @@ def command_help(parms):
         h = inspect.getdoc(command_handlers[k])
         if h is None:
             h = ""
-        log.info(("  %-" + str(maxl) + "s    %s") % (k, h))
+        print(("  %-" + str(maxl) + "s    %s") % (k, h))
 
 command_handlers = {
     'exit'                 : command_exit,
@@ -123,12 +123,14 @@ def version():
 def dump_version():
     print(me + " (" + version() + ")")
 
+variables = { }
+
 def main(argv):
-    log.level_set('info')
+    #log.level_set('info')
 
     variables["exit-on-error"]      = False
     variables["warnings-as-errors"] = False
-    variables["log-format"]         = log.format_get()
+#    variables["log-format"]         = log.format_get()
     variables["show-prompt"]        = True
 
     configuration = [ ]
@@ -148,44 +150,38 @@ def main(argv):
                 dump_version()
                 return 0
             elif opt in ("-d", "--debug"):
-                log.level_set('debug')
+                #log.level_set('debug')
+                print("Debug mode...")
             elif opt in ("-c", "--config"):
                 try:
                     f = file(arg, 'U')
                     configuration = f.readlines()
                     f.close()
                 except:
-                    log.error("Cannot open file '%s'" % arg)
+                    print("Cannot open file '%s'" % arg)
                     sys.exit(1)
 
     except getopt.GetoptError, err:
-        log.critical("%s" % str(err))
+        #log.critical("%s" % str(err))
         dump_help()
         return 1
     except Exception, e:
         message = "Got unhandled exception "
         if (e is not None) :
             message = message + "(" + str(e) + ")"
-        log.error(message)
-        log.critical("Report bugs to <" + "@PACKAGE_BUGREPORT@" + ">")
+        print(message)
+        print("Report bugs to <" + "@PACKAGE_BUGREPORT@" + ">")
         return 1
 
-    log.info(version())
-    cfg = default_config_file
-    if cfg is not None and os.path.exists(cfg):
-        config = configfile.ConfigFile(cfg)
-    else:
-        log.warning("Configuration file is missing, using defaults ...")
-        config = configfile.ConfigFile()
-
+    print(version())
     try:
-        log.info("Running...."
+        print("Running....")
     except KeyboardInterrupt, e:
         raise e
 
     while True:
         try:
-            log.debug("Accepting new line")
+            print("Accepting new line")
             if len(configuration) == 0:
                 if variables["show-prompt"] is True:
                     prompt = me + "> "
@@ -208,30 +204,30 @@ def main(argv):
         if command[0] == '#':
             continue
 
-        log.debug("Command   = '%s'" % command)
-        log.debug("Arguments = '%s'" % str(arguments))
+        print("Command   = '%s'" % command)
+        print("Arguments = '%s'" % str(arguments))
 
         handler = None
 
         if not command in command_handlers.keys():
-            log.error("Unknown command '%s'" % command)
+            print("Unknown command '%s'" % command)
             if variables["exit-on-error"] is True:
-                log.debug("Exit due to exit-on-error mode")
+                print("Exit due to exit-on-error mode")
                 return 1
             continue
 
         handler = command_handlers[command]
         assert(handler is not None)
-        log.debug("Handler for command '%s' is '%s'" % (command, handler))
+        print("Handler for command '%s' is '%s'" % (command, handler))
 
         try:
-            log.debug("Gonna call handler '%s'" % str(handler))
+            print("Gonna call handler '%s'" % str(handler))
             handler(arguments)
-            log.debug("Handler '%s' has been called" % str(handler))
+            print("Handler '%s' has been called" % str(handler))
         except Exception, e:
-            log.error("%s" % str(e))
+            print("%s" % str(e))
             if variables["exit-on-error"] is True:
-                log.debug("Exit due to exit-on-error mode")
+                print("Exit due to exit-on-error mode")
                 return 1
             continue
 
@@ -245,7 +241,7 @@ if __name__ == "__main__":
     try:
         retval = main(sys.argv[1:])
     except KeyboardInterrupt:
-        log.info("Bye, bye ...")
+        print("Bye, bye ...")
         retval = 0
     except Exception, e:
         print(me + ": Unhandled exception (%s)" % str(e))
@@ -260,7 +256,6 @@ if __name__ == "__main__":
             print(me + ": " + str(i))
         print(me + ":   <<< Stack dump >>>")
         print(me + ":")
-        print(me + ": ""Please report this problem to "  +
-              "<" + siglib.config.PACKAGE_BUGREPORT + ">")
+        print(me + ": ""Please report this problem ")
     sys.exit(retval)
 sys.exit(0)
