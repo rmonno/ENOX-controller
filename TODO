@@ -1,0 +1,5 @@
+==============================================================================
+
+* topologymgr
+    * Add a CLI for debugging purposes in order to set and get topology
+      information by using proper commands
