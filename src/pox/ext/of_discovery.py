@@ -44,6 +44,7 @@ import socket
 import time
 import copy
 from collections import *
+import network_socket as  network
 
 LLDP_TTL             = 120 # currently ignored
 LLDP_SEND_CYCLE      = 5.0
@@ -196,6 +197,17 @@ class Discovery_sample (EventMixin):
       self.listenTo(core.openflow)
     else:
       self.listenTo(core)
+
+    if shell:
+        log.debug("Opening socket to receive commands from an external shell")
+
+        # XXX FIXME: Fill with proper values
+        test = network.Server("ServiceServer",
+                              1,
+                              0,
+                              "10.0.2.226",
+                              "6001",
+                              None)
 
   def _handle_ComponentRegistered (self, event):
     if event.name == "openflow":
@@ -403,7 +415,8 @@ def launch (shell = False):
     if shell is False:
         log.debug("Component will not interact with any shell")
     else:
-        log.debug("Component can interact with some external shell")
+        log.debug("Component can interact with an external shell \
+                  to extract and/or populated topology DB")
 
     log.debug("Launching of_discovery component..")
     core.registerNew(Discovery_sample, "Discovery_sample")
