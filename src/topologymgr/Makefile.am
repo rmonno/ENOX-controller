@@ -58,8 +58,8 @@ check-local-static-pyflakes:
 	for i in $(bin_SCRIPTS) ; do		\
 		$(PYFLAKES) $$i || exit 1 ;	\
 	done
-	$(PYFLAKES) $(srcdir)/svcbrk
-	$(PYFLAKES) $(builddir)/svcbrk
+	$(PYFLAKES) $(srcdir)/topologymgr
+	$(PYFLAKES) $(builddir)/topologymgr
 
 check-local-static: check-local-static-pyflakes check-local-static-pylint
 
