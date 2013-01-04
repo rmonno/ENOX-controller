@@ -28,15 +28,18 @@ except Exception, e:
     exit(1)
 
 sys.path.insert(0, "@pythondir@")
+path = os.getcwd()
+sys.path.append(path)
 
-#try:
-#    import libs.network as     network
-#except Exception, e:
-#    m = ""
-#    if e is not None :
-#        m = " (" + str(e) + ")"
-#    print("Cannot import required package modules" + m + ", bailing out ...")
-#    sys.exit(1)
+try:
+    import network
+
+except Exception, e:
+    m = ""
+    if e is not None :
+        m = " (" + str(e) + ")"
+    print("Cannot import required package modules" + m + ", bailing out ...")
+    sys.exit(1)
 
 class BaseError(Exception):
     def __init__(self, m = None):
@@ -77,12 +80,46 @@ def check_args_count(args, min_count, max_count):
                 " maximum %d allowed" % max_count
             raise WrongParametersCount(tmp)
 
+def handle_command(client, message):
+    assert(client  is not None)
+    assert(message is not None)
+
+    try:
+        client.connect()
+    except Exception, e:
+        raise Exception("Cannot connect to server ('%s')" % str(e))
+    if client.connected():
+        try:
+            network.message_send(client.socket(), message)
+        except Exception, e:
+            raise Exception("Cannot send message to ('%s')" % str(e))
+
+        try:
+            return "ECCO"
+            #return network.message_recv(client.socket())
+        except Exception, e:
+            raise Exception("Cannot receive message response ('%s')" % str(e))
+
 def command_exit(parms):
     """Exit from CLI"""
     check_args_count(parms, 0, 0)
 
     print("Explicit exit ...")
     sys.exit(0)
+
+def command_show(parms):
+    """Show DB"""
+    check_args_count(parms, 0, 0)
+
+    # XXX FIXME: Fill with proper values
+    server_host = "10.0.2.226"
+    server_port = 6001
+    timeout     = 5
+    name        = "test"
+    client      = network.Client(name, server_host, server_port, timeout)
+
+    response = handle_command(client, "PROVA")
+    print(response)
 
 def command_help(parms):
     """Print this help"""
@@ -106,6 +143,8 @@ command_handlers = {
     'exit'                 : command_exit,
     'help'                 : command_help,
     '?'                    : command_help,
+
+    'show'                 : command_show,
 }
 
 def dump_help():
@@ -126,12 +165,6 @@ def dump_version():
 variables = { }
 
 def main(argv):
-    #log.level_set('info')
-
-    variables["exit-on-error"]      = False
-    variables["warnings-as-errors"] = False
-#    variables["log-format"]         = log.format_get()
-    variables["show-prompt"]        = True
 
     configuration = [ ]
     try:
@@ -150,7 +183,6 @@ def main(argv):
                 dump_version()
                 return 0
             elif opt in ("-d", "--debug"):
-                #log.level_set('debug')
                 print("Debug mode...")
             elif opt in ("-c", "--config"):
                 try:
@@ -162,7 +194,6 @@ def main(argv):
                     sys.exit(1)
 
     except getopt.GetoptError, err:
-        #log.critical("%s" % str(err))
         dump_help()
         return 1
     except Exception, e:
@@ -183,10 +214,7 @@ def main(argv):
         try:
             print("Accepting new line")
             if len(configuration) == 0:
-                if variables["show-prompt"] is True:
-                    prompt = me + "> "
-                else:
-                    prompt = ""
+                prompt = me + "> "
                 line = raw_input(prompt)
             else:
                 line = configuration.pop(0)
@@ -211,9 +239,6 @@ def main(argv):
 
         if not command in command_handlers.keys():
             print("Unknown command '%s'" % command)
-            if variables["exit-on-error"] is True:
-                print("Exit due to exit-on-error mode")
-                return 1
             continue
 
         handler = command_handlers[command]
@@ -226,11 +251,7 @@ def main(argv):
             print("Handler '%s' has been called" % str(handler))
         except Exception, e:
             print("%s" % str(e))
-            if variables["exit-on-error"] is True:
-                print("Exit due to exit-on-error mode")
-                return 1
             continue
-
     return 0
 
 #
