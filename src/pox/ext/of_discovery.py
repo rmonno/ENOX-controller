@@ -45,6 +45,9 @@ import time
 import copy
 from collections import *
 import network_socket as  network
+import concurrence
+import factory
+
 
 LLDP_TTL             = 120 # currently ignored
 LLDP_SEND_CYCLE      = 5.0
@@ -165,6 +168,52 @@ class LinkEvent (Event):
       return self.link.port2
     return None
 
+class ServiceHandler(concurrence.StoppableThread):
+    def __init__(self, name, sock):
+
+        log.debug("Initializing client service handler")
+
+        assert(sock is not None)
+        assert(name is not None)
+
+        self.__name     = name
+        self.__socket   = sock
+        super(ServiceHandler, self).__init__()
+        self.start()
+        self.response   = None
+
+    def __message_receive(self):
+        message = None
+        try:
+            message = network.message_receive(self.__socket)
+        except Exception, e:
+            log.debug("Got exception while receiving message (%s)" % str(e))
+            return None
+
+        if len(message) > 0:
+            log.debug("Client service handler '%s' got a message:" %
+                       self.__name)
+
+        return message
+
+    def __message_send(self, message):
+        assert(message is not None)
+
+        log.debug("Client service handler '%s' sending message:" % self.__name)
+
+        try:
+            network.message_send(self.__socket, message)
+        except Exception, e:
+            log.debug("Got exception while sending message (%s)" % str(e))
+
+    def __extract_header(self, data):
+        assert(data is not None)
+
+        len_header = 8
+        header     = data[:len_header]
+        log.debug("Recognized and extracted the following header: %s" % header)
+        return data[len_header:]
+
 
 class Discovery_sample (EventMixin):
   """
@@ -202,12 +251,13 @@ class Discovery_sample (EventMixin):
         log.debug("Opening socket to receive commands from an external shell")
 
         # XXX FIXME: Fill with proper values
+        handlers = factory.Factory(ServiceHandler)
         test = network.Server("ServiceServer",
                               1,
                               0,
                               "10.0.2.226",
                               "6001",
-                              None)
+                              handlers)
 
   def _handle_ComponentRegistered (self, event):
     if event.name == "openflow":
