@@ -1,137 +1,208 @@
+#!/usr/bin/env python
+# -*- python -*-
+
 #
-# topologymgr
+# svcbrkd
 #
 # Copyright (C) 2012 Nextworks s.r.l.
 #
 # @LICENSE_BEGIN@
 # @LICENSE_END@
 #
-# Written by: Alessandro Canessa <a DOT canessa AT nextworks DOT it>
+# Written by: Alessandro Canessa    <a DOT canessa AT nextworks DOT it>
 #
 
-# Copyright 2008 (C) Nicira, Inc.
-#
-# This file is part of NOX.
-#
-# NOX is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# NOX is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with NOX.  If not, see <http://www.gnu.org/licenses/>.
-#
-# ----------------------------------------------------------------------
+me = "topologymgr"
 
-from   nox.lib.core                      import *
-from   twisted.python                    import log
+import sys
+import os
+import getopt
+import inspect
+import shlex
 
-import logging
-
-logger = logging.getLogger('nox.coreapps.examples.topologymgr')
-lg     = logging.getLogger('topologymgr')
-
-# Global topologymgr instance
-inst   = None
-
-class Port(object):
-    def __init__(self):
-        self.hw_addr    = None
-        self.curr       = None
-        self.name       = None
-        self.speed      = None
-        self.supported  = None
-        self.enabled    = None
-        self.flood      = None
-        self.state      = None
-        self.link       = None
-        self.advertised = None
-        self.peer       = None
-        self.config     = None
-        self.number     = None
-
-class Switch(object):
-    def __init__(self):
-        self.tables  = None
-        self.buffers = None
-        self.caps    = None
-        self.actions = None
-        self.ports   = None
-
-class Topology(object):
-    def __init__(self, data = { }):
-        assert(type(data) == dict)
-        self.data     = data
-
-    def topology_get(self):
-        return self.data
+class BaseError(Exception):
+    def __init__(self, m = None):
+        self.message = m
 
     def __str__(self):
-        ret = ""
-        for i in self.data:
-            ret += "SWITCH '%s': " % i
-            if self.data[i].has_key("n_tables"):
-                ret += "NumberTables=%d, "  % int(self.data[i]["n_tables"])
-            if self.data[i].has_key("n_bufs"):
-                ret += "NumberBuffers=%d, " % int(self.data[i]["n_bufs"])
-            if self.data[i].has_key("caps"):
-                ret += "Capabilities=%s, "  % str(self.data[i]["caps"])
-            if self.data[i].has_key("actions"):
-                ret += "Actions=%s, "       % str(self.data[i]["actions"])
-            # XXX FIXME: Return a more readable string for ports
-            if self.data[i].has_key("ports"):
-                ret += "Ports=%s "         % str(self.data[i]["ports"])
-        return ret
+        return self.message
 
-topology = Topology()
+class CommandError(BaseError):
+    def __init__(self, message):
+        super(CommandError, self).__init__(message)
 
-def datapath_join_callback(dpid, attrs):
-    assert(dpid  is not None)
-    assert(attrs is not None)
+class WrongParametersCount(CommandError):
+    def __init__(self, message):
+        super(WrongParametersCount, self).__init__(message)
 
-    logger.info("Registred Switch '%s'"  % str(dpid))
-    if topology.data.has_key(dpid):
-        logger.error("A switch with dpid '%s' has already registred" % \
-                     str(dpid))
-        return
+class WrongParameterType(CommandError):
+    def __init__(self, message):
+        super(WrongParameterType, self).__init__(message)
 
-    topology.data[dpid] = attrs
-    logger.debug(topology)
-    return CONTINUE
+class UnknownMessage(BaseError):
+    def __init__(self, message):
+        super(UnknownMessage, self).__init__(message)
 
-def datapath_leave_callback(dpid):
-    assert(dpid is not None)
+def check_args_count(args, min_count, max_count):
+    assert(args is not None)
+    assert(min_count is not None)
+    assert(max_count is None or min_count <= max_count)
 
-    logger.info("Switch '%s' has left the network" % str(dpid))
-    if not topology.data.has_key(dpid):
-        logger.debug("No switches to be deleted from topology data model")
-    else:
-        topology.data.pop(dpid)
-        logger.info("Deleted info for switch '%s'" % str(dpid))
+    if len(args) < min_count:
+        tmp = "Too few arguments for command, minimum " \
+            "%d arguments required" % min_count
+        raise WrongParametersCount(tmp)
 
-class topologymgr(Component):
-    def __init__(self, ctxt):
-        global inst
-        Component.__init__(self, ctxt)
-        self.st  = { }
-        inst = self
+    if max_count is not None:
+        if len(args) > max_count:
+            tmp = "Too many arguments for command, " \
+                " maximum %d allowed" % max_count
+            raise WrongParametersCount(tmp)
 
-    def install(self):
-        inst.register_for_datapath_leave(datapath_leave_callback)
-        inst.register_for_datapath_join(datapath_join_callback)
-	#inst.register_for_flow_removed(flow_removed_callback)
+def command_exit(parms):
+    """Exit from CLI"""
+    check_args_count(parms, 0, 0)
 
-    def getInterface(self):
-        return str(topologymgr)
+    print("Explicit exit ...")
+    sys.exit(0)
 
-def getFactory():
-    class Factory:
-        def instance(self, ctxt):
-            return topologymgr(ctxt)
+def command_show(parms):
+    """Show DB"""
+    check_args_count(parms, 0, 0)
 
-    return Factory()
+    # XXX FIXME: Fill with proper values
+#    server_host = "10.0.2.226"
+#    server_port = 6001
+#    timeout     = 5
+#    name        = "test"
+#    client      = network.Client(name, server_host, server_port, timeout)
+
+#    response = handle_command(client, "PROVA")
+    print("CIAO")
+
+def command_help(parms):
+    """Print this help"""
+    check_args_count(parms, 0, 0)
+
+    commands = command_handlers.keys()
+    commands.sort()
+
+    maxl = 0
+    for k in commands:
+        maxl = max(maxl, len(k))
+
+    for k in commands:
+        # XXX FIXME: Add (autogenerated) sub-command help
+        h = inspect.getdoc(command_handlers[k])
+        if h is None:
+            h = ""
+        print(("  %-" + str(maxl) + "s    %s") % (k, h))
+
+command_handlers = {
+    'exit'                 : command_exit,
+    'help'                 : command_help,
+    '?'                    : command_help,
+
+    'show'                 : command_show,
+}
+
+def dump_help():
+    print(me + " [OPTIONS]")
+    print("")
+    print("Options:")
+    print("    -d, --debug                 set log level to debug")
+    print("    -h, --help                  print this help, then exit")
+    print("        --version               print version, then exit")
+    print("")
+
+def version():
+    print("VERSION:")
+
+def dump_version():
+    print(me + " (" + version() + ")")
+
+variables = { }
+
+configuration = [ ]
+
+try:
+    optlist, args = getopt.getopt(sys.argv[1:],
+                                  'c:hVd',
+                                   [ "config",
+                                   "help",
+                                   "version",
+                                   "debug"])
+
+    for opt, arg in optlist:
+        if opt in ("-h", "--help"):
+            dump_help()
+        elif opt in ("-V", "--version"):
+            dump_version()
+        elif opt in ("-d", "--debug"):
+            print("Debug mode...")
+        elif opt in ("-c", "--config"):
+            try:
+                f = file(arg, 'U')
+                configuration = f.readlines()
+                f.close()
+            except:
+                print("Cannot open file '%s'" % arg)
+                sys.exit(1)
+
+except getopt.GetoptError, err:
+    dump_help()
+except Exception, e:
+    message = "Got unhandled exception "
+    if (e is not None) :
+        message = message + "(" + str(e) + ")"
+    print(message)
+    #print("Report bugs to <" + "@PACKAGE_BUGREPORT@" + ">")
+
+print(version())
+try:
+    print("Running....")
+except KeyboardInterrupt, e:
+    raise e
+
+while True:
+    try:
+        print("Accepting new line")
+        if len(configuration) == 0:
+            prompt = me + "> "
+            line = raw_input(prompt)
+        else:
+            line = configuration.pop(0)
+    except EOFError, e:
+        print("")
+        continue
+    line = line.strip()
+    if len(line) == 0:
+        continue
+
+    tokens    = shlex.split(line)
+    command   = tokens[0]
+    arguments = tokens[1:]
+
+    if command[0] == '#':
+        continue
+
+    print("Command   = '%s'" % command)
+    print("Arguments = '%s'" % str(arguments))
+
+    handler = None
+
+    if not command in command_handlers.keys():
+        print("Unknown command '%s'" % command)
+        continue
+
+    handler = command_handlers[command]
+    assert(handler is not None)
+    print("Handler for command '%s' is '%s'" % (command, handler))
+
+    try:
+        print("Gonna call handler '%s'" % str(handler))
+        handler(arguments)
+        print("Handler '%s' has been called" % str(handler))
+    except Exception, e:
+        print("%s" % str(e))
+        continue
