@@ -12,7 +12,7 @@
 # Written by: Alessandro Canessa    <a DOT canessa AT nextworks DOT it>
 #
 
-me = "topologymgr"
+name_module = "topologymgr"
 
 import sys
 import os
@@ -70,15 +70,8 @@ def command_show(parms):
     """Show DB"""
     check_args_count(parms, 0, 0)
 
-    # XXX FIXME: Fill with proper values
-#    server_host = "10.0.2.226"
-#    server_port = 6001
-#    timeout     = 5
-#    name        = "test"
-#    client      = network.Client(name, server_host, server_port, timeout)
-
-#    response = handle_command(client, "PROVA")
-    print("CIAO")
+    # XXX FIXME: Insert code here
+    print("Show...")
 
 def command_help(parms):
     """Print this help"""
@@ -156,7 +149,6 @@ except Exception, e:
     if (e is not None) :
         message = message + "(" + str(e) + ")"
     print(message)
-    #print("Report bugs to <" + "@PACKAGE_BUGREPORT@" + ">")
 
 print(version())
 try:
@@ -168,7 +160,7 @@ while True:
     try:
         print("Accepting new line")
         if len(configuration) == 0:
-            prompt = me + "> "
+            prompt = name_module + "> "
             line = raw_input(prompt)
         else:
             line = configuration.pop(0)
