@@ -37,6 +37,7 @@ from pox.lib.packet.lldp          import ttl, system_description
 import pox.openflow.libopenflow_01 as of
 from pox.lib.util                 import dpidToStr
 from pox.core import core
+from pox.messenger.messenger import *
 
 import struct
 import array
@@ -403,12 +404,47 @@ class Discovery_sample (EventMixin):
         return True
     return False
 
-def launch (shell = False):
+class MessengerHandler (object):
+
+  def __init__ (self, targetName):
+    core.messenger.addListener(MessageReceived, self._handle_global_MessageReceived, weak=True)
+    self._targetName = targetName
+
+  def _handle_global_MessageReceived (self, event, msg):
+    try:
+      n = msg['start']
+      if n == self._targetName:
+        event.con.read()
+        event.claim()
+        event.con.addListener(MessageReceived, self._handle_MessageReceived, weak=True)
+        print self._targetName, "- started conversation with", event.con
+      else:
+        print self._targetName, "- ignoring", n
+    except:
+      pass
+
+  def _handle_MessageReceived (self, event, msg):
+    if event.con.isReadable():
+      r = event.con.read()
+      print self._targetName, "-",r
+      if type(r) is dict and r.get("end",False):
+        print self._targetName, "- GOODBYE!"
+        event.con.close()
+      if type(r) is dict and "echo" in r:
+        event.con.send({"echo":r["echo"]})
+
+    else:
+      print self._targetName, "- conversation finished"
+
+examples = {}
+
+def launch (shell = False, name = "topology"):
     if shell is False:
         log.debug("Component will not interact with any shell")
     else:
         log.debug("Component can interact with an external shell \
                   to extract and/or populated topology DB")
+        examples[name] = MessengerHandler(name)
 
     log.debug("Launching of_discovery component..")
     core.registerNew(Discovery_sample, "Discovery_sample")
