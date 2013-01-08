@@ -2,7 +2,7 @@
 # -*- python -*-
 
 #
-# svcbrkd
+# topologymgr
 #
 # Copyright (C) 2012 Nextworks s.r.l.
 #
@@ -19,6 +19,8 @@ import os
 import getopt
 import inspect
 import shlex
+import logging as log
+log.basicConfig(level=log.DEBUG)
 
 class BaseError(Exception):
     def __init__(self, m = None):
@@ -63,7 +65,7 @@ def command_exit(parms):
     """Exit from CLI"""
     check_args_count(parms, 0, 0)
 
-    print("Explicit exit ...")
+    log.info("Explicit exit ...")
     sys.exit(0)
 
 def command_show(parms):
@@ -71,7 +73,7 @@ def command_show(parms):
     check_args_count(parms, 0, 0)
 
     # XXX FIXME: Insert code here
-    print("Show...")
+    log.info("Show...")
 
 def command_help(parms):
     """Print this help"""
@@ -89,7 +91,7 @@ def command_help(parms):
         h = inspect.getdoc(command_handlers[k])
         if h is None:
             h = ""
-        print(("  %-" + str(maxl) + "s    %s") % (k, h))
+        log.info(("  %-" + str(maxl) + "s    %s") % (k, h))
 
 command_handlers = {
     'exit'                 : command_exit,
@@ -100,19 +102,19 @@ command_handlers = {
 }
 
 def dump_help():
-    print(me + " [OPTIONS]")
-    print("")
-    print("Options:")
-    print("    -d, --debug                 set log level to debug")
-    print("    -h, --help                  print this help, then exit")
-    print("        --version               print version, then exit")
-    print("")
+    log.info(me + " [OPTIONS]")
+    log.info("")
+    log.info("Options:")
+    log.info("    -d, --debug      set log level to debug")
+    log.info("    -h, --help       print this help, then exit")
+    log.info("        --version    print version, then exit")
+    log.info("")
 
 def version():
-    print("VERSION:")
+    log.info("VERSION:")
 
 def dump_version():
-    print(me + " (" + version() + ")")
+    log.info(me + " (" + version() + ")")
 
 variables = { }
 
@@ -132,14 +134,14 @@ try:
         elif opt in ("-V", "--version"):
             dump_version()
         elif opt in ("-d", "--debug"):
-            print("Debug mode...")
+            log.debug("Debug mode...")
         elif opt in ("-c", "--config"):
             try:
                 f = file(arg, 'U')
                 configuration = f.readlines()
                 f.close()
             except:
-                print("Cannot open file '%s'" % arg)
+                log.debug("Cannot open file '%s'" % arg)
                 sys.exit(1)
 
 except getopt.GetoptError, err:
@@ -148,24 +150,24 @@ except Exception, e:
     message = "Got unhandled exception "
     if (e is not None) :
         message = message + "(" + str(e) + ")"
-    print(message)
+    log.error(message)
 
-print(version())
+log.debug(version())
 try:
-    print("Running....")
+    log.debug("Running....")
 except KeyboardInterrupt, e:
     raise e
 
 while True:
     try:
-        print("Accepting new line")
+        log.info("Accepting new line")
         if len(configuration) == 0:
             prompt = name_module + "> "
             line = raw_input(prompt)
         else:
             line = configuration.pop(0)
     except EOFError, e:
-        print("")
+        log.debug("")
         continue
     line = line.strip()
     if len(line) == 0:
@@ -178,23 +180,23 @@ while True:
     if command[0] == '#':
         continue
 
-    print("Command   = '%s'" % command)
-    print("Arguments = '%s'" % str(arguments))
+    log.debug("Command   = '%s'" % command)
+    log.debug("Arguments = '%s'" % str(arguments))
 
     handler = None
 
     if not command in command_handlers.keys():
-        print("Unknown command '%s'" % command)
+        log.error("Unknown command '%s'" % command)
         continue
 
     handler = command_handlers[command]
     assert(handler is not None)
-    print("Handler for command '%s' is '%s'" % (command, handler))
+    log.debug("Handler for command '%s' is '%s'" % (command, handler))
 
     try:
-        print("Gonna call handler '%s'" % str(handler))
+        log.debug("Gonna call handler '%s'" % str(handler))
         handler(arguments)
-        print("Handler '%s' has been called" % str(handler))
+        log.debug("Handler '%s' has been called" % str(handler))
     except Exception, e:
-        print("%s" % str(e))
+        log.error("%s" % str(e))
         continue
