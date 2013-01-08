@@ -20,7 +20,35 @@ import getopt
 import inspect
 import shlex
 import logging as log
+import socket
 log.basicConfig(level=log.DEBUG)
+
+class Channel(object):
+    def __init__(self, source_ip = None, source_port = None):
+        self.source_ip   = source_ip
+        self.source_port = source_port
+        self.connected   = False
+        self.sock        = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def connect(self):
+        try:
+            self.sock.connect((self.source_ip, self.source_port))
+            self.connected = True
+        except Exception, e:
+            log.error("Cannot connect to POX ('%s')" % str(e))
+
+    def send(self, msg):
+        if not self.connected:
+            log.error("Not connected to POX...")
+        log.info("Sending the following message: '%s'" % msg)
+        try:
+            self.sock.send(msg)
+        except Exception, e:
+            log.error("Cannot send message to POX ('%s')" % str(e))
+
+    def shutdown(self):
+        self.sock.shutdown(1)
+        self.sock.close()
 
 class BaseError(Exception):
     def __init__(self, m = None):
@@ -73,7 +101,13 @@ def command_show(parms):
     check_args_count(parms, 0, 0)
 
     # XXX FIXME: Insert code here
-    log.info("Show...")
+    log.debug("In show command...")
+    pox_ip   = "localhost"
+    pox_port = 7790
+    channel_2pox = Channel(pox_ip, pox_port)
+    log.debug("Trying to connect...")
+    channel_2pox.connect()
+    log.info("Connected")
 
 def command_help(parms):
     """Print this help"""
