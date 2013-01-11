@@ -275,7 +275,8 @@ class Topology (EventMixin):
     id2entity = {}
     for id in self._entities:
       entity = self._entities[id]
-      id2entity[id] = entity.serialize()
+      #id2entity[id] = entity.serialize()
+      id2entity[id] = entity
     return id2entity
 
   def deserializeAndMerge (self, id2entity):
