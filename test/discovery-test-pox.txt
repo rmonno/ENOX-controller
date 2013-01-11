@@ -19,4 +19,8 @@ For our purpose, the option "--switch user" MUST BE USED
 
 2) Start POX (from the folder pox/) with the following command:
 
-    ./pox.py
+    ./pox.py messenger.messenger of_discovery --shell=True
+
+3) Start topology manager from folder topologymgr
+
+    python topologymgr.py
