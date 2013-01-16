@@ -19,15 +19,6 @@
 # This file is based on the discovery component in NOX, though it has
 # been substantially rewritten.
 
-"""
-This module discovers the connectivity between OpenFlow switches by sending
-out LLDP packets. To be notified of this information, listen to LinkEvents
-on core.Discovery.
-
-It's possible that some of this should be abstracted out into a generic
-Discovery module, or a Discovery superclass.
-"""
-
 from pox.lib.revent                import *
 from pox.lib.recoco                import Timer
 from pox.lib.packet.ethernet       import LLDP_MULTICAST, NDP_MULTICAST
@@ -49,6 +40,7 @@ import time
 import copy
 import pickle
 import entities
+import connections
 
 log = core.getLogger()
 
@@ -58,55 +50,65 @@ class Discovery_sample (discovery.Discovery):
     self.topology_ex = core.components['topology']
     return self.topology_ex.serialize()
 
-class MessengerHandler (object):
-  def __init__ (self, targetName):
-    core.messenger.addListener(MessageReceived, self._handle_global_MessageReceived, weak=True)
-    self._targetName = targetName
-    self._commands   = ["get_topology",
-                        "set_topology"]
-
-  def _handle_global_MessageReceived (self, event, msg):
-    try:
-      command = None
-      # XXX FIXME: Modify the received message (now it is a string)
-      log.debug("Received the following msg: '%s'" % str(msg))
-      for i in msg.values():
-          if (i.encode('utf-8') in self._commands):
-              command = i.encode('utf-8')
-              break
-      if command in self._commands:
-        log.debug("Received a message containing a command to be executed...")
-        event.con.read()
-        event.claim()
-        event.con.addListener(MessageReceived, self._handle_MessageReceived, weak=True)
-        print self._targetName, "- started conversation with", event.con
-      else:
-        print self._targetName, "- ignoring", command
-    except Exception, e:
-      print(e)
-      pass
-
-  def _handle_MessageReceived (self, event, msg):
-    try:
-      topology_dict = core.openflow_discovery.getTopology()
-      topology_obj  = entities.Topology()
-      for i in topology_dict:
-        topology_obj.add_entity(topology_dict[i])
-      topology_2sent = topology_obj.serialize()
-      event.con.send(pickle.dumps(topology_2sent))
-      log.debug("Sent the following response: '%s'" % topology_2sent)
-
-      if event.con.isReadable():
-        r = event.con.read()
-        log.debug("%s - %s" % (str(self._targetName),
-                               str(r)))
-        if type(r) is dict and r.get("end",False):
-          log.debug("%s - BYE"  % str(self._targetName))
-          event.con.close()
-    except Exception, e:
-        log.error("Cannot send the response ('%s')" % str(e))
-
 options = {}
+
+class ReceiverHandler(threading.Thread):
+    def __init__(self, name = None, sock = None):
+        self.__name = name
+        self.__sock = sock
+        log.debug("Initializing ReceiverHandler....")
+        super(ReceiverHandler, self).__init__()
+        self.__stop = threading.Event()
+
+    def run(self):
+        assert(self.__name is not None)
+        assert(self.__sock is not None)
+        log.debug("ReceiverHandler '%s' started" % str(self.__name))
+        log.debug("ReceiverHandler '%s' is listening mode" % self.__name)
+
+        while not self.__stop.is_set():
+            try:
+                print("HELLO")
+                message = self.__msg_recv()
+                time.sleep(5)
+                if len(message) == 0:
+                    continue
+                log.debug("Received the following message: %s" % str(message))
+            except Exception, e:
+                log.error(e)
+
+    def __msg_recv(self):
+        msg = None
+        try:
+            msg = connections.msg_receive(self.__sock)
+            if len(msg) > 0:
+                log.debug("Received a message...")
+            return msg
+        except Exception, e:
+            log.error(e)
+
+    def create(self, name, server):
+        assert(name   is not None)
+        assert(server is not None)
+        self.__name = name
+        self.__sock = server.socket_get()
+        self.daemon = True
+        self.start()
+
+    def stop(self):
+        self.__stop.set()
+
+class Receiver(object):
+    def __init__(self):
+        self.handler = ReceiverHandler()
+        # XXX FIXME: Fill with proper values
+        self.server    = connections.Server("test",
+                                            "localhost",
+                                            9001,
+                                            5,
+                                            self.handler)
+        # XXX FIXME: Fill with proper values
+        self.handler.create("handler1", self.server)
 
 def launch (shell = False, name = "topology"):
     if shell is False:
@@ -114,7 +116,7 @@ def launch (shell = False, name = "topology"):
     else:
         log.debug("Component can interact with an external shell \
                   to extract and/or populated topology DB")
-        options[name] = MessengerHandler(name)
+        options[name] = Receiver()
 
     log.debug("Launching of_discovery component...")
     core.registerNew(Discovery_sample, "Discovery_sample")
