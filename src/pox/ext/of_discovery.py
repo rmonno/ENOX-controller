@@ -68,7 +68,6 @@ class ReceiverHandler(threading.Thread):
 
         while not self.__stop.is_set():
             try:
-                print("HELLO")
                 message = self.__msg_recv()
                 time.sleep(5)
                 if len(message) == 0:
@@ -87,11 +86,11 @@ class ReceiverHandler(threading.Thread):
         except Exception, e:
             log.error(e)
 
-    def create(self, name, server):
-        assert(name   is not None)
-        assert(server is not None)
+    def create(self, name, sock):
+        assert(name is not None)
+        assert(sock is not None)
         self.__name = name
-        self.__sock = server.socket_get()
+        self.__sock = sock
         self.daemon = True
         self.start()
 
@@ -107,8 +106,6 @@ class Receiver(object):
                                             9001,
                                             5,
                                             self.handler)
-        # XXX FIXME: Fill with proper values
-        self.handler.create("handler1", self.server)
 
 def launch (shell = False, name = "topology"):
     if shell is False:

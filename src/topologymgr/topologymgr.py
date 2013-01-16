@@ -20,51 +20,9 @@ import getopt
 import inspect
 import shlex
 import logging as log
-import socket
+# XXX FIXME: Move connections module into proper placeholder
+import connections
 log.basicConfig(level=log.DEBUG)
-
-class Channel(object):
-    def __init__(self, source_ip = None, source_port = None):
-        self.source_ip   = source_ip
-        self.source_port = source_port
-        self.connected   = False
-        self.sock        = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #self.sock.setblocking(0)
-
-    def connect(self):
-        try:
-            self.sock.connect((self.source_ip, self.source_port))
-            self.connected = True
-        except Exception, e:
-            log.error("Cannot connect to POX ('%s')" % str(e))
-
-    def send(self, msg):
-        if not self.connected:
-            log.error("Not connected to POX...")
-        log.info("Sending the following message: '%s'" % msg)
-        try:
-            self.sock.send(msg)
-        except Exception, e:
-            log.error("Cannot send message to POX ('%s')" % str(e))
-
-        try:
-            reply = self.recv()
-            return reply
-        except Exception, e:
-            log.error(e)
-
-    def recv(self):
-        if not self.connected:
-            log.error("Not connected to POX...")
-        try:
-            buff = self.sock.recv(2, socket.MSG_DONTWAIT)
-            return reply
-        except Exception, e:
-            log.error("Cannot receive response from POX ('%s')" % str(e))
-
-    def shutdown(self):
-        self.sock.shutdown(1)
-        self.sock.close()
 
 class BaseError(Exception):
     def __init__(self, m = None):
@@ -105,6 +63,22 @@ def check_args_count(args, min_count, max_count):
                 " maximum %d allowed" % max_count
             raise WrongParametersCount(tmp)
 
+def send_handler(client, msg):
+    assert(client is not None)
+    assert(msg    is not None)
+
+    try:
+        client.connect()
+        if client.connected:
+            log.debug("Client connected...")
+    except Exception, e:
+        log.error("Cannot connect to POX ('%s')" % str(e))
+
+    try:
+        connections.message_send(client.socket, msg)
+    except Exception, e:
+        log.error("Cannot send the message ('%s')" % str(e))
+
 def command_exit(parms):
     """Exit from CLI"""
     check_args_count(parms, 0, 0)
@@ -118,15 +92,13 @@ def command_show_topology(parms):
 
     # XXX FIXME: Fill with proper values
     log.debug("In show topology command...")
-    pox_ip   = "localhost"
-    pox_port = 7790
-    channel_2pox = Channel(pox_ip, pox_port)
+    pox_ip       = "localhost"
+    pox_port     = 9001
+    channel_2pox = connections.Client("sock-client", pox_ip, pox_port)
     log.debug("Trying to connect to POX...")
-    channel_2pox.connect()
-    log.info("Connected to POX")
     # XXX FIXME: Send proper message
-    reply = channel_2pox.send("{\"start\":\"get_topology\"}")
-    log.info("Received the following response %s" % str(reply))
+    msg = "GET_TOPOLOGY"
+    send_handler(channel_2pox, msg)
 
 def command_help(parms):
     """Print this help"""

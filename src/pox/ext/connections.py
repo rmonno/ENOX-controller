@@ -52,7 +52,7 @@ class Client(object):
             log.debug("Socket already connected")
             return
 
-        log.debug("Socket '%s' connecting to %s:%d)" %
+        log.debug("Socket '%s' connecting to %s:%d" %
                   (self.name, self.host, self.port))
         self.socket.connect((self.host, self.port))
         log.debug("Socket '%s' is now connected" % self.name)
@@ -118,15 +118,17 @@ class Server(threading.Thread):
                 endpoint       = "%s:%d" % (client_address, client_port)
                 log.debug("Socket server got connection from '%s'" %
                           endpoint)
-                self.__handler.create()
+                # XXX FIXME: Fill with proper handler name
+                self.__handler.create("test", sock)
         log.debug("Socket server '%s' execution completed" % self.__name)
 
 def msg_receive(sock):
-    assert (sock is not None)
+    assert(sock is not None)
+    msg  = ''
     buff = sock.recv(len(struct.pack("@I", 0)))
-    msg = ''
-    if len(buff) == 0:
-        return msg
+    if buff:
+        if len(buff) == 0:
+            return msg
 
     msg_length = int(struct.unpack("@I", buff)[0])
     log.debug("Received a message whose length is: %d" % msg_length)
