@@ -12,7 +12,10 @@
 import logging as log
 import pickle
 import socket
+import pox.openflow.topology as of_topology
 log.basicConfig(level=log.DEBUG)
+
+ents_supp = {'OpenFlowSwitch': "OFSwitch"}
 
 class Topology(object):
     def __init__(self):
@@ -25,9 +28,7 @@ class Topology(object):
             self.add_ofswitch(entity)
 
     def add_ofswitch(self, ofswitch):
-        self.ofswitches[ofswitch.dpid] = OFSwitch(ofswitch.dpid,
-                                                  ofswitch.ports,
-                                                  ofswitch.capabilities)
+        self.ofswitches[ofswitch.dpid] = ofswitch
 
     def serialize(self):
         serialized = { }
@@ -36,14 +37,31 @@ class Topology(object):
             serialized[i] = pickle.dumps(self.ofswitches[i])
         return serialized
 
-class OFSwitch(object):
-    def __init__(self,
-                 dpid  = None,
-                 ports = None,
-                 caps  = None):
-        self.dpid  = dpid
-        self.ports = { }
-        self.caps  = 0
+    def __str__(self):
+        ret = ""
+        for i in self.ofswitches:
+            ret += str(self.ofswitches[i])
+        return ret
+
+class OFSwitch(of_topology.OpenFlowSwitch):
+    def __init__(self, dpid):
+        self.dpid         = dpid
+        #super(OFSwitch, self).__init__(dpid)
+
+    def create(self, dpid, ports, flow_table, caps, connection, listeners):
+        self.dpid         = dpid
+        self.ports        = ports
+        self.flow_table   = flow_table
+        self.capabilities = caps
+        self_connection   = connection
+        self._listeners   = listeners
 
     def serialize(self):
         return pickle.dumps(self)
+
+    def __str__(self):
+        ret = "OFSwitch(DPID='%s', PORTS='%s', FLOWTABLE='%s')" % \
+                (str(self.dpid),
+                 str(self.ports),
+                 str(self.flow_table))
+        return ret

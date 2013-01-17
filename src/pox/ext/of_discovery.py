@@ -26,17 +26,26 @@ from collections                   import *
 
 import pox.openflow.libopenflow_01 as of
 import pox.openflow.discovery      as discovery
+import entities                    as ents
 
 import time
 import connections
 
 log = core.getLogger()
 
-class Discovery_sample (discovery.Discovery):
+class Discovery_sample(discovery.Discovery):
+    def __init__(self, name):
+        assert(name is not None)
+        super(Discovery_sample, self).__init__()
+        self.__topology =  None
 
-  def getTopology(self):
-    self.topology_ex = core.components['topology']
-    return self.topology_ex.serialize()
+    def getTopology(self):
+        log.debug("Getting topology from topology module")
+        try:
+            self.__topology = core.components['topology']
+            return self.__topology
+        except Exception, e:
+            log.error("Cannot get the topology ('%s')" % str(e))
 
 options = {}
 
@@ -51,6 +60,7 @@ class ReceiverHandler(threading.Thread):
     def run(self):
         assert(self.__name is not None)
         assert(self.__sock is not None)
+        self.test = ents.Topology()
         log.debug("ReceiverHandler '%s' started" % str(self.__name))
         log.debug("ReceiverHandler '%s' is listening mode" % self.__name)
 
@@ -61,8 +71,31 @@ class ReceiverHandler(threading.Thread):
                 if len(message) == 0:
                     continue
                 log.debug("Received the following message: %s" % str(message))
+                log.debug("Got the following topology: %s" %
+                           str(discovery_sample.getTopology()))
+                topo = discovery_sample.getTopology()
+                for i in topo._entities.keys():
+                    name = topo._entities[i].__class__.__name__
+                    if name in ents.ents_supp.keys():
+                        log.debug("Got an '%s' entity" % str(name))
+                        log.debug("Initializing entity...")
+                        self.__entity_create(topo._entities[i])
+                log.debug("TOPOLOGY='%s'" % str(self.test))
             except Exception, e:
                 log.error(e)
+
+    def __entity_create(self, entity):
+        assert(entity is not None)
+        name = entity.__class__.__name__
+        if name == "OpenFlowSwitch":
+            of_switch = ents.OFSwitch(entity.dpid)
+            of_switch.create(entity.dpid,
+                             entity.ports,
+                             entity.flow_table,
+                             entity.capabilities,
+                             entity._connection,
+                             entity._listeners)
+            self.test.add_ofswitch(of_switch)
 
     def __msg_recv(self):
         msg = None
@@ -104,4 +137,6 @@ def launch (shell = False, name = "topology"):
         options[name] = Receiver()
 
     log.debug("Launching of_discovery component...")
-    core.registerNew(Discovery_sample, "Discovery_sample")
+    #core.registerNew(Discovery_sample, "Discovery_sample")
+    global discovery_sample
+    discovery_sample = Discovery_sample("sample")
