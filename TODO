@@ -2,4 +2,12 @@
 
 * topologymgr
     * Add a CLI for debugging purposes in order to set and get topology
-      information by using proper commands
+      information by using proper commands [DONE]
+
+    * Move module from pox/ext into a proper folder and modify related imports
+
+* of_discovery application:
+    * Verify the correct retrieval of the flow tables for all connected OF
+      switches
+    * Verify the correct values for adjacences (i.e. _connection member of the
+      OFSwitch class)
