@@ -20,12 +20,6 @@
 # been substantially rewritten.
 
 from pox.lib.revent                import *
-from pox.lib.recoco                import Timer
-from pox.lib.packet.ethernet       import LLDP_MULTICAST, NDP_MULTICAST
-from pox.lib.packet.ethernet       import ethernet
-from pox.lib.packet.lldp           import lldp, chassis_id, port_id, end_tlv
-from pox.lib.packet.lldp           import ttl, system_description
-from pox.lib.util                  import dpidToStr
 from pox.core                      import core
 from pox.messenger.messenger       import *
 from collections                   import *
@@ -33,13 +27,7 @@ from collections                   import *
 import pox.openflow.libopenflow_01 as of
 import pox.openflow.discovery      as discovery
 
-import struct
-import array
-import socket
 import time
-import copy
-import pickle
-import entities
 import connections
 
 log = core.getLogger()
