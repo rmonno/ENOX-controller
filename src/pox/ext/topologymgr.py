@@ -47,6 +47,34 @@ class UnknownMessage(BaseError):
     def __init__(self, message):
         super(UnknownMessage, self).__init__(message)
 
+class Controller(object):
+    def __init__(self, address, port):
+        assert(address is not None)
+        assert(port    is not None)
+        self.__address = address
+        self.__port    = port
+        self.default   = False
+
+    def address_get(self):
+        return self.__address
+
+    def address_set(self, address):
+        assert(address is not None)
+        self.__address = address
+        self.default   = True
+
+    def port_get(self):
+        return self.__port
+
+    def port_set(self, port):
+        assert(port is not None)
+        self.__port  = port
+        self.default = True
+
+    def __str__(self):
+        ret = "%s:%d" % (str(self.__address), int(self.__port))
+        return ret
+
 def check_args_count(args, min_count, max_count):
     assert(args is not None)
     assert(min_count is not None)
@@ -86,16 +114,31 @@ def command_exit(parms):
     log.info("Explicit exit ...")
     sys.exit(0)
 
+def command_set_controller(parms):
+    """Set controller params"""
+    check_args_count(parms, 2, 2)
+    global controller
+
+    address    = str(parms[0])
+    port       = int(parms[1])
+    controller = Controller(address, port)
+    log.debug("Set controller with the following params: %s" % str(controller))
+
 def command_show_topology(parms):
     """Show DB"""
     check_args_count(parms, 0, 0)
 
     # XXX FIXME: Fill with proper values
-    log.debug("In show topology command...")
-    pox_ip       = "localhost"
-    pox_port     = 9001
-    channel_2pox = connections.Client("sock-client", pox_ip, pox_port)
-    log.debug("Trying to connect to POX...")
+    if not controller.default:
+        log.debug("Controller is not configured yet. The following params " + \
+                  "will be used: %s" % str(controller))
+
+    channel_2pox = connections.Client("sock-client",
+                                       controller.address_get(),
+                                       controller.port_get())
+    log.debug("Trying to connect to controller %s:%d" % \
+              (str(controller.address_get()), int(controller.port_get())))
+
     # XXX FIXME: Send proper message
     msg = "GET_TOPOLOGY"
     send_handler(channel_2pox, msg)
@@ -118,11 +161,12 @@ def command_help(parms):
         log.info(("  %-" + str(maxl) + "s    %s") % (k, h))
 
 command_handlers = {
-    'exit'          : command_exit,
-    'help'          : command_help,
-    '?'             : command_help,
+    'exit'           : command_exit,
+    'help'           : command_help,
+    '?'              : command_help,
 
-    'show-topology' : command_show_topology,
+    'set-controller' : command_set_controller,
+    'show-topology'  : command_show_topology,
 }
 
 def dump_help():
@@ -143,7 +187,10 @@ def dump_version():
 variables = { }
 
 configuration = [ ]
-
+default_controller_address = "localhost"
+default_controller_port    = 9001
+controller                 = Controller(default_controller_address,
+                                        default_controller_port)
 try:
     optlist, args = getopt.getopt(sys.argv[1:],
                                   'c:hVd',
