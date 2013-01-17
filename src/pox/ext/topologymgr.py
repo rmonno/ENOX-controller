@@ -19,9 +19,8 @@ import os
 import getopt
 import inspect
 import shlex
-import logging as log
-# XXX FIXME: Move connections module into proper placeholder
 import connections
+import logging as log
 log.basicConfig(level=log.DEBUG)
 
 class BaseError(Exception):
@@ -107,6 +106,11 @@ def send_handler(client, msg):
     except Exception, e:
         log.error("Cannot send the message ('%s')" % str(e))
 
+    try:
+        return connections.msg_receive(client.socket)
+    except Exception, e:
+        log.error("Cannot receive message from controller ('%s')" % str(e))
+
 def command_exit(parms):
     """Exit from CLI"""
     check_args_count(parms, 0, 0)
@@ -141,7 +145,8 @@ def command_show_topology(parms):
 
     # XXX FIXME: Send proper message
     msg = "GET_TOPOLOGY"
-    send_handler(channel_2pox, msg)
+    response = send_handler(channel_2pox, msg)
+    log.debug("Received the following response: %s" % str(response))
 
 def command_help(parms):
     """Print this help"""

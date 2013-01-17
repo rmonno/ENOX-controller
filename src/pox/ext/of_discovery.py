@@ -81,6 +81,10 @@ class ReceiverHandler(threading.Thread):
                         log.debug("Initializing entity...")
                         self.__entity_create(topo._entities[i])
                 log.debug("TOPOLOGY='%s'" % str(self.test))
+                try:
+                    connections.message_send(self.__sock, str(topo))
+                except Exception, e:
+                    log.error("Cannot send response ('%s')" % str(e))
             except Exception, e:
                 log.error(e)
 
