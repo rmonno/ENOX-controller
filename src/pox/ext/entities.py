@@ -53,15 +53,20 @@ class OFSwitch(of_topology.OpenFlowSwitch):
         self.ports        = ports
         self.flow_table   = flow_table
         self.capabilities = caps
-        self_connection   = connection
+        self._connection  = connection
+        # XXX FIXME: Maybe useless for our scope
         self._listeners   = listeners
 
     def serialize(self):
         return pickle.dumps(self)
 
     def __str__(self):
-        ret = "OFSwitch(DPID='%s', PORTS='%s', FLOWTABLE='%s')" % \
+        ret = "OFSwitch(DPID='%s', PORTS='%s', FLOWTABLE='%s'," % \
                 (str(self.dpid),
                  str(self.ports),
-                 str(self.flow_table))
+                 str(self.flow_table.entries)) + \
+               "CAPS='%s', CONNS='%s', LISTNERS='%s')" % \
+                (str(self.capabilities),
+                 str(self._connection),
+                 str(self._listeners))
         return ret

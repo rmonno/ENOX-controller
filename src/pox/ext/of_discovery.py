@@ -136,7 +136,9 @@ def launch (shell = False, name = "topology"):
                   to extract and/or populated topology DB")
         options[name] = Receiver()
 
+    if 'openflow_discovery' not in core.components:
+        core.registerNew(discovery.Discovery)
+
     log.debug("Launching of_discovery component...")
-    #core.registerNew(Discovery_sample, "Discovery_sample")
     global discovery_sample
     discovery_sample = Discovery_sample("sample")
