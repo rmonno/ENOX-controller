@@ -128,8 +128,25 @@ def command_set_controller(parms):
     controller = Controller(address, port)
     log.debug("Set controller with the following params: %s" % str(controller))
 
+def command_show_info(parms):
+    """Get generic information from controller (debugging purposes)"""
+    check_args_count(parms, 0, 0)
+    if not controller.default:
+        log.debug("Controller is not configured yet. The following params " + \
+                  "will be used: %s" % str(controller))
+    channel_2pox = connections.Client("sock-client",
+                                       controller.address_get(),
+                                       controller.port_get())
+    log.debug("Trying to connect to controller %s:%d" % \
+              (str(controller.address_get()), int(controller.port_get())))
+
+    # XXX FIXME: Send proper message
+    msg = "GET_INFO"
+    response = send_handler(channel_2pox, msg)
+    log.debug("Received the following response: %s" % str(response))
+
 def command_show_topology(parms):
-    """Show DB"""
+    """Get topology information from controller"""
     check_args_count(parms, 0, 0)
 
     # XXX FIXME: Fill with proper values
@@ -172,6 +189,7 @@ command_handlers = {
 
     'set-controller' : command_set_controller,
     'show-topology'  : command_show_topology,
+    'show-info'      : command_show_info,
 }
 
 def dump_help():
