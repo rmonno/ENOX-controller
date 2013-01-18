@@ -57,6 +57,45 @@ class ReceiverHandler(threading.Thread):
         super(ReceiverHandler, self).__init__()
         self.__stop = threading.Event()
 
+    def msg_handle(self, msg):
+        assert(msg is not None)
+        if msg == "GET_TOPOLOGY":
+            log.debug("Got the following topology: %s" %
+                       str(discovery_sample.getTopology()))
+            topo = discovery_sample.getTopology()
+            # XXX FIXME: Move the following lines into a proper function...
+            for i in topo._entities.keys():
+                name = topo._entities[i].__class__.__name__
+                if name in ents.ents_supp.keys():
+                    log.debug("Got an '%s' entity" % str(name))
+                    log.debug("Initializing entity...")
+                    self.__entity_create(topo._entities[i])
+            log.debug("TOPOLOGY='%s'" % str(self.test))
+            return self.test
+
+        elif msg == "GET_INFO":
+            try:
+                log.debug("Received info_request message")
+                msg_request = of.ofp_stats_request()
+                msg_request.type = 3
+                print(msg_request.show())
+
+                if self.test is None:
+                    # XXX FIXME: Insert topology information retrieval
+                    log.error("Topology info has not been retrieved yet")
+                for dpid in self.test.of_switch_dpids_get():
+                    # Used sendToDPID method in the pox.pox.connection_arbiter
+                    # module
+                    log.debug("Sending stats_req msg to OF switch %d" % \
+                               int(dpid))
+                    core.openflow.sendToDPID(dpid, msg_request.pack())
+                    log.debug("Sent stats_req msg to OF switch %d" % int(dpid))
+                    return("HELLO")
+            except Exception, e:
+                log.error("Cannot get requested info ('%s')" % str(e))
+        else:
+            log.debug("Cannot handle this message")
+
     def run(self):
         assert(self.__name is not None)
         assert(self.__sock is not None)
@@ -71,18 +110,9 @@ class ReceiverHandler(threading.Thread):
                 if len(message) == 0:
                     continue
                 log.debug("Received the following message: %s" % str(message))
-                log.debug("Got the following topology: %s" %
-                           str(discovery_sample.getTopology()))
-                topo = discovery_sample.getTopology()
-                for i in topo._entities.keys():
-                    name = topo._entities[i].__class__.__name__
-                    if name in ents.ents_supp.keys():
-                        log.debug("Got an '%s' entity" % str(name))
-                        log.debug("Initializing entity...")
-                        self.__entity_create(topo._entities[i])
-                log.debug("TOPOLOGY='%s'" % str(self.test))
+                resp = self.msg_handle(message)
                 try:
-                    connections.message_send(self.__sock, str(topo))
+                    connections.message_send(self.__sock, str(resp))
                 except Exception, e:
                     log.error("Cannot send response ('%s')" % str(e))
             except Exception, e:
@@ -146,3 +176,16 @@ def launch (shell = False, name = "topology"):
     log.debug("Launching of_discovery component...")
     global discovery_sample
     discovery_sample = Discovery_sample("sample")
+
+    def flow_stats_recv(event):
+        log.debug("Received flow_stats msg...")
+
+    def table_stats_recv(event):
+        log.debug("Received table_stats msg...")
+
+    def switch_desc_recv(event):
+        log.debug("Received switch_desc msg...")
+
+    core.openflow.addListenerByName("FlowStatsReceived",  flow_stats_recv)
+    core.openflow.addListenerByName("TableStatsReceived", table_stats_recv)
+    core.openflow.addListenerByName("SwitchDescReceived", switch_desc_recv)

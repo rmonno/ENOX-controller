@@ -30,6 +30,9 @@ class Topology(object):
     def add_ofswitch(self, ofswitch):
         self.ofswitches[ofswitch.dpid] = ofswitch
 
+    def of_switch_dpids_get(self):
+        return self.ofswitches.keys()
+
     def serialize(self):
         serialized = { }
         # XXX FIXME: Return all serialized dictionaries (also hosts and links)
