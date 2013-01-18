@@ -73,12 +73,32 @@ class ReceiverHandler(threading.Thread):
             log.debug("TOPOLOGY='%s'" % str(self.test))
             return self.test
 
-        elif msg == "GET_INFO":
+        # XXX FIXME: Merge GET_ENTRY_INFO with GET_TABLE_INFO
+        elif msg == "GET_ENTRIES":
             try:
-                log.debug("Received info_request message")
+                log.debug("Received info_request for entries")
+                msg_request = of.ofp_stats_request()
+                msg_request.type = 1
+
+                if self.test is None:
+                    # XXX FIXME: Insert topology information retrieval
+                    log.error("Topology info has not been retrieved yet")
+                for dpid in self.test.of_switch_dpids_get():
+                    # Used sendToDPID method in the pox.pox.connection_arbiter
+                    # module
+                    log.debug("Sending stats_req msg to OF switch %d" % \
+                               int(dpid))
+                    core.openflow.sendToDPID(dpid, msg_request.pack())
+                    log.debug("Sent stats_req msg to OF switch %d" % int(dpid))
+                    return("HELLO")
+            except Exception, e:
+                log.error("Cannot get requested info ('%s')" % str(e))
+
+        elif msg == "GET_TABLES":
+            try:
+                log.debug("Received info_request for tables")
                 msg_request = of.ofp_stats_request()
                 msg_request.type = 3
-                print(msg_request.show())
 
                 if self.test is None:
                     # XXX FIXME: Insert topology information retrieval

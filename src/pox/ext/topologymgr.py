@@ -128,8 +128,8 @@ def command_set_controller(parms):
     controller = Controller(address, port)
     log.debug("Set controller with the following params: %s" % str(controller))
 
-def command_show_info(parms):
-    """Get generic information from controller (debugging purposes)"""
+def command_show_tables(parms):
+    """Get flow tables information from controller"""
     check_args_count(parms, 0, 0)
     if not controller.default:
         log.debug("Controller is not configured yet. The following params " + \
@@ -141,7 +141,24 @@ def command_show_info(parms):
               (str(controller.address_get()), int(controller.port_get())))
 
     # XXX FIXME: Send proper message
-    msg = "GET_INFO"
+    msg = "GET_TABLES"
+    response = send_handler(channel_2pox, msg)
+    log.debug("Received the following response: %s" % str(response))
+
+def command_show_entries(parms):
+    """Get flow entries information from controller"""
+    check_args_count(parms, 0, 0)
+    if not controller.default:
+        log.debug("Controller is not configured yet. The following params " + \
+                  "will be used: %s" % str(controller))
+    channel_2pox = connections.Client("sock-client",
+                                       controller.address_get(),
+                                       controller.port_get())
+    log.debug("Trying to connect to controller %s:%d" % \
+              (str(controller.address_get()), int(controller.port_get())))
+
+    # XXX FIXME: Send proper message
+    msg = "GET_ENTRIES"
     response = send_handler(channel_2pox, msg)
     log.debug("Received the following response: %s" % str(response))
 
@@ -183,13 +200,14 @@ def command_help(parms):
         log.info(("  %-" + str(maxl) + "s    %s") % (k, h))
 
 command_handlers = {
-    'exit'           : command_exit,
-    'help'           : command_help,
-    '?'              : command_help,
+    'exit'            : command_exit,
+    'help'            : command_help,
+    '?'               : command_help,
 
-    'set-controller' : command_set_controller,
-    'show-topology'  : command_show_topology,
-    'show-info'      : command_show_info,
+    'set-controller'  : command_set_controller,
+    'show-topology'   : command_show_topology,
+    'show-tables'     : command_show_tables,
+    'show-entries'    : command_show_entries,
 }
 
 def dump_help():
