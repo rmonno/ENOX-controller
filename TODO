@@ -6,5 +6,7 @@
 * of_discovery application:
     * Verify the correct retrieval of the flow tables for all connected OF
       switches
+        ** Send stats_request message (with type = 3 for all tables and with
+           type = 1 for all flow entries)
     * Verify the correct values for adjacences (i.e. _connection member of the
       OFSwitch class)
