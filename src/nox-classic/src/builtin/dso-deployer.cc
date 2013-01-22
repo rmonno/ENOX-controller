@@ -85,11 +85,8 @@ DSO_deployer::DSO_deployer(Kernel* kernel, const list<string>& lib_dirs_)
     
     BOOST_FOREACH(path p, description_files) {
         const string f = p.string();
-        path directory_path = p;
-        directory_path.remove_leaf();
-        string directory = directory_path.string();
-        if (directory.length() > 0 && *(directory.end() - 1) != '/')
-          directory += '/';
+        path directory = p;
+        directory.remove_leaf();
     
         const json_object* d = json::load_document(f);
         if (d->type == json_object::JSONT_NULL) {
@@ -104,7 +101,7 @@ DSO_deployer::DSO_deployer(Kernel* kernel, const list<string>& lib_dirs_)
         for(li=componentList->begin(); li!=componentList->end(); ++li) {
             try {
                 Component_context* ctxt = 
-                    new DSO_component_context(kernel, directory, *li);
+                    new DSO_component_context(kernel, directory.string(), *li);
                 if (uninstalled_contexts.find(ctxt->get_name()) ==
                     uninstalled_contexts.end()) {
                     uninstalled_contexts[ctxt->get_name()] = ctxt;

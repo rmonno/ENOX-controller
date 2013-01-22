@@ -78,7 +78,7 @@ class vlan(packet_base):
     def parse(self):
         dlen = len(self.arr)
         if dlen < vlan.MIN_LEN:
-            self.msg('(vlan parse) warning VLAN packet data too short to parse header: data len %u' % dlen)
+            print '(vlan parse) warning VLAN packet data too short to parse header: data len %u' % dlen
             return 
 
         (pcpid, self.eth_type) = struct.unpack("!HH", \

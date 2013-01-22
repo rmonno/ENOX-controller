@@ -202,8 +202,7 @@ namespace vigil
 	hostlocation.erase(i);	
     }
     else
-      VLOG_DBG(lg, "Host %"PRIx64" has no location, cannot unset.",
-               host.hb_long());
+      VLOG_DBG(lg, "Host %"PRIx64" has no location, cannot unset.");
   }
 
   const hosttracker::location hosttracker::get_latest_location(ethernetaddr host)

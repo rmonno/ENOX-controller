@@ -80,7 +80,7 @@ void vigil_test_errback(PyObject* err) {
 
 // used to allow python tests to be asynchronous.  if a python test
 // returns a deferred, then the testing infrastructure will wait until
-// for a callback on that deferred before continuing. 
+// for a callback on that deferred before continuing.
 void vigil_test_callback(PyObject*) {
     sem->up();
 }
@@ -92,17 +92,17 @@ namespace {
 
 #ifdef TWISTED_ENABLED
 
-class PyFixture 
-    : public PyComponent { 
+class PyFixture
+    : public PyComponent {
 public:
-    PyFixture(const Context* ctxt, 
-              PyObject* pyt) 
+    PyFixture(const Context* ctxt,
+              PyObject* pyt)
         : PyComponent(ctxt, pyt) {
         test_result = 0;
         errback = 0;
         callback = 0;
     }
-    
+
     void testPython() {
         // Construct a twisted.trial.reporter.TestResult object
         PyObject* n = PyString_FromString("twisted/trial/reporter");
@@ -111,25 +111,25 @@ public:
             PyErr_Print();
             PyErr_Clear();
             BOOST_FAIL("Unable to import twisted.trial.reporter.");
-        }        
+        }
 
         PyObject* f = PyObject_GetAttrString(m, (char*)"TestResult");
-        BOOST_REQUIRE_MESSAGE(f && PyCallable_Check(f), 
+        BOOST_REQUIRE_MESSAGE(f && PyCallable_Check(f),
                               "Unable to find twisted.trial."
                               "reporter.TestResult class");
 
         test_result = PyObject_CallObject(f, NULL);
-        BOOST_REQUIRE_MESSAGE(test_result, 
+        BOOST_REQUIRE_MESSAGE(test_result,
                               "Unable to construct a twisted.trial."
                               "reporter.TestResult.");
-        
+
         n = PyString_FromString("nox.netapps.tests.pytests");
         m = PyImport_Import(n);
         if (PyErr_Occurred()) {
             PyErr_Print();
             PyErr_Clear();
             BOOST_FAIL("Unable to import nox.netapps.tests.pytests.");
-        }        
+        }
 
         callback = PyObject_GetAttrString(m, (char*)"vigil_test_callback");
         errback  = PyObject_GetAttrString(m, (char*)"vigil_test_errback");
@@ -146,26 +146,26 @@ public:
         // determine the type of the test case (blocking
         // vs. non-blocking).
         PyObject* run = PyString_FromString("run");
-        PyObject* d = 
+        PyObject* d =
             PyObject_CallMethodObjArgs(pyobj, run, test_result, 0);
         Py_XDECREF(run);
         if (PyErr_Occurred()) {
             PyErr_Print();
             PyErr_Clear();
-            
+
             Py_XDECREF(d);
             BOOST_FAIL("Unable to execute Python TestCase.run()");
-            
+
         } else if (d == Py_None) {
             // Test run complete, there is no deferral to wait on.
             Py_XDECREF(d);
             sem->up();
-            
+
         } else {
-            // It's a Twisted deferred. Set the timer, add our combined 
+            // It's a Twisted deferred. Set the timer, add our combined
             // callback / errback to determine test run completion.
             PyObject* n = PyString_FromString("addCallbacks");
-            PyObject* r = PyObject_CallMethodObjArgs(d, n, callback, 
+            PyObject* r = PyObject_CallMethodObjArgs(d, n, callback,
                                                      errback, 0);
             Py_XDECREF(r);
             Py_XDECREF(n);
@@ -175,21 +175,21 @@ public:
                 PyErr_Print();
                 PyErr_Clear();
                 BOOST_FAIL("Unable to call Deferred.addCallbacks()");
-            }            
+            }
         }
-        
+
         // wait for deferal to complete
         sem->down();
 
         // Inspect the results
-        PyObject* failures = PyObject_GetAttrString(test_result, 
+        PyObject* failures = PyObject_GetAttrString(test_result,
                                                     (char*)"failures");
         if (PyList_Size(failures) > 0) {
             PyObject* failure_tuple = PyList_GetItem(failures, 0);
             PyObject* failure_failure = PyTuple_GetItem(failure_tuple, 1);
 
             Py_XDECREF(d);
-            PyObject* f = PyObject_GetAttrString(failure_failure, 
+            PyObject* f = PyObject_GetAttrString(failure_failure,
                                                  (char*)"getBriefTraceback");
             PyObject* traceback = PyObject_CallObject(f, 0);
             Py_DECREF(f);
@@ -209,7 +209,7 @@ public:
             PyObject* error_failure = PyTuple_GetItem(error_tuple, 1);
 
             Py_XDECREF(d);
-            PyObject* f = PyObject_GetAttrString(error_failure, 
+            PyObject* f = PyObject_GetAttrString(error_failure,
                                                  (char*)"getBriefTraceback");
             PyObject* traceback = PyObject_CallObject(f, 0);
             Py_DECREF(f);
@@ -221,20 +221,20 @@ public:
                 throw;
             }
         }
-        
+
         Py_DECREF(errors);
         Py_XDECREF(test_result);
         Py_XDECREF(callback);
         Py_XDECREF(errback);
     }
-    
+
 private:
     PyObject* test_result;
     PyObject* callback;
     PyObject* errback;
-};  
+};
 
-static Component* get_fixture_instance(PyObject* pyt, const Context* c, 
+static Component* get_fixture_instance(PyObject* pyt, const Context* c,
                                        const json_object* xml) {
     return new PyFixture(c, pyt);
 }
@@ -245,11 +245,11 @@ class Tests
     : public Component {
 public:
     Tests(const Context* c,
-          const json_object*) 
+          const json_object*)
         : Component(c), stream(&std::cerr) {
     }
 
-    ~Tests() { 
+    ~Tests() {
 
     }
 
@@ -297,7 +297,7 @@ private:
             PyErr_Clear();
             throw runtime_error("Could not retrieve a Python context module");
         }
-        
+
         PyContext* p = new PyContext(const_cast<Context*>(ctxt), this,
                                      new Python_event_manager());
         swig_type_info* s = SWIG_TypeQuery("_p_vigil__applications__PyContext");
@@ -305,8 +305,9 @@ private:
             Py_DECREF(m);
             throw runtime_error("Could not find PyContext SWIG type_info.");
         }
-        
-        PyObject* pyctxt = SWIG_Python_NewPointerObj(p, s, 0);
+
+        //PyObject* pyctxt = SWIG_Python_NewPointerObj(p, s, 0);
+        PyObject* pyctxt = SWIG_Python_NewPointerObj(m, p, s, 0);
         assert(pyctxt);
 
         Py_DECREF(m);
@@ -316,15 +317,15 @@ private:
             PyErr_Print();
             PyErr_Clear();
             throw runtime_error("Unable to import nox.netapps.tests.unittest.");
-        }        
+        }
 
         PyObject* g = PyModule_GetDict(m);
-        
-        PyObject* f = PyDict_GetItemString(g, (char*)"gather_tests");    
+
+        PyObject* f = PyDict_GetItemString(g, (char*)"gather_tests");
         PyObject* t = PyTuple_New(2);
         PyTuple_SetItem(t, 0, to_python_tuple(args));
         PyTuple_SetItem(t, 1, pyctxt);
-        
+
         PyObject* test_suites = PyObject_CallObject(f, t);
         Py_DECREF(t);
         Py_DECREF(m);
@@ -332,32 +333,32 @@ private:
             PyErr_Print();
             PyErr_Clear();
             throw runtime_error("Unable to gather the Python unit tests.");
-        }        
-        
+        }
+
         // Convert the Python test suites to Boost.Test test suites.
         vector<test_case*> ts;
-        while (PyList_Size(test_suites) > 0) { 
+        while (PyList_Size(test_suites) > 0) {
             // Pop up the next test case to run.
             PyObject* test_suite = PyList_GetItem(test_suites, 0);
             PyObject* test_module_name = PyTuple_GetItem(test_suite, 0);
             PyObject* test_module_cases = PyTuple_GetItem(test_suite, 1);
-            
+
             for (int i = 0; i < PyList_Size(test_module_cases); ++i) {
                 PyObject* test_case = PyList_GetItem(test_module_cases, i);
                 PyObject* test_method_getter = PyString_FromString("getTestMethodName");
-                PyObject* test_method_name = 
+                PyObject* test_method_name =
                     PyObject_CallMethodObjArgs(test_case, test_method_getter, 0);
                 if (PyErr_Occurred()) {
                     PyErr_Print();
                     PyErr_Clear();
                     throw runtime_error("Unable to get method name");
-                }                   
-                
+                }
+
                 Py_DECREF(test_method_getter);
 
                 // Wrap the Python test case into PyComponent and
                 // deploy it into the container.
-                string test_name = 
+                string test_name =
                     string(PyString_AsString(test_module_name)) + "." +
                     string(PyString_AsString(test_method_name));
 
@@ -367,11 +368,11 @@ private:
                          (ctxt->get_kernel(), test_name,
                           boost::bind(&get_fixture_instance, test_case, _1, _2),
                           typeid(PyComponent).name(), 0), INSTALLED);
-                    PyFixture* pf = 
+                    PyFixture* pf =
                         dynamic_cast<PyFixture*>(ctxt->get_by_name(test_name));
                     assert(pf);
                     ts.push_back(new boost::unit_test::
-                                 test_case(test_name, 
+                                 test_case(test_name,
                                            boost::bind(&PyFixture::testPython,
                                                        pf)));
                 }
@@ -380,22 +381,22 @@ private:
                     throw runtime_error("Unable to install Python test case: " +
                                         string(e.what()));
                 }
-                
+
                 Py_DECREF(test_method_name);
             }
 
-            PyObject* new_test_suites = 
+            PyObject* new_test_suites =
                 PyList_GetSlice(test_suites, 1, PyList_Size(test_suites));
             Py_DECREF(test_suites);
             test_suites = new_test_suites;
         }
 
         Py_DECREF(test_suites);
-        
+
         return ts;
     }
 #endif
-    
+
     void run(list<string> args) {
 #ifdef TWISTED_ENABLED
         vector<test_case*> test_cases = gather_python_tests(args);
@@ -407,18 +408,18 @@ private:
 #endif
 
         parameters.push_front("catch_system_errors=no");
-        
+
         // unit_test_main() expects argv[0] to be a program name, so
         // invent there something.
         int argc = 0;
         char *argv[parameters.size() + 1];
         argv[argc++] = const_cast<char*>("prog");
-        
-        for (deque<string>::const_iterator i = parameters.begin(); 
+
+        for (deque<string>::const_iterator i = parameters.begin();
              i != parameters.end(); ++i) {
             argv[argc++] = ::strdup(const_cast<char*>(("--" + *i).c_str()));
         }
-        
+
         int result = unit_test_main(&init_unit_test, argc, argv);
         stream->flush();
         exit(result);

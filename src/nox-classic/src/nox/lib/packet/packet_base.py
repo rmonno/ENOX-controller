@@ -51,8 +51,7 @@
 #         
 #
 
-import logging
-lg = logging.getLogger('packet')
+from twisted.python import log
 
 class packet_base:
     next = None 
@@ -60,13 +59,10 @@ class packet_base:
     parsed = False
 
     def msg(self, *args):
-        lg.info(*args)
+        log.msg(system='packet', *args)
 
     def err(self, *args):
-        lg.error(*args)
-
-    def warn(self, *args):
-        lg.warning(*args)
+        log.err(system='packet', *args)
 
     def __nonzero__(self):
         return self.parsed == True

@@ -17,6 +17,7 @@
  */
 
 %module "nox.netapps.authenticator.pyflowutil"
+%include "std_list.i"
 
 %{
 #include "core_events.hh"
@@ -49,7 +50,7 @@ struct Flow_in_event
     static const std::string static_get_name();
 
 %extend {
-    static void fill_python_event(const Event& e, PyObject* proxy) const 
+    static void fill_python_event(const Event& e, PyObject* proxy) const
     {
         const Flow_in_event& fi = dynamic_cast<const Flow_in_event&>(e);
 
@@ -83,12 +84,12 @@ struct Flow_in_event
     }
 
     static void register_event_converter(PyObject *ctxt) {
-        if (!SWIG_Python_GetSwigThis(ctxt) || 
+        if (!SWIG_Python_GetSwigThis(ctxt) ||
             !SWIG_Python_GetSwigThis(ctxt)->ptr) {
             throw std::runtime_error("Unable to access Python context.");
         }
-        
-        vigil::applications::PyContext* pyctxt = 
+
+        vigil::applications::PyContext* pyctxt =
             (vigil::applications::PyContext*)SWIG_Python_GetSwigThis(ctxt)->ptr;
         pyctxt->register_event_converter<Flow_in_event>
             (&Flow_in_event_fill_python_event);
@@ -188,7 +189,7 @@ public:
         def __init__(self, ctxt):
             Component.__init__(self, ctxt)
             self.flowutil = PyFlow_util(ctxt)
-        
+
         def configure(self, configuration):
             self.flowutil.configure(configuration)
             Flow_in_event.register_event_converter(self.ctxt)

@@ -28,12 +28,8 @@ import pox.openflow.libopenflow_01 as of
 import pox.openflow.discovery      as discovery
 import entities                    as ents
 
-import sys
 import time
 import connections
-
-from   omniORB import CORBA, PortableServer
-import idl.Topology, idl.Topology__POA
 
 log = core.getLogger()
 
@@ -53,11 +49,6 @@ class Discovery_sample(discovery.Discovery):
 
 options = {}
 
-class Topology_i (Topology__POA.Configuration):
-    def getTopology(self, msg):
-        print "getTopology() called with message:", msg
-        return msg
-
 class ReceiverHandler(threading.Thread):
     def __init__(self, name = None, sock = None):
         self.__name = name
@@ -65,6 +56,11 @@ class ReceiverHandler(threading.Thread):
         log.debug("Initializing ReceiverHandler....")
         super(ReceiverHandler, self).__init__()
         self.__stop = threading.Event()
+
+    def prova(event):
+        print("CIAO")
+        print(str(event))
+        print("CIAO2")
 
     def msg_handle(self, msg):
         assert(msg is not None)
@@ -82,33 +78,10 @@ class ReceiverHandler(threading.Thread):
             log.debug("TOPOLOGY='%s'" % str(self.test))
             return self.test
 
-        # XXX FIXME: Merge GET_ENTRY_INFO with GET_TABLE_INFO
-        elif msg == "GET_ENTRIES":
+        elif msg == "GET_INFO":
             try:
-                log.debug("Received info_request for entries")
-                msg_request = of.ofp_stats_request()
-                msg_request.type = 1
-
-                if self.test is None:
-                    # XXX FIXME: Insert topology information retrieval
-                    log.error("Topology info has not been retrieved yet")
-                for dpid in self.test.of_switch_dpids_get():
-                    # Used sendToDPID method in the pox.pox.connection_arbiter
-                    # module
-                    log.debug("Sending stats_req msg to OF switch %d" % \
-                               int(dpid))
-                    core.openflow.sendToDPID(dpid, msg_request.pack())
-                    log.debug("Sent stats_req msg to OF switch %d" % int(dpid))
-                    return("HELLO")
-            except Exception, e:
-                log.error("Cannot get requested info ('%s')" % str(e))
-
-        elif msg == "GET_TABLES":
-            try:
-                log.debug("Received info_request for tables")
-                msg_request = of.ofp_stats_request()
-                msg_request.type = 3
-
+                log.debug("Received info_request message")
+                msg_request = of.ofp_flow_stats_request()
                 if self.test is None:
                     # XXX FIXME: Insert topology information retrieval
                     log.error("Topology info has not been retrieved yet")
@@ -131,16 +104,6 @@ class ReceiverHandler(threading.Thread):
         self.test = ents.Topology()
         log.debug("ReceiverHandler '%s' started" % str(self.__name))
         log.debug("ReceiverHandler '%s' is listening mode" % self.__name)
-
-        # Corba server
-        orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
-        poa = orb.resolve_initial_references("RootPOA")
-        topo_int = Topology_i()
-        topo_obj = ei._this()
-        print orb.object_to_string(topo_obj)
-        poaManager = poa._get_the_POAManager()
-        poaManager.activate()
-        orb.run()
 
         while not self.__stop.is_set():
             try:
@@ -216,15 +179,9 @@ def launch (shell = False, name = "topology"):
     global discovery_sample
     discovery_sample = Discovery_sample("sample")
 
-    def flow_stats_recv(event):
-        log.debug("Received flow_stats msg...")
+    def prova(event):
+        print("CIAO")
+        print(str(event))
+        print("CIAO2")
 
-    def table_stats_recv(event):
-        log.debug("Received table_stats msg...")
-
-    def switch_desc_recv(event):
-        log.debug("Received switch_desc msg...")
-
-    core.openflow.addListenerByName("FlowStatsReceived",  flow_stats_recv)
-    core.openflow.addListenerByName("TableStatsReceived", table_stats_recv)
-    core.openflow.addListenerByName("SwitchDescReceived", switch_desc_recv)
+    core.openflow.addListenerByName("RawStatsReply", prova)

@@ -17,6 +17,7 @@
  */
 
 %module "nox.netapps.topology"
+%include "std_list.i"
 
 %{
 #include "pytopology.hh"
@@ -35,9 +36,7 @@ struct PyLinkPorts {
     uint16_t dst;
 };
 
-
 %template(LLinkSet) std::list<PyLinkPorts>;
-%template(DPIDList) std::list<datapathid>;
 
 class pytopology_proxy{
 public:
@@ -49,10 +48,8 @@ public:
 
     std::list<PyLinkPorts> get_outlinks(datapathid dpsrc, datapathid dpdst) const;
     bool is_internal(datapathid dp, uint16_t port) const;
-    std::list<datapathid> get_datapaths() const;
-    std::list<datapathid> get_neighbors(datapathid dpsrc) const;
 
-protected:   
+protected:
 
     topology* topo;
     container::Component* c;
@@ -67,7 +64,7 @@ class pytopology(Component):
     """
     An adaptor over the C++ based Python bindings to
     simplify their implementation.
-    """  
+    """
     def __init__(self, ctxt):
         self.pytop = pytopology_proxy(ctxt)
 
@@ -86,17 +83,11 @@ class pytopology(Component):
     def is_internal(self, dp, port):
         return self.pytop.is_internal(dp, port)
 
-    def get_datapaths(self):
-        return self.pytop.get_datapaths()
-
-    def get_neighbors(self, dpsrc):
-        return self.pytop.get_neighbors(dpsrc)
-
 
 def getFactory():
     class Factory():
         def instance(self, context):
-                    
+
             return pytopology(context)
 
     return Factory()

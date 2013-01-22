@@ -16,6 +16,7 @@
  * along with NOX.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+%include "std_list.i"
 %module "nox.netapps.authenticator.pyauth"
 
 %{
@@ -115,7 +116,7 @@ struct Host_auth_event
     Host_event::Reason  reason;
 
 %extend {
-    static void fill_python_event(const Event& e, PyObject* proxy) const 
+    static void fill_python_event(const Event& e, PyObject* proxy) const
     {
         const Host_auth_event& ha = dynamic_cast<const Host_auth_event&>(e);
 
@@ -135,12 +136,12 @@ struct Host_auth_event
     }
 
     static void register_event_converter(PyObject *ctxt) {
-        if (!SWIG_Python_GetSwigThis(ctxt) || 
+        if (!SWIG_Python_GetSwigThis(ctxt) ||
             !SWIG_Python_GetSwigThis(ctxt)->ptr) {
             throw std::runtime_error("Unable to access Python context.");
         }
-        
-        vigil::applications::PyContext* pyctxt = 
+
+        vigil::applications::PyContext* pyctxt =
             (vigil::applications::PyContext*)SWIG_Python_GetSwigThis(ctxt)->ptr;
         pyctxt->register_event_converter<Host_auth_event>
             (&Host_auth_event_fill_python_event);
@@ -185,7 +186,7 @@ struct Host_bind_event
     Host_event::Reason  reason;
 
 %extend {
-    static void fill_python_event(const Event& e, PyObject* proxy) const 
+    static void fill_python_event(const Event& e, PyObject* proxy) const
     {
         const Host_bind_event& hb = dynamic_cast<const Host_bind_event&>(e);
 
@@ -204,12 +205,12 @@ struct Host_bind_event
     }
 
     static void register_event_converter(PyObject *ctxt) {
-        if (!SWIG_Python_GetSwigThis(ctxt) || 
+        if (!SWIG_Python_GetSwigThis(ctxt) ||
             !SWIG_Python_GetSwigThis(ctxt)->ptr) {
             throw std::runtime_error("Unable to access Python context.");
         }
-        
-        vigil::applications::PyContext* pyctxt = 
+
+        vigil::applications::PyContext* pyctxt =
             (vigil::applications::PyContext*)SWIG_Python_GetSwigThis(ctxt)->ptr;
         pyctxt->register_event_converter<Host_bind_event>
             (&Host_bind_event_fill_python_event);
@@ -239,7 +240,7 @@ struct Host_join_event
     Host_event::Reason  reason;
 
 %extend {
-    static void fill_python_event(const Event& e, PyObject* proxy) const 
+    static void fill_python_event(const Event& e, PyObject* proxy) const
     {
         const Host_join_event& hj = dynamic_cast<const Host_join_event&>(e);
 
@@ -251,12 +252,12 @@ struct Host_join_event
     }
 
     static void register_event_converter(PyObject *ctxt) {
-        if (!SWIG_Python_GetSwigThis(ctxt) || 
+        if (!SWIG_Python_GetSwigThis(ctxt) ||
             !SWIG_Python_GetSwigThis(ctxt)->ptr) {
             throw std::runtime_error("Unable to access Python context.");
         }
-        
-        vigil::applications::PyContext* pyctxt = 
+
+        vigil::applications::PyContext* pyctxt =
             (vigil::applications::PyContext*)SWIG_Python_GetSwigThis(ctxt)->ptr;
         pyctxt->register_event_converter<Host_join_event>
             (&Host_join_event_fill_python_event);
@@ -305,7 +306,7 @@ struct User_auth_event
     User_event::Reason  reason;
 
 %extend {
-    static void fill_python_event(const Event& e, PyObject* proxy) const 
+    static void fill_python_event(const Event& e, PyObject* proxy) const
     {
         const User_auth_event& ua = dynamic_cast<const User_auth_event&>(e);
 
@@ -320,12 +321,12 @@ struct User_auth_event
     }
 
     static void register_event_converter(PyObject *ctxt) {
-        if (!SWIG_Python_GetSwigThis(ctxt) || 
+        if (!SWIG_Python_GetSwigThis(ctxt) ||
             !SWIG_Python_GetSwigThis(ctxt)->ptr) {
             throw std::runtime_error("Unable to access Python context.");
         }
-        
-        vigil::applications::PyContext* pyctxt = 
+
+        vigil::applications::PyContext* pyctxt =
             (vigil::applications::PyContext*)SWIG_Python_GetSwigThis(ctxt)->ptr;
         pyctxt->register_event_converter<User_auth_event>
             (&User_auth_event_fill_python_event);
@@ -356,7 +357,7 @@ struct User_join_event
     User_event::Reason  reason;
 
 %extend {
-    static void fill_python_event(const Event& e, PyObject* proxy) const 
+    static void fill_python_event(const Event& e, PyObject* proxy) const
     {
         const User_join_event& uj = dynamic_cast<const User_join_event&>(e);
 
@@ -373,8 +374,8 @@ struct User_join_event
             !SWIG_Python_GetSwigThis(ctxt)->ptr) {
             throw std::runtime_error("Unable to access Python context.");
         }
-        
-        vigil::applications::PyContext* pyctxt = 
+
+        vigil::applications::PyContext* pyctxt =
             (vigil::applications::PyContext*)SWIG_Python_GetSwigThis(ctxt)->ptr;
         pyctxt->register_event_converter<User_join_event>
             (&User_join_event_fill_python_event);
@@ -404,7 +405,7 @@ struct Switch_bind_event
     int64_t             switchname;
 
 %extend {
-    static void fill_python_event(const Event& e, PyObject* proxy) const 
+    static void fill_python_event(const Event& e, PyObject* proxy) const
     {
         const Switch_bind_event& sj = dynamic_cast<const Switch_bind_event&>(e);
 
@@ -416,12 +417,12 @@ struct Switch_bind_event
     }
 
     static void register_event_converter(PyObject *ctxt) {
-        if (!SWIG_Python_GetSwigThis(ctxt) || 
+        if (!SWIG_Python_GetSwigThis(ctxt) ||
             !SWIG_Python_GetSwigThis(ctxt)->ptr) {
             throw std::runtime_error("Unable to access Python context.");
         }
-        
-        vigil::applications::PyContext* pyctxt = 
+
+        vigil::applications::PyContext* pyctxt =
             (vigil::applications::PyContext*)SWIG_Python_GetSwigThis(ctxt)->ptr;
         pyctxt->register_event_converter<Switch_bind_event>
             (&Switch_bind_event_fill_python_event);
@@ -438,7 +439,7 @@ struct Switch_bind_event
         def __init__(self, ctxt):
             Component.__init__(self, ctxt)
             self.authenticator = PyAuthenticator(ctxt)
-        
+
         def configure(self, configuration):
             self.authenticator.configure(configuration)
             Host_auth_event.register_event_converter(self.ctxt)
@@ -480,7 +481,7 @@ struct Switch_bind_event
 
         def principal_updated(self, ptype, id, poison):
             self.authenticator.principal_updated(ptype, id, poison)
-            
+
         def groups_updated(self, ids, poison):
             self.authenticator.groups_updated(ids, poison)
 

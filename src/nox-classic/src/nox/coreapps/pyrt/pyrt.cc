@@ -38,17 +38,13 @@
 #include "desc-stats-in.hh"
 #include "table-stats-in.hh"
 #include "port-stats-in.hh"
-#include "flow-stats-in.hh"
-#include "queue-stats-in.hh"
 #include "flow-mod-event.hh"
 #include "flow-removed.hh"
 #include "packet-in.hh"
 #include "port-status.hh"
-#include "barrier-reply.hh"
 #include "pyevent.hh"
 #include "pyglue.hh"
 #include "shutdown-event.hh"
-#include "error-event.hh"
 
 #include "dso-deployer.hh"
 #include "fault.hh"
@@ -100,7 +96,7 @@ const string pretty_print_python_exception() {
         Py_XDECREF(ptraceback);
         return "unable to import 'traceback' module and parse the exception";
     }
-    
+
     /* d is borrowed from GetDict, don't DECREF */
     PyObject* d = PyModule_GetDict(m);
     if (!d){
@@ -175,7 +171,7 @@ const string pretty_print_python_exception() {
 }
 
 static void convert_datapath_join(const Event& e, PyObject* proxy) {
-    const Datapath_join_event& sfe 
+    const Datapath_join_event& sfe
                 = dynamic_cast<const Datapath_join_event&>(e);
 
     pyglue_setattr_string(proxy, "datapath_id", to_python(sfe.datapath_id));
@@ -189,7 +185,7 @@ static void convert_datapath_join(const Event& e, PyObject* proxy) {
 }
 
 static void convert_switch_mgr_join(const Event& e, PyObject* proxy) {
-    const Switch_mgr_join_event& smje 
+    const Switch_mgr_join_event& smje
                 = dynamic_cast<const Switch_mgr_join_event&>(e);
 
     pyglue_setattr_string(proxy, "mgmt_id", to_python(smje.mgmt_id));
@@ -197,7 +193,7 @@ static void convert_switch_mgr_join(const Event& e, PyObject* proxy) {
 }
 
 static void convert_switch_mgr_leave(const Event& e, PyObject* proxy) {
-    const Switch_mgr_leave_event& smle 
+    const Switch_mgr_leave_event& smle
                 = dynamic_cast<const Switch_mgr_leave_event&>(e);
 
     pyglue_setattr_string(proxy, "mgmt_id", to_python(smle.mgmt_id));
@@ -205,7 +201,7 @@ static void convert_switch_mgr_leave(const Event& e, PyObject* proxy) {
 }
 
 static void convert_table_stats_in(const Event& e, PyObject* proxy) {
-    const Table_stats_in_event& tsi 
+    const Table_stats_in_event& tsi
                 = dynamic_cast<const Table_stats_in_event&>(e);
 
     pyglue_setattr_string(proxy, "xid", to_python(tsi.xid()));
@@ -216,7 +212,7 @@ static void convert_table_stats_in(const Event& e, PyObject* proxy) {
 }
 
 static void convert_aggregate_stats_in(const Event& e, PyObject* proxy) {
-    const Aggregate_stats_in_event& asi 
+    const Aggregate_stats_in_event& asi
                 = dynamic_cast<const Aggregate_stats_in_event&>(e);
 
     pyglue_setattr_string(proxy, "xid", to_python(asi.xid()));
@@ -229,7 +225,7 @@ static void convert_aggregate_stats_in(const Event& e, PyObject* proxy) {
 }
 
 static void convert_desc_stats_in(const Event& e, PyObject* proxy) {
-    const Desc_stats_in_event& dsi 
+    const Desc_stats_in_event& dsi
                 = dynamic_cast<const Desc_stats_in_event&>(e);
 
     pyglue_setattr_string(proxy, "datapath_id",  to_python(dsi.datapath_id));
@@ -243,7 +239,7 @@ static void convert_desc_stats_in(const Event& e, PyObject* proxy) {
 }
 
 static void convert_port_stats_in(const Event& e, PyObject* proxy) {
-    const Port_stats_in_event& psi 
+    const Port_stats_in_event& psi
                 = dynamic_cast<const Port_stats_in_event&>(e);
 
     pyglue_setattr_string(proxy, "xid", to_python(psi.xid()));
@@ -253,32 +249,8 @@ static void convert_port_stats_in(const Event& e, PyObject* proxy) {
     ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
 }
 
-static void convert_flow_stats_in(const Event& e, PyObject* proxy) {
-  const Flow_stats_in_event& fsi
-               = dynamic_cast<const Flow_stats_in_event&>(e);
-  
-  pyglue_setattr_string(proxy, "xid", to_python(fsi.xid()));
-  pyglue_setattr_string(proxy, "datapath_id", to_python(fsi.datapath_id));
-  pyglue_setattr_string(proxy, "more", to_python(fsi.more));
-  pyglue_setattr_string(proxy, "flows"    , to_python<vector<Flow_stats> >(fsi.flows));
-  // Check whether an empty flow list should really be empty
-  pyglue_setattr_string(proxy, "flowcount", to_python(fsi.flows.size()));
-
-  ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
-}
-
-static void convert_queue_stats_in(const Event& e, PyObject* proxy) {
-  const Queue_stats_in_event& qsi
-               = dynamic_cast<const Queue_stats_in_event&>(e);
-  pyglue_setattr_string(proxy, "xid", to_python(qsi.xid()));
-  pyglue_setattr_string(proxy, "datapath_id", to_python(qsi.datapath_id));
-  pyglue_setattr_string(proxy, "queues"    , to_python<vector<Queue_stats> >(qsi.queues));
-
-  ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
-}
-
 static void convert_datapath_leave(const Event&e, PyObject* proxy) {
-    const Datapath_leave_event& dple = 
+    const Datapath_leave_event& dple =
         dynamic_cast<const Datapath_leave_event&>(e);
 
     pyglue_setattr_string(proxy, "datapath_id", to_python(dple.datapath_id));
@@ -293,9 +265,6 @@ static void convert_bootstrap_complete(const Event&e, PyObject* proxy) {
 static void convert_flow_removed(const Event& e, PyObject* proxy) {
     const Flow_removed_event& fre = dynamic_cast<const Flow_removed_event&>(e);
 
-    pyglue_setattr_string(proxy, "datapath_id", to_python(fre.cookie));
-    pyglue_setattr_string(proxy, "priority", to_python(fre.priority));
-    pyglue_setattr_string(proxy, "reason", to_python(fre.reason));
     pyglue_setattr_string(proxy, "cookie", to_python(fre.cookie));
     pyglue_setattr_string(proxy, "duration_sec", to_python(fre.duration_sec));
     pyglue_setattr_string(proxy, "duration_nsec", to_python(fre.duration_nsec));
@@ -306,7 +275,7 @@ static void convert_flow_removed(const Event& e, PyObject* proxy) {
     pyglue_setattr_string(proxy, "flow", to_python(*fre.get_flow()));
 
     ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
-}   
+}
 
 static void convert_flow_mod(const Event& e, PyObject* proxy) {
     const Flow_mod_event& fme = dynamic_cast<const Flow_mod_event&>(e);
@@ -339,7 +308,7 @@ static void convert_port_status(const Event& e, PyObject* proxy) {
     pyglue_setattr_string(proxy, "datapath_id", to_python(pse.datapath_id));
 
     ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
-}   
+}
 
 static void convert_shutdown(const Event& e, PyObject* proxy) {
     //const Shutdown_event& se = dynamic_cast<const Shutdown_event&>(e);
@@ -347,38 +316,8 @@ static void convert_shutdown(const Event& e, PyObject* proxy) {
     ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
 }
 
-static void convert_barrier_reply(const Event& e, PyObject *proxy) {
-    const Barrier_reply_event &bre = dynamic_cast<const Barrier_reply_event&>(e);
-
-    pyglue_setattr_string(proxy, "datapath_id", to_python(bre.datapath_id));
-    pyglue_setattr_string(proxy, "xid", to_python(bre.xid()));
-
-    ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
-}
-
-static void convert_error(const Event& e, PyObject* proxy) {
-    const Error_event& ee = dynamic_cast<const Error_event&>(e);
-
-    pyglue_setattr_string(proxy, "datapath_id", to_python(ee.datapath_id));
-    pyglue_setattr_string(proxy, "xid",      to_python(ee.xid()));
-    pyglue_setattr_string(proxy, "type",     to_python(ee.type));
-    pyglue_setattr_string(proxy, "code",     to_python(ee.code));
-
-    size_t data_len = ee.get_buffer()->size();
-    if (data_len < sizeof(ofp_error_msg))
-        data_len = 0;
-    else
-        data_len -= sizeof(ofp_error_msg);
-
-    pyglue_setattr_string(proxy, "data",
-        Py_BuildValue((char*)"s#",
-            ee.get_buffer()->data() + sizeof(ofp_error_msg), data_len));
-
-    ((Event*)SWIG_Python_GetSwigThis(proxy)->ptr)->operator=(e);
-}
-
 PyRt::PyRt(const Context* c,
-           const json_object*) 
+           const json_object*)
     : Component(c), Deployer() {
     using namespace boost::filesystem;
 
@@ -389,14 +328,14 @@ PyRt::PyRt(const Context* c,
     // anyway.  The easiest way to deal with it is to save and restore
     // the SIGINT handler around Py_Initialize() and the initial
     // import of the signal module, so that's what we do.
-    // Extra Note: We also store and replace the handlers for TERM and HUP 
+    // Extra Note: We also store and replace the handlers for TERM and HUP
     struct sigaction sa_term,sa_int,sa_hup;
     sigaction(SIGTERM, NULL, &sa_term);
     sigaction(SIGINT, NULL, &sa_int);
     sigaction(SIGHUP, NULL, &sa_hup);
 
     // Initialize Python
-    Py_Initialize();    
+    Py_Initialize();
     PySys_SetArgv(c->get_kernel()->argc, c->get_kernel()->argv);
     PyRun_SimpleString("import sys\n"
                        "pkgdatadir = '"PKGDATADIR"'\n"
@@ -409,7 +348,7 @@ PyRt::PyRt(const Context* c,
                        // initialization now that it can be found.
                        "from nox.coreapps.pyrt import init_python\n"
                        "init_python()\n"
-                       );       
+                       );
     if (PyErr_Occurred()) {
         throw runtime_error("Unable to initialize the Python runtime:\n" +
                             pretty_print_python_exception());
@@ -418,13 +357,13 @@ PyRt::PyRt(const Context* c,
     // Install our reactor right away, otherwise any script which
     // imports reactor will set the default reactor in stone.
     initialize_oxide_reactor();
-    
+
     sigaction(SIGTERM, &sa_term, NULL);
     sigaction(SIGINT, &sa_int, NULL);
     sigaction(SIGHUP, &sa_hup, NULL);
 
     // Fetch the library paths from the core DSO deployer
-    DSO_deployer* dso_deployer = 
+    DSO_deployer* dso_deployer =
         dynamic_cast<DSO_deployer*>(c->get_by_name("built-in DSO deployer"));
     list<string> libdirs = dso_deployer->get_search_paths();
 
@@ -432,7 +371,7 @@ PyRt::PyRt(const Context* c,
     list<path> description_files;
     BOOST_FOREACH(string directory, libdirs) {
         Path_list results = scan(directory);
-        description_files.insert(description_files.end(), 
+        description_files.insert(description_files.end(),
                                  results.begin(), results.end());
     }
 
@@ -440,23 +379,23 @@ PyRt::PyRt(const Context* c,
         const string f = p.string();
         path directory = p;
         directory.remove_leaf();
-        
+
         lg.dbg("Loading a component description file '%s'.", f.c_str());
-        
+
         const json_object* d = json::load_document(f);
         if (d->type == json_object::JSONT_NULL) {
             lg.err("Can't load and parse '%s'", f.c_str());
             continue;
         }
-        
-        json_object* components = json::get_dict_value(d, "components"); 
-        json_array* componentList = (json_array*) components->object;   
-        
+
+        json_object* components = json::get_dict_value(d, "components");
+        json_array* componentList = (json_array*) components->object;
+
         json_array::iterator li;
         for(li=componentList->begin(); li!=componentList->end(); ++li) {
             try {
-                Component_context* ctxt = 
-                    new Python_component_context(c->get_kernel(), 
+                Component_context* ctxt =
+                    new Python_component_context(c->get_kernel(),
                                                      c->get_name(),
                                                      directory.string(),*li);
                 if (uninstalled_contexts.find(ctxt->get_name()) ==
@@ -478,7 +417,7 @@ PyRt::PyRt(const Context* c,
        deployers. */
     BOOST_FOREACH(const Deployer* deployer, c->get_kernel()->get_deployers()) {
         BOOST_FOREACH(Component_context* ctxt, deployer->get_contexts()) {
-            Component_name_context_map::iterator i = 
+            Component_name_context_map::iterator i =
                 uninstalled_contexts.find(ctxt->get_name());
             if (i != uninstalled_contexts.end()) {
                 lg.err("Component '%s' declared multiple times.",
@@ -493,42 +432,34 @@ PyRt::PyRt(const Context* c,
     c->get_kernel()->attach_deployer(this);
 
     // Register the system event converters
-    register_event_converter(Datapath_join_event::static_get_name(), 
+    register_event_converter(Datapath_join_event::static_get_name(),
                              &convert_datapath_join);
-    register_event_converter(Datapath_leave_event::static_get_name(), 
+    register_event_converter(Datapath_leave_event::static_get_name(),
                              &convert_datapath_leave);
-    register_event_converter(Switch_mgr_join_event::static_get_name(), 
+    register_event_converter(Switch_mgr_join_event::static_get_name(),
                              &convert_switch_mgr_join);
-    register_event_converter(Switch_mgr_leave_event::static_get_name(), 
+    register_event_converter(Switch_mgr_leave_event::static_get_name(),
                              &convert_switch_mgr_leave);
-    register_event_converter(Flow_removed_event::static_get_name(), 
+    register_event_converter(Flow_removed_event::static_get_name(),
                              &convert_flow_removed);
-    register_event_converter(Flow_mod_event::static_get_name(), 
+    register_event_converter(Flow_mod_event::static_get_name(),
                              &convert_flow_mod);
-    register_event_converter(Packet_in_event::static_get_name(), 
+    register_event_converter(Packet_in_event::static_get_name(),
                              &convert_packet_in);
-    register_event_converter(Port_status_event::static_get_name(), 
+    register_event_converter(Port_status_event::static_get_name(),
                              &convert_port_status);
-    register_event_converter(Shutdown_event::static_get_name(), 
+    register_event_converter(Shutdown_event::static_get_name(),
                              &convert_shutdown);
-    register_event_converter(Bootstrap_complete_event::static_get_name(), 
+    register_event_converter(Bootstrap_complete_event::static_get_name(),
                              &convert_bootstrap_complete);
-    register_event_converter(Table_stats_in_event::static_get_name(), 
+    register_event_converter(Table_stats_in_event::static_get_name(),
                              &convert_table_stats_in);
-    register_event_converter(Port_stats_in_event::static_get_name(), 
+    register_event_converter(Port_stats_in_event::static_get_name(),
                              &convert_port_stats_in);
-    register_event_converter(Aggregate_stats_in_event::static_get_name(), 
+    register_event_converter(Aggregate_stats_in_event::static_get_name(),
                              &convert_aggregate_stats_in);
-    register_event_converter(Desc_stats_in_event::static_get_name(), 
+    register_event_converter(Desc_stats_in_event::static_get_name(),
                              &convert_desc_stats_in);
-    register_event_converter(Flow_stats_in_event::static_get_name(), 
-                             &convert_flow_stats_in);
-    register_event_converter(Queue_stats_in_event::static_get_name(),
-                             &convert_queue_stats_in);
-    register_event_converter(Barrier_reply_event::static_get_name(),
-                             &convert_barrier_reply);
-    register_event_converter(Error_event::static_get_name(),
-                             &convert_error);
 }
 
 void
@@ -600,7 +531,7 @@ PyRt::initialize_oxide_reactor()
     // program
 }
 
-void 
+void
 PyRt::getInstance(const Context* ctxt, PyRt*& pyrt) {
     pyrt = dynamic_cast<PyRt*>
         (ctxt->get_by_interface(container::Interface_description
@@ -609,7 +540,7 @@ PyRt::getInstance(const Context* ctxt, PyRt*& pyrt) {
 
 void
 PyRt::configure(const Configuration*) {
-        
+
 }
 
 void
@@ -618,14 +549,14 @@ PyRt::install() {
 }
 
 Python_event_manager::~Python_event_manager() {
-    
+
 }
 
 void
 Python_event_manager::register_event_converter(const Event_name& name,
                                              const Event_converter& converter) {
     if (converters.find(name) != converters.end()) {
-        throw runtime_error("C++ to Python event converter " + name + 
+        throw runtime_error("C++ to Python event converter " + name +
                             " already registered.");
     }
 
@@ -633,7 +564,7 @@ Python_event_manager::register_event_converter(const Event_name& name,
 }
 
 // --
-// Helper function to grab the pyevent contstructor from the 
+// Helper function to grab the pyevent contstructor from the
 // vigil module.  Only want to do this once ..
 // --
 static
@@ -677,7 +608,7 @@ get_pyevent_ctor()
 //
 //-----------------------------------------------------------------------------
 Disposition
-Python_event_manager::call_python_handler(const Event& e, 
+Python_event_manager::call_python_handler(const Event& e,
                                        boost::intrusive_ptr<PyObject>& callable)
 {
     try {
@@ -685,30 +616,30 @@ Python_event_manager::call_python_handler(const Event& e,
 
         Co_critical_section critical;
         static PyObject* pfunc = get_pyevent_ctor(); // leaked
-        
+
         // Call the PyEvent constructor in Python.
         PyObject* py_event = PyObject_CallObject(pfunc, 0);
         if (!py_event) {
             throw runtime_error("call_python_handler "
-                                "unable to construct a PyEvent: " + 
+                                "unable to construct a PyEvent: " +
                                 pretty_print_python_exception());
         }
-        
+
         void* swigo = SWIG_Python_GetSwigThis(py_event);
         if (!swigo || (SWIG_Python_GetSwigThis(py_event)->ptr == NULL)) {
-            Py_DECREF(py_event);   
+            Py_DECREF(py_event);
             throw runtime_error("call_python_handler unable "
                                 "to recover C++ object from PyEvent.");
         }
-        
+
         // Copy over the C++ portions of the event, and set the python
         // attributes in the proxy object.
         try {
             if (converters.find(e.get_name()) == converters.end()) {
-                throw runtime_error(e.get_name()+" has no C++ to Python event " 
+                throw runtime_error(e.get_name()+" has no C++ to Python event "
                                     "converter.");
             }
-            
+
             converters[e.get_name()](e, py_event);
         } catch (const exception& e) {
             Py_DECREF(py_event);
@@ -720,16 +651,16 @@ Python_event_manager::call_python_handler(const Event& e,
             Py_DECREF(py_event);
             throw runtime_error("unable to create arg tuple");
         }
-        
+
         if (PyTuple_SetItem(py_args, 0, py_event) != 0) {
             Py_DECREF(py_event);
             Py_DECREF(py_args);
             throw runtime_error("unable to put proxy in args tuple");
         }
-        
+
         PyObject* py_ret = PyObject_CallObject(callable.get(), py_args);
         Py_DECREF(py_args);
-        
+
         if (py_ret) {
             uint32_t ret = PyInt_AsLong(py_ret);
             if (PyErr_Occurred()) {
@@ -759,7 +690,7 @@ Python_event_manager::call_python_handler(const Event& e,
 }
 
 PyObject*
-Python_event_manager::create_python_context(const Context* ctxt, 
+Python_event_manager::create_python_context(const Context* ctxt,
                                             container::Component* c)
 {
     PyObject* m = PyImport_ImportModule("nox.coreapps.pyrt.pycomponent");
@@ -776,7 +707,8 @@ Python_event_manager::create_python_context(const Context* ctxt,
                             pretty_print_python_exception());
     }
 
-    PyObject* pyctxt = SWIG_Python_NewPointerObj(p, s, 0);
+    //PyObject* pyctxt = SWIG_Python_NewPointerObj(p, s, 0);
+    PyObject* pyctxt = SWIG_Python_NewPointerObj(m, p, s, 0);
     Py_INCREF(pyctxt); // XXX needed?
 
     //Py_DECREF(m);
@@ -784,69 +716,69 @@ Python_event_manager::create_python_context(const Context* ctxt,
     return pyctxt;
 }
 
-Python_component_context::Python_component_context(Kernel* kernel, 
+Python_component_context::Python_component_context(Kernel* kernel,
                                                    const Component_name& pyrt,
                                                    const std::string& home_path,
                                                   json_object* description)
     : Component_context(kernel) {
     using namespace boost;
-    
-    install_actions[DESCRIBED] = 
+
+    install_actions[DESCRIBED] =
         bind(&Python_component_context::describe, this);
     install_actions[LOADED] = bind(&Python_component_context::load, this);
-    install_actions[FACTORY_INSTANTIATED] = 
+    install_actions[FACTORY_INSTANTIATED] =
         bind(&Python_component_context::instantiate_factory, this);
-    install_actions[INSTANTIATED] = 
+    install_actions[INSTANTIATED] =
         bind(&Python_component_context::instantiate, this);
-    install_actions[CONFIGURED] = 
+    install_actions[CONFIGURED] =
         bind(&Python_component_context::configure, this);
-    install_actions[INSTALLED] = 
+    install_actions[INSTALLED] =
         bind(&Python_component_context::install, this);
-    
+
     // Determine the configuration, including dependencies
-    json_object* attr;    
+    json_object* attr;
     attr = json::get_dict_value(description, "name");
     name = attr->get_string(true);
-    
+
     if (json::get_dict_value(description, "python")==NULL) {
         throw bad_cast();
     }
 
     attr = json::get_dict_value(description, "dependencies");
-    if (attr!=NULL) {     
+    if (attr!=NULL) {
         json_array* depList = (json_array*) attr->object;
         for(json_array::iterator li=depList->begin(); li!=depList->end(); ++li){
             dependencies.push_back(new Name_dependency(((json_object*)*li)->get_string(true)));
         }
-    }   
-    
+    }
+
     this->home_path = home_path;
-    
+
     // Add a depedency to the Python runtime itself
     dependencies.push_back(new Name_dependency(pyrt));
-    
-    configuration = new Component_configuration(description, 
+
+    configuration = new Component_configuration(description,
                                                 kernel->get_arguments(name));
     json_description = description;
 }
 
-void 
+void
 Python_component_context::describe() {
     // Dependencies were already introduced in the constructor
     current_state = DESCRIBED;
 }
 
-void 
+void
 Python_component_context::load() {
     current_state = LOADED;
 }
 
-void 
+void
 Python_component_context::instantiate_factory() {
     current_state = FACTORY_INSTANTIATED;
 }
 
-void 
+void
 Python_component_context::instantiate() {
     try {
         PyComponent* p = new PyComponent(this, json_description);
@@ -860,7 +792,7 @@ Python_component_context::instantiate() {
     }
 }
 
-void 
+void
 Python_component_context::configure() {
     try {
         component->configure(configuration);
@@ -872,7 +804,7 @@ Python_component_context::configure() {
     }
 }
 
-void 
+void
 Python_component_context::install() {
     try {
         component->install();

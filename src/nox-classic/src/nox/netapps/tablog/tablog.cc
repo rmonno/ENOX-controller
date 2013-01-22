@@ -6,12 +6,6 @@
 #include <fstream>
 #include <iostream>
 
-#if !defined(BOOST_FILESYSTEM_VERSION) || BOOST_FILESYSTEM_VERSION == 2
-#define FS_NATIVE , fs::native
-#else
-#define FS_NATIVE
-#endif
-
 namespace vigil
 {
   static Vlog_module lg("tablog");
@@ -372,7 +366,7 @@ namespace vigil
     }
 
     //Check size of file and rotate if needed
-    fs::path p(i->second.filename.c_str() FS_NATIVE);
+    fs::path p(i->second.filename.c_str(), fs::native);
     if (fs::file_size(p) >= i->second.rotate_size)
       file_log_rotate(i->second.filename.c_str(),
 		      i->second.output_header, 
@@ -423,13 +417,13 @@ namespace vigil
     char buf[128];
 
     if (i == -1)
-      return fs::path(filename FS_NATIVE);
+      return fs::path(filename, fs::native);
       
     sprintf(buf, "%d", i);
     string s = string(buf);
     string r=s.erase(s.find_last_not_of(" ")+1);
     r = string(filename)+"."+r.erase(0,r.find_first_not_of(" "));
-    return fs::path(r.c_str() FS_NATIVE);
+    return fs::path(r.c_str(), fs::native);
   }
   
   void tablog::dump_screen(const char* name, bool clearContent, string d)

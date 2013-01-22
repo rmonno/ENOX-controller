@@ -35,6 +35,8 @@
 #=====================================================================
 import struct
 
+from twisted.python import log
+
 from packet_base import packet_base
 from ipv4 import ipv4 
 
@@ -78,7 +80,7 @@ class arp(packet_base):
 
         if arr != None:
             if (type(arr) != array.array):
-                self.err("arr of type %s unsupported" % (type(arr),))
+                print type(arr)
                 assert(0)
             self.arr = arr
             self.parse()
@@ -93,13 +95,13 @@ class arp(packet_base):
         struct.unpack('!HHBBH', self.arr[:8])
         
         if self.hwtype != arp.HW_TYPE_ETHERNET:
-            self.msg('(arp parse) hw type unknown %u' % self.hwtype)
+            print '(arp parse) hw type unknown %u' % self.hwtype
         if self.hwlen != 6:
-            self.msg('(arp parse) unknown hw len %u' % self.hwlen)
+            print '(arp parse) unknown hw len %u' % self.hwlen
         if self.prototype != arp.PROTO_TYPE_IP:
-            self.msg('(arp parse) proto type unknown %u' % self.prototype)
+            print '(arp parse) proto type unknown %u' % self.prototype
         if self.protolen != 4: 
-            self.msg('(arp parse) unknown proto len %u' % self.protolen)
+            print '(arp parse) unknown proto len %u' % self.protolen
 
         self.hwsrc = self.arr[8:14]
         self.protosrc = struct.unpack('!I',self.arr[14:18])[0]
@@ -135,7 +137,7 @@ class arp(packet_base):
         elif hasattr(self.prev, 'eth_type'):
             eth_type = self.prev.eth_type
         else:
-            self.err('(arp) unknown datalink type')
+            log.err('(arp) unknown datalink type',system='packet')
             eth_type = ethernet.ARP_TYPE
 
         if eth_type == ethernet.ARP_TYPE:
