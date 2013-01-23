@@ -16,7 +16,6 @@
  * along with NOX.  If not, see <http://www.gnu.org/licenses/>.
  */
 %module "nox.netapps.routing.pyrouting"
-%include "std_list.i"
 
 %{
 #include "pyrouting.hh"
@@ -84,7 +83,7 @@ bool dp_on_route(const datapathid& dp, const Routing_module::Route& route);
             self.routing = PyRouting_module(ctxt)
 
         def configure(self, configuration):
-            self.routing.configure(configuration)
+            self.routing.configure(configuration)         
 
         def getInterface(self):
             return str(PyRouting)

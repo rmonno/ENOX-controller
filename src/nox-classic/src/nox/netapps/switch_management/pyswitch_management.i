@@ -17,7 +17,6 @@
  */
 
 %module "nox.netapps.pyswitch_management"
-%include "std_list.i"
 
 %{
 #include "switch_management_proxy.hh"
@@ -46,7 +45,7 @@ from nox.lib.core import Component
 class pyswitch_management(Component):
     """
     Provide interface to switch_management from python
-    """
+    """  
     def __init__(self, ctxt):
         self.smp = Switch_management_proxy(ctxt)
 
@@ -67,7 +66,7 @@ class pyswitch_management(Component):
 
     def get_port_name(self, mgmtid, portid):
         return self.smp.get_port_name(mgmtid, portid)
-
+    
     def mgmtid_to_system_uuid(self, mgmtid):
         return self.smp.mgmtid_to_system_uuid(mgmtid)
 
