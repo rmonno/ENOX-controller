@@ -41,6 +41,14 @@
                 "python"
             ],
             "python": "nox.coreapps.examples.dnsspy" 
+        },
+        {
+            "name": "topologymgr" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.topologymgr" 
         }
+
     ]
 }

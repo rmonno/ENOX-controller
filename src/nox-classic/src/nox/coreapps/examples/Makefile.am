@@ -14,12 +14,15 @@ EXTRA_DIST =\
 
 NOX_RUNTIMEFILES = meta.json	\
 	__init__.py		\
-	packetdump.py\
-	pyswitch.py\
-	pyloop.py\
-	monitor.py\
-	countdown.py\
-	dnsspy.py
+	packetdump.py		\
+	pyswitch.py		\
+	pyloop.py		\
+	monitor.py		\
+	countdown.py		\
+	dnsspy.py		\
+	topologymgr.py		\
+	connections.py		\
+	entities.py
 
 all-local: nox-all-local
 install-exec-hook: nox-install-local
