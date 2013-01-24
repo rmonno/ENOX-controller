@@ -1,4 +1,4 @@
-include ../../../Make.vars 
+include ../../../Make.vars
 
 SUBDIRS = t
 
@@ -21,8 +21,7 @@ NOX_RUNTIMEFILES = meta.json	\
 	countdown.py		\
 	dnsspy.py		\
 	topologymgr.py		\
-	connections.py		\
-	entities.py
+	connections.py
 
 all-local: nox-all-local
 install-exec-hook: nox-install-local
