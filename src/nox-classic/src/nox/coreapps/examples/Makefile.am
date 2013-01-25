@@ -3,14 +3,15 @@ include ../../../Make.vars
 SUBDIRS = t
 
 EXTRA_DIST =\
-	meta.json\
-	__init__.py\
-	packetdump.py\
-	pyswitch.py\
-	pyloop.py\
-	monitor.py\
-	countdown.py\
-	dnsspy.py
+	meta.json		\
+	__init__.py		\
+	packetdump.py		\
+	pyswitch.py		\
+	pyloop.py		\
+	monitor.py		\
+	countdown.py		\
+	dnsspy.py		\
+	topologymgr.py
 
 NOX_RUNTIMEFILES = meta.json	\
 	__init__.py		\
@@ -20,8 +21,7 @@ NOX_RUNTIMEFILES = meta.json	\
 	monitor.py		\
 	countdown.py		\
 	dnsspy.py		\
-	topologymgr.py		\
-	connections.py
+	topologymgr.py
 
 all-local: nox-all-local
 install-exec-hook: nox-install-local
