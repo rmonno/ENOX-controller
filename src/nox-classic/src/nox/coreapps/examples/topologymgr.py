@@ -231,6 +231,8 @@ class TopologyMgr(Component):
             self.dpids[str(dpid)] = stats
 
             if self.db_flag:
+                sql = """INSERT INTO ofswitches(dpid, stats) VALUES \
+                        ('%s', '%s')""" % (str(dpid), str(stats))
                 log.debug("Now TopologyDB contains the following parms: \n %s" %
                            str(self.dpids))
 
@@ -259,6 +261,7 @@ class TopologyMgr(Component):
 	self.register_for_packet_in(self.packet_in_handler)
         self.register_handler(Link_event.static_get_name(), self.link_event_handler)
 
+        self.mysql_enable()
 	log.debug("%s started..." % str(self.__class__.__name__))
 	self.receiver = Receiver()
 
