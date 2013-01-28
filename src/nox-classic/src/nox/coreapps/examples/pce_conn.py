@@ -2,6 +2,7 @@ import sys
 import logging, logging.handlers
 from socket import *
 import time
+log = logging.getLogger('pce_conn')
 
 class PCE_Client:
     def __init__(self, pce_addr, pce_port, tcp_size = 1024):
@@ -18,27 +19,22 @@ class PCE_Client:
         self.csock.setsockopt(SOL_TCP, TCP_NODELAY, 1)
         self.csock.connect((self.pce_addr, self.pce_port))
 
-
-    def format_request(self, i):
-        if i == 0:
+    def format_request(self, typee):
+        if typee == "topology":
             message = "@@@request_type:get_req|ior_key:pcera_topology###"
-        else:
+        elif typee == "routing":
             message = "@@@request_type:get_req|ior_key:pcera_routing###"
+        else:
+            message = None
         return message
 
-
-    def send_msg(self):
-        i = 0
-        while True:
-            req = self.format_request(i % 2)
-            logger.info("Sent = " + req)
-            bnum = self.csock.send(req)
-            if bnum == 0:
-                break
-            resp = self.csock.recv(self.tcp_size)
-            log.info("Recv = " + resp)
-            time.sleep(10)
-            i += 1
-
-        self.csock.close()
-
+    def send_msg(self, req_type):
+        req = self.format_request(req_type)
+        if req is None:
+            log.error("Request type '%s' is not supported" % str(req_type))
+            return req
+        bnum = self.csock.send(req)
+        log.info("Sent = " + req)
+        resp = self.csock.recv(self.tcp_size)
+        log.info("Recv = " + resp)
+        return resp

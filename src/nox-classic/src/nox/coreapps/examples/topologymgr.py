@@ -231,15 +231,22 @@ class TopologyMgr(Component):
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
 
-        if not self.ior:
-            log.error("No stored IOR ...")
-            # Insert code here to retrieve required IOR
-            return CONTINUE
+        log.debug("Retrieving IOR...")
+        orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
 
-        if self.ior:
-            log.debug("Use stored IOR...")
-            orb         = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
-            # XXX FIXME: Insert code here to invoke proper operations...
+            # XXX FIXME: Fill with proper values
+        pce_address = "localhost"
+        pce_port    = 9696
+        tcp_size    = 1024
+        req_type    = "topology"
+        pce_client  = pce_conn.PCE_Client(pce_address, pce_port, tcp_size)
+        pce_client.create()
+
+        resp = pce_client.send_msg(req_type)
+        if resp is None:
+            log.error("Cannot send message...")
+        else:
+            log.info("Received the following response: %s" % str(resp))
 
         return CONTINUE
 
