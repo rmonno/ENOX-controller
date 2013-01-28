@@ -1,0 +1,19 @@
+# -*- mode: python -*-
+#
+#  This file is part of gmpls-nextworks
+#
+#  Copyright (C) 2006, 2007, 2008, 2009 Nextworks s.r.l.
+#
+#  @LICENSE_BEGIN@
+#  @LICENSE_END@
+#
+#  Fabio Nieri     <f DOT nieri AT nextworks DOT it>
+#
+
+# The prefix to configure/install modules to (must have write access)
+prefix = '@prefix@'
+
+# What directory should the source be checked out to?
+checkoutroot = '@checkoutroot@'
+
+ignore_suggests = @ignore_suggests@

@@ -1,0 +1,344 @@
+<?xml version="1.0"?><!--*- mode: nxml; indent-tabs-mode: nil -*-->
+<!DOCTYPE moduleset SYSTEM "moduleset.dtd">
+<?xml-stylesheet type="text/xsl" href="moduleset.xsl"?>
+<moduleset>
+
+  <!-- **************** REPOSITORIES ******************* -->
+
+  <repository name="tyrone.nextworks.it"
+              type="tarball"
+              href="ftp://tyrone.nextworks.it/pub/gmpls/"
+              default="yes">
+    <mirror type="tarball"
+            href="ftp://ftp.gnu.org/gnu/"/>
+  </repository>
+
+  <repository name="sourceforge"
+              type="tarball"
+              href="http://downloads.sourceforge.net/project/"/>
+
+  <repository name="sourceforgeOmni"
+              type="tarball"
+              href="ftp://tyrone.nextworks.it/pub/gmpls/">
+    <mirror type="tarball"
+            href="http://omniorb.sourceforge.net/releases/"/>
+  </repository>
+
+  <repository name="python"
+              type="tarball"
+              href="ftp://tyrone.nextworks.it/pub/gmpls/">
+    <mirror type="tarball"
+            href="http://www.python.org/ftp/"/>
+  </repository>
+
+  <repository name="perl"
+              type="tarball"
+              href="ftp://tyrone.nextworks.it/pub/gmpls/">
+    <mirror type="tarball"
+            href="http://www.cpan.org/src/"/>
+  </repository>
+
+  <repository name = "github"
+              type = "tarball"
+              href = "http://github.com/"/>
+
+  <repository name = "monit"
+              type = "tarball"
+              href = "http://mmonit.com/monit/dist/"/>
+
+  <repository name = "pkgconfig"
+              type = "tarball"
+              href = "http://pkgconfig.freedesktop.org/releases/"/>
+
+  <repository name = "cmake"
+              type = "tarball"
+              href = "http://www.cmake.org/files/"/>
+
+
+  <!-- **************** MODULES ******************* -->
+
+  <autotools id="gettext" autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="gettext/gettext-0.17.tar.gz"
+            version="0.17"
+            size="11640890"
+            md5sum="58a2bc6d39c0ba57823034d55d65d606">
+      <patch file = "gettext-0.17-open.patch" strip="2"/>
+    </branch>
+  </autotools>
+
+  <autotools id="m4"
+             autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="m4/m4-1.4.12.tar.bz2"
+            version="1.4.12"
+            size="900132"
+            md5sum="b3587c993523dd320c318ec456876839">
+    </branch>
+  </autotools>
+
+  <autotools id="gcc-small"
+             autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="gcc/gcc-4.3.4-small.tar.bz2"
+            version="4.3.4"
+            size="30137589"
+            checkoutdir="gcc-4.3.4">
+    </branch>
+  </autotools>
+
+  <autotools id="autoconf"
+             autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="autoconf/autoconf-2.65.tar.bz2"
+            version="2.65"
+            size="1332522"
+            md5sum="a6de1cc6434cd64038b0a0ae4e252b33">
+    </branch>
+    <dependencies>
+      <dep package="m4"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="libtool"
+             autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="libtool/libtool-2.2.6b.tar.gz"
+            version="2.2.6b"
+            size="2347317"
+            md5sum="07da460450490148c6d2df0f21481a25"
+            checkoutdir="libtool-2.2.6">
+    </branch>
+  </autotools>
+
+  <autotools id="automake"
+             autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="automake/automake-1.11.1.tar.bz2"
+            version="1.11.1"
+            size="1066685"
+            md5sum="c2972c4d9b3e29c03d5f2af86249876f">
+    </branch>
+  </autotools>
+
+<!--
+  <tarball id="popt" version="1.15">
+    <source href   = "http://rpm5.org/files/popt/popt-1.15.tar.gz"
+            size   = "666242"
+            md5sum = "c61ef795fa450eb692602a661ec8d7f1"/>
+  </tarball>
+-->
+<tarball id="popt" version="1.15">
+  <source href   = "ftp://tyrone.nextworks.it/pub/gmpls/popt/popt-1.15.tar.gz"
+          size   = "666242"
+          md5sum = "c61ef795fa450eb692602a661ec8d7f1"/>
+</tarball>
+
+  <autotools id="pkgconfig"
+             autogen-sh = "configure">
+    <branch repo    = "tyrone.nextworks.it"
+            module  = "pkg-config-0.25.tar.gz"
+            version = "0.25"
+            size    = "988899"
+            md5sum  = "a3270bab3f4b69b7dc6dbdacbcae9745">
+    </branch>
+    <dependencies>
+      <dep package="popt"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="python"
+             autogen-sh="configure">
+    <branch repo="python"
+            module="python/2.6.5/Python-2.6.5.tar.bz2"
+            version="2.6.5"
+            size="11095581"
+            md5sum="6bef0417e71a1a1737ccf5750420fdb3">
+    </branch>
+<!--
+    <dependencies>
+      <dep package="ncurses"/>
+    </dependencies>
+-->
+  </autotools>
+
+  <autotools id="gmp"
+             autogen-sh = "configure">
+    <branch repo = "tyrone.nextworks.it"
+            module="gmp/gmp-4.3.1.tar.bz2"
+            size="1881090"
+            version="4.3.1"
+            md5sum="26cec15a90885042dd4a15c4003b08ae">
+    </branch>
+  </autotools>
+
+  <autotools id="guile" autogenargs="--enable-error-on-warning=no">
+    <branch repo="tyrone.nextworks.it"
+            module="guile/guile-1.8.5.tar.gz"
+            version="1.8.5"
+            size="3933369"
+            md5sum="a3f8216544509a74a4441f689a0410d2">
+      <patch file="guile-1.8.5-libtool2.patch" strip="1"/>
+    </branch>
+    <dependencies>
+      <dep package="gmp"/>
+      <dep package="libtool"/>
+      <dep package="gettext"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="ncurses"
+             autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="ncurses/ncurses-5.7.tar.gz"
+            version="5.7"
+            size="2445052"
+            md5sum="cce05daf61a64501ef6cd8da1f727ec6">
+    </branch>
+  </autotools>
+
+  <autotools id="flex"
+             autogen-sh="configure">
+    <branch repo="sourceforge"
+            module="flex/flex/flex-2.5.35/flex-2.5.35.tar.bz2"
+            version="2.5.35"
+            size="1256501"
+            md5sum="10714e50cea54dc7a227e3eddcd44d57">
+    </branch>
+    <dependencies>
+      <dep package="gettext"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="bison"
+             autogen-sh="configure">
+    <branch repo="tyrone.nextworks.it"
+            module="bison/bison-2.4.2.tar.bz2"
+            version="2.4.2"
+            size="1616117"
+            md5sum="63584004613aaef2d3dca19088eb1654">
+    </branch>
+    <dependencies>
+      <dep package="gettext"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="perl"
+             autogen-sh="Configure"
+             autogen-template="%(srcdir)s/%(autogen-sh)s -des -Dprefix=%(prefix)s">
+    <branch repo="perl"
+            module="perl-5.8.9.tar.bz2" version="5.8.9">
+    </branch>
+  </autotools>
+
+  <autotools id="omniORB"
+             autogen-sh="configure">
+    <branch repo="sourceforgeOmni"
+            module="omniORB-4.1.4.tar.gz"
+            version="4.1.4"
+            md5sum="1f6070ff9b6339876976d61981eeaa6a"
+            size="3093814"/>
+    <dependencies>
+      <dep package="python"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="omniORBpy"
+             autogen-sh="configure">
+    <branch repo="sourceforgeOmni"
+            module="omniORBpy-3.4.tar.gz"
+            version="3.4"
+            md5sum="d054e99c89c20f86927c52010e9e7449"
+            size="721891"/>
+    <dependencies>
+      <dep package="omniORB"/>
+      <dep package="python"/>
+    </dependencies>
+  </autotools>
+
+  <!-- docdir=%(prefix)s/share/cmake mandir=%(prefix)s/share/man datadir=%(prefix)s/share/cmake-2.8  -->
+
+  <autotools id="cmake"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/%(autogen-sh)s --prefix=%(prefix)s --no-qt-gui">
+    <branch repo="cmake"
+            module="v2.8/cmake-2.8.4.tar.gz"
+            version="2.8.4"
+            size="5477628"
+            md5sum="209b7d1d04b2e00986538d74ba764fcf"
+            checkoutdir="cmake-2.8.4" />
+  </autotools>
+
+  <cmake id="boost-1.41"
+         autogen-sh       = "bootstrap.sh"
+         autogen-template = "%(srcdir)s/%(autogen-sh)s --prefix=%(prefix)s">
+    <branch  repo="tyrone.nextworks.it"
+             module="boost-cmake/1.41.0.cmake0/boost-1.41.0.cmake0.tar.gz"
+             version="1.4.1"
+             size="38329851"
+             md5sum="f709445cef9a3e7a8a422f815e12ff65"
+             checkoutdir="boost-1.41">
+    </branch>
+  </cmake>
+
+  <autotools id         = "monit-5.1.1">
+    <branch repo        = "tyrone.nextworks.it"
+            module      = "monit/monit-5.1.1.tar.gz"
+            version     = "5.1.1"
+            size        = "615924"
+            md5sum      = "4bbd3845ae1cbab13ec211824e0486dc"/>
+  </autotools>
+
+  <autotools id         = "net-snmp">
+    <branch repo        = "tyrone.nextworks.it"
+            module      = "net-snmp/net-snmp-5.6.1.tar.gz"
+            version     = "5.6.1"
+            size        = "5936889"
+            md5sum      = "b4e30ead5783b0bb1d280172c6095ea4"/>
+  </autotools>
+
+  <autotools id         = "monit-5.2.2">
+    <branch repo        = "tyrone.nextworks.it"
+            module      = "monit/monit-5.2.2.tar.gz"
+            version     = "5.2.2"
+            size        = "610419"
+            md5sum      = "f1c7159bfd41f2f426a5d7bceb1de876"/>
+  </autotools>
+
+  <autotools id         = "monit-5.2.3">
+    <branch repo        = "tyrone.nextworks.it"
+            module      = "monit/monit-5.2.3.tar.gz"
+            version     = "5.2.3"
+            size        = "618139"
+            md5sum      = "2772b6f5ad46eb0f73f13e12a26267e1"/>
+  </autotools>
+
+  <distutils id="nxwpyutils">
+    <branch repo        = "tyrone.nextworks.it"
+            module      = "nxwpyutils-v1.1.0.tgz"
+            version     = "1.1.0"
+            size        = "23323"
+            md5sum      = "d165da53879af08bfa8ae650b07a5147"/>
+  </distutils>
+
+  <metamodule id="meta-bootstrap">
+    <dependencies>
+      <dep package="gettext" />
+      <dep package="autoconf" />
+      <dep package="libtool" />
+      <dep package="automake" />
+      <dep package="pkgconfig" />
+      <dep package="python" />
+      <dep package="guile" />
+    </dependencies>
+  </metamodule>
+
+  <metamodule id="meta-extra">
+    <dependencies>
+      <dep package="boost-1.41"/>
+      <dep package="omniORBpy"/>
+      <dep package="perl"/>
+    </dependencies>
+  </metamodule>
+
+</moduleset>

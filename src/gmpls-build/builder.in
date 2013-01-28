@@ -1,0 +1,268 @@
+#!@SHELL@
+# -*- shell -*-
+
+#
+# builder script for GMPLS stack
+#
+# Written by: Francesco Salvestrini <f DOT salvestrini AT nextworks DOT it>
+# Written by: Fabio Nieri           <f DOT nieri AT nextworks DOT it>
+#
+
+PACKAGE_NAME='@PACKAGE_NAME@'
+PACKAGE_BUGREPORT='@PACKAGE_BUGREPORT@'
+
+JHBROOT=`pwd`/build
+JHBBIN=${JHBROOT}/.local/bin/jhbuild
+JHBDATA=build-aux
+JHB="$JHBBIN -f $JHBDATA/jhbuildrc -m $JHBDATA/gmpls.modules"
+
+DOT='@DOT@'
+
+function hint ( )
+{
+    if test -n "$1" ; then
+        echo "$PACKAGE_NAME: $1"
+    fi
+    echo "Try \`$PACKAGE_NAME --help' for more information."
+}
+
+function check_bootstrap ( )
+{
+    if test -e "$JHBBIN" ; then
+        if test -e $JHBDATA/jhbuildrc ; then
+            :
+        else
+            echo "You must bootstrap the environment first (missing personality) !!!"
+            hint
+            exit 1
+        fi
+    else
+        echo "You must bootstrap the environment first (missing binary) !!!"
+        hint
+        exit 1
+    fi
+}
+
+function bootstrap ( )
+{
+    personality="$1"
+    if test -z "$personality" ; then
+        personality="anonymous"
+        echo "Missing personality, using default ($personality)"
+    fi
+
+    echo "Bootstrapping environment for personality $personality"
+
+    git submodule update --init $JHBDATA/jhbuild || exit 1
+
+    if test ! -e $JHBDATA/jhbuildrc.${personality} ; then
+        echo "Wrong personality $personality, known personalities:"
+        for i in $JHBDATA/jhbuildrc.* ; do
+            echo $i | sed -e 's,'$JHBDATA'\/jhbuildrc\.,\t,'
+        done
+        exit 1
+    fi
+
+    debootstrap
+
+    (cd $JHBDATA && ln -s jhbuildrc.${personality} jhbuildrc) || exit 1
+    HOME=$JHBROOT && (cd $JHBDATA/jhbuild && make DISABLE_GETTEXT="yes" -f Makefile.plain install 2>&1 > /dev/null) || exit 1
+    echo "Your environment should be ok ..."
+}
+
+function debootstrap ( )
+{
+    rm -f $JHBDATA/jhbuildrc
+}
+
+function help ( )
+{
+    echo "Usage: $PACKAGE_NAME COMMAND"
+    echo ""
+    echo "Commands (frontend):"
+    echo "  --bootstrap [PERSONALITY]            Bootstrap the environment"
+    echo "  --update [module ...]                Update modules"
+    echo "  --updateone [module ...]             Update modules without updating"
+    echo "                                       dependencies"
+    echo "  --build [--html] [module ...]        Update and compile modules with"
+    echo "                                       related dependencies"
+    echo "  --buildone module ...                Update and compile modules without"
+    echo "                                       recompiling dependencies"
+    echo "  --build-noup [--html] [module ...]   Compile modules with related"
+    echo "                                       dependencies without updating"
+    echo "  --buildone-noup module ...           Compile modules without recompiling"
+    echo "                                       dependencies and updating"
+    echo "  --config [module ...]                Configure and build  modules"
+    echo "  --uninstall [module ...]             Uninstall modules"
+    echo "  --help                               Display this help and exit"
+    echo "  --gui                                Start GUI"
+    echo "  --shell                              Run a shell under JHBuild environment"
+    echo "  --list [--all]                       List modules from the module set. Option"
+    echo "                                       --all lists all modules, not only those"
+    echo "                                       that would be built"
+    echo "  --backend [OPTIONS]                  Pass options to backend"
+    echo ""
+    echo "Commands (backend):"
+    echo "  --clean                              Clean module and related dependencies"
+    echo "  --cleanone                           Clean module with no dependencies"
+    echo "  --deep-clean                         Deep clean the build environment"
+    echo "  --debootstrap                        De-Bootstrap the environment"
+    echo "  --deps-dot [module ...]              Generates a file describing the directed"
+    echo "                                       graph formed by the dependencies between"
+    echo "                                       a set of modules"
+    echo "  --run                                Run a command under the JHBuild"
+    echo "                                       environment"
+    echo ""
+    echo "Report bugs to <${PACKAGE_BUGREPORT}>"
+}
+
+case $1 in
+    --bootstrap)
+        shift
+        bootstrap $@ || exit 1
+        ;;
+
+    --update)
+        check_bootstrap
+        shift
+        $JHB update $@ || exit 1
+        ;;
+
+    --updateone)
+        check_bootstrap
+        shift
+        $JHB updateone $@ || exit 1
+        ;;
+
+    --build)
+        check_bootstrap
+        shift
+        if [ "$1" == "--html" ]; then
+            shift
+            $JHB tinderbox -o $JHBDATA/html $@ || exit 1
+        else
+            $JHB build $@ || exit 1
+        fi
+        ;;
+
+    --buildone)
+        check_bootstrap
+        shift
+        $JHB buildone $@ || exit 1
+        ;;
+
+    --build-noup)
+        check_bootstrap
+        shift
+        if [ "$1" == "--html" ]; then
+            shift
+            $JHB tinderbox --no-network -o $JHBDATA/html $@ || exit 1
+        else
+            $JHB build --no-network $@ || exit 1
+        fi
+        ;;
+
+    --buildone-noup)
+        check_bootstrap
+        shift
+        $JHB buildone --no-network $@ || exit 1
+        ;;
+
+    --config)
+        check_bootstrap
+        shift
+        $JHB build --no-network --autogen $@ || exit 1
+        ;;
+
+    --uninstall)
+        check_bootstrap
+        shift
+        $JHB uninstall $@ || exit 1
+        ;;
+
+    --gui)
+        check_bootstrap
+        shift
+        $JHB gui $@ || exit 1
+        ;;
+
+    --shell)
+        check_bootstrap
+        shift
+        $JHB shell || exit 1
+        ;;
+
+    --list)
+        check_bootstrap
+        shift
+        if [ "$1" == "--all" ]; then
+            shift
+	    $JHB list --all-modules $@ || exit 1
+        else
+            $JHB list $@ || exit 1
+	fi
+        ;;
+
+    --backend)
+        check_bootstrap
+        shift
+        $JHB $@ || exit 1
+        ;;
+
+    --clean)
+        check_bootstrap
+        shift
+        $JHB clean $@ || exit 1
+        ;;
+
+    --cleanone)
+        check_bootstrap
+        shift
+        $JHB cleanone $@ || exit 1
+        ;;
+
+    --deep-clean)
+        check_bootstrap
+        shift
+        $JHB clean || exit 1
+        $JHB uninstall `$JHB list -a` || exit 1
+        debootstrap
+        ;;
+
+    --debootstrap)
+        debootstrap
+        ;;
+
+    --deps-dot)
+    	if test x"$DOT" = x"" ; then
+	   echo "Cannot run command. Missing graphviz support"
+	   exit 1
+	fi
+	check_bootstrap
+        shift
+        $JHB dot $@ | dot -Tpng > depends.png || exit 1
+        ;;
+
+    --run)
+        check_bootstrap
+        shift
+        $JHB run $@ || exit 1
+        ;;
+
+    --help)
+        help
+        exit 0
+        ;;
+
+    *)
+        if test -z "$1" ; then
+            hint "Missing option"
+        else
+            hint "invalid option -- '$1'"
+        fi
+
+        exit 1
+        ;;
+esac
+
+exit 0

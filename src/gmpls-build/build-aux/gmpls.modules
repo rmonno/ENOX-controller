@@ -1,0 +1,670 @@
+<?xml version="1.0"?><!--*- mode: nxml; indent-tabs-mode: nil -*-->
+<!DOCTYPE moduleset SYSTEM "moduleset.dtd">
+<?xml-stylesheet type="text/xsl" href="moduleset.xsl"?>
+<moduleset>
+
+  <include href = "externals.modules"/>
+
+  <repository name = "terrance"
+              type = "git"
+              href = "ssh://terrance.nextworks.it/pub/scm/git"/>
+
+  <repository name = "chef"
+              type = "svn"
+              href = "svn+ssh://chef.nextworks.it/projects/"/>
+
+  <!-- Phosphorus-Old package  -->
+  <metamodule id  = "phosphorus-old">
+    <dependencies>
+      <!-- <dep package = "gmpls-idl"/> -->
+      <!-- <dep package = "g2mpls_idl-old"/> -->
+      <dep package = "libevent-old"/>
+      <dep package = "g2mpls_common-old"/>
+      <dep package = "g2mpls_modules-old"/>
+      <dep package = "g2rsvpte-old"/>
+      <dep package = "g2pcera-old"/>
+    </dependencies>
+  </metamodule>
+
+  <autotools id               = "libevent-old"
+             autogen-sh       = "configure"
+             autogen-template = "autoreconf --verbose --force --install &amp;&amp; %(srcdir)s/%(autogen-sh)s %(autogenargs)s">
+    <branch repo              = "chef"
+            module            = "phosphorus-g2mpls-nextworks/trunk/libevent"
+            checkoutdir       = "phosphorus-old/libevent">
+    </branch>
+  </autotools>
+
+  <autotools id               = "g2mpls_common-old"
+             autogen-sh       = "configure"
+             autogen-template = "autoreconf --verbose --force --install &amp;&amp; %(srcdir)s/%(autogen-sh)s %(autogenargs)s">
+    <branch repo              = "chef"
+            module            = "phosphorus-g2mpls-nextworks/trunk/g2mpls_common"
+            checkoutdir       = "phosphorus-old/g2mpls_common">
+    </branch>
+  </autotools>
+
+  <autotools id               = "g2mpls_modules-old"
+             autogen-sh       = "configure"
+             autogen-template = "autoreconf --verbose --force --install &amp;&amp; %(srcdir)s/%(autogen-sh)s %(autogenargs)s">
+    <branch repo              = "chef"
+            module            = "phosphorus-g2mpls-nextworks/trunk/g2mpls_modules"
+            checkoutdir       = "phosphorus-old/g2mpls_modules">
+    </branch>
+  </autotools>
+
+  <autotools id         = "g2mpls_idl-old" skip-autogen="true">
+    <branch repo        = "chef"
+            module      = "phosphorus-g2mpls-nextworks/trunk/g2mpls_idl"
+            checkoutdir = "phosphorus-old/g2mpls_idl">
+    </branch>
+  </autotools>
+
+  <autotools id               = "g2rsvpte-old"
+             autogen-sh       = "configure"
+             autogen-template = "autoreconf --verbose --force --install &amp;&amp; %(srcdir)s/%(autogen-sh)s %(autogenargs)s">
+    <branch repo              = "chef"
+            module            = "phosphorus-g2mpls-nextworks/trunk/g2rsvpte"
+            checkoutdir       = "phosphorus-old/g2rsvpte">
+    </branch>
+    <dependencies>
+      <dep package = "libevent-old"/>
+      <dep package = "g2mpls_common-old"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "g2pcera-old"
+             autogen-sh       = "configure"
+             autogen-template = "autoreconf --verbose --force --install &amp;&amp; %(srcdir)s/%(autogen-sh)s %(autogenargs)s">
+    <branch repo              = "chef"
+            module            = "phosphorus-g2mpls-nextworks/trunk/g2pcera"
+            checkoutdir       = "phosphorus-old/g2pcera">
+    </branch>
+    <dependencies>
+      <dep package = "libevent-old"/>
+      <dep package = "g2mpls_common-old"/>
+    </dependencies>
+  </autotools>
+
+  <!-- Gmpls modules -->
+  <autotools id               = "gmpls-libs"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-libs"
+            checkoutdir       = "gmpls-libs">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+    <suggests>
+      <dep package = "boost-1.41"/>
+    </suggests>
+  </autotools>
+
+  <autotools id               = "gmpls-idl"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-idl"
+            checkoutdir       = "gmpls-idl">
+    </branch>
+    <suggests>
+      <dep package="omniORB"/>
+      <dep package="omniORBpy"/>
+    </suggests>
+  </autotools>
+
+  <autotools id               = "gmpls-manager"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-manager"
+            checkoutdir       = "gmpls-manager">
+    </branch>
+    <dependencies>
+      <dep package = "monit-5.2.3"/>
+<!--
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-phosphorus"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-pcera"/>
+      <dep package = "gmpls-scngw"/>
+-->
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-ips"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-ips"
+            checkoutdir       = "gmpls-ips">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-libs"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-grsvpte"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-grsvpte"
+            checkoutdir       = "gmpls-grsvpte">
+    </branch>
+    <suggests>
+      <dep package = "boost-1.41"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-libs"/>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-scngw"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-scngw"
+            checkoutdir       = "gmpls-scngw">
+    </branch>
+    <suggests>
+      <dep package = "boost-1.41"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-libs"/>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-lrm"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-lrm"
+            checkoutdir       = "gmpls-lrm">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-libs"/>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-tnrc-dummy"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-tnrc-dummy"
+            checkoutdir       = "gmpls-tnrc-dummy">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-libs"/>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-tnrc"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-tnrc"
+            checkoutdir       = "gmpls-tnrc">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-libs"/>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-tester"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-tester"
+            checkoutdir       = "gmpls-tester">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-pcera"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-pcera"
+            checkoutdir       = "gmpls-pcera">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-libs"/>
+      <dep package = "gmpls-idl"/>
+      <dep package = "gmpls-pcep"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-pcera-algos"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-pcera-algos"
+            checkoutdir       = "gmpls-pcera-algos">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-pcera"/>
+    </dependencies>
+  </autotools>
+
+  <metamodule id = "gmpls-pce">
+    <dependencies>
+      <dep package = "gmpls-pcera"/>
+      <dep package = "gmpls-pcera-algos"/>
+    </dependencies>
+  </metamodule>
+
+  <autotools id               = "gmpls-pcera-algos-free"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-pcera-algos-free"
+            checkoutdir       = "gmpls-pcera-algos-free">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-pcera"/>
+    </dependencies>
+  </autotools>
+
+  <metamodule id = "gmpls-pce-etics">
+    <dependencies>
+      <dep package = "gmpls-pcera"/>
+      <dep package = "gmpls-pcera-algos-free"/>
+    </dependencies>
+  </metamodule>
+
+  <autotools id               = "gmpls-pcera-algos-gateways"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-pcera-algos-gateways"
+            checkoutdir       = "gmpls-pcera-algos-gateways">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-pcera"/>
+    </dependencies>
+  </autotools>
+
+  <metamodule id = "gmpls-pce-mains">
+    <dependencies>
+      <dep package = "gmpls-pcera"/>
+      <dep package = "gmpls-pcera-algos"/>
+      <dep package = "gmpls-pcera-algos-gateways"/>
+    </dependencies>
+  </metamodule>
+
+  <autotools id               = "gmpls-shell"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix=%(prefix)s --libdir=%(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-shell"
+            checkoutdir       = "gmpls-shell">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-idl"/>
+      <dep package = "gmpls-ips"/>
+    </dependencies>
+    <suggests>
+      <dep package = "python"/>
+      <dep package = "omniORBpy"/>
+    </suggests>
+  </autotools>
+
+  <autotools id               = "gmpls-pymods"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-pymods"
+            checkoutdir       = "gmpls-pymods">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-idl"/>
+      <dep package = "nxwpyutils"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-pcc"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-pcc"
+            checkoutdir       = "gmpls-pcc">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-libs"/>
+      <dep package = "gmpls-idl"/>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-pcep"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id               = "gmpls-pcep"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-pcep"
+            checkoutdir       = "gmpls-pcep">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-libs"/>
+    </dependencies>
+  </autotools>
+
+  <!-- Phosphorus   -->
+  <autotools id               = "gmpls-phosphorus"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-phosphorus"
+            checkoutdir       = "gmpls-phosphorus">
+    </branch>
+    <dependencies>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+    <suggests>
+      <dep package="omniORB"/>
+    </suggests>
+  </autotools>
+
+  <!-- Gmpls Package -->
+  <metamodule id = "gmpls-devel">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-pcep"/>
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-pce"/>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-phosphorus"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <!-- TO BE REMOVES ASAP -->
+  <autotools id               = "gmpls-manager-mains-d32"
+             autogen-sh       = "configure"
+             autogen-template = "%(srcdir)s/bootstrap &amp;&amp; %(srcdir)s/%(autogen-sh)s --prefix %(prefix)s --libdir %(libdir)s %(autogenargs)s">
+    <branch repo              = "terrance"
+            module            = "gmpls-manager"
+            checkoutdir       = "gmpls-manager">
+    </branch>
+    <dependencies>
+      <dep package = "monit-5.2.3"/>
+      <dep package = "gmpls-ips"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-shell"/>
+    </dependencies>
+  </autotools>
+
+  <metamodule id = "gmpls-devel-mains-d32">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager-mains-d32"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-etics">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-pcep"/>
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-pce"/>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pymods"/>
+      <!--
+      <dep package = "gmpls-phosphorus"/>
+      -->
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-mains-unic">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-mains-unin">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-pcep"/>
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-mains-core">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-geysers">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pcep"/>
+      <dep package = "gmpls-pce"/>
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-mains-pce">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-pcep"/>
+      <dep package = "gmpls-pce-mains"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-geysers-core">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-geysers-edge_border">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-geysers-pce-server">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-pce"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-geysers-nips-server">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-etics-pce">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-pcep"/>
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-pce-etics"/>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-devel-idl">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-tnrc"/>
+      <dep package = "gmpls-tnrc-dummy"/>
+      <dep package = "gmpls-lrm"/>
+      <dep package = "gmpls-scngw"/>
+      <dep package = "gmpls-grsvpte"/>
+      <dep package = "gmpls-pcep"/>
+      <dep package = "gmpls-pcera"/>
+      <dep package = "gmpls-pcera-algos"/>
+      <dep package = "gmpls-pcera-algos-free"/>
+      <!-- <dep package = "gmpls-pcera-algos-gateways"/> -->
+      <dep package = "gmpls-pcc"/>
+      <dep package = "gmpls-pymods"/>
+      <dep package = "gmpls-shell"/>
+      <dep package = "gmpls-manager"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id = "gmpls-fibre">
+    <suggests>
+      <dep package = "meta-bootstrap"/>
+      <dep package = "meta-extra"/>
+    </suggests>
+    <dependencies>
+      <dep package = "gmpls-idl"/>
+    </dependencies>
+  </metamodule>
+
+</moduleset>
