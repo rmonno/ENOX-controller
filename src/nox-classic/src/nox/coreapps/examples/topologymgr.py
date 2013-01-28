@@ -16,11 +16,13 @@
 # along with NOX.  If not, see <http://www.gnu.org/licenses/>.
 # ----------------------------------------------------------------------
 
-from nox.lib.core                       import *
-from nox.lib.packet.ethernet            import ethernet
-from nox.netapps.discovery.pylinkevent  import Link_event
+from nox.lib.core                        import *
+from nox.lib.packet.ethernet             import ethernet
+from nox.netapps.discovery.pylinkevent   import Link_event
+from omniORB                             import CORBA
 
 import nox.coreapps.examples.connections as connections
+import nox.coreapps.examples.pce_conn    as pce_conn
 import MySQLdb                           as sqldb
 import threading
 import logging
@@ -169,6 +171,18 @@ class TopologyMgr(Component):
         self.db_flag  = False
         self.db       = None
         self.cursor   = None
+        self.ior      = None
+
+    def ior_add(self, ior):
+        assert(ior is not None)
+        self.ior = ior
+        log.debug("Added IOR...")
+
+    def ior_del(self):
+        if self.ior is None:
+            log.error("Cannot delete IOR (no stored IOR)")
+        else:
+            self.ior = None
 
     def mysql_enable(self,
                      host    = "localhost",
@@ -207,14 +221,25 @@ class TopologyMgr(Component):
 
     def packet_in_handler(self, dpid, inport, reason, len, bufid, packet):
 	assert packet is not None
-	log.debug("%s has catched the packet_in event" %
+	log.debug("%s has caught the packet_in event" %
                    str(self.__class__.__name__))
+
         if not packet.parsed:
             log.debug("Ignoring incomplete packet")
 
         if packet.type == ethernet.LLDP_TYPE:
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
+
+        if not self.ior:
+            log.error("No stored IOR ...")
+            # Insert code here to retrieve required IOR
+            return CONTINUE
+
+        if self.ior:
+            log.debug("Use stored IOR...")
+            orb         = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+            # XXX FIXME: Insert code here to invoke proper operations...
 
         return CONTINUE
 
@@ -259,7 +284,8 @@ class TopologyMgr(Component):
         self.register_for_datapath_join(self.datapath_join_handler)
         self.register_for_datapath_leave(self.datapath_leave_handler)
 	self.register_for_packet_in(self.packet_in_handler)
-        self.register_handler(Link_event.static_get_name(), self.link_event_handler)
+        self.register_handler(Link_event.static_get_name(),
+                              self.link_event_handler)
 
         self.mysql_enable()
 	log.debug("%s started..." % str(self.__class__.__name__))
