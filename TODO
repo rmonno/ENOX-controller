@@ -3,13 +3,21 @@
 * topologymgr
     * Move module from pox/ext into a proper folder and modify related imports
 
+    * Insert F-PCE address as input parameter for NOX (and remove stub!)
+
+    * Call F-PCE functions and test its functionalities
+
+    * Fill F-PCE DB with topology values retrieved from underlying switches:
+        ** Insert proper translation to map OF data structure into structure
+           handled by F-PCE
+
 * of_discovery application:
     * Verify the correct retrieval of the flow tables for all connected OF
       switches
-        ** Send stats_request message (with type = 3 for all tables and with
-           type = 1 for all flow entries) [DONE]
         ** Add response handling to retrieve received stats from switches
     * Move functions which handle events (e.g. flow_stats_recv) into
       ReceiverHandler class
     * Verify the correct values for adjacences (i.e. _connection member of the
       OFSwitch class)
+
+
