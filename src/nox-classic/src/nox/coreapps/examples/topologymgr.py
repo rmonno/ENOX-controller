@@ -26,8 +26,12 @@ import nox.coreapps.examples.pce_conn    as pce_conn
 import MySQLdb                           as sqldb
 import threading
 import logging
+import sys
 
 log = logging.getLogger('topologymgr')
+# XXX FIXME: Remove ASAP
+sys.path.append("/home/nox/rep/eu-fibre/src/gmpls-build/checkout/gmpls-idl/src/idl")
+
 
 class ReceiverHandler(threading.Thread):
     def __init__(self, name = None, sock = None):
@@ -172,6 +176,7 @@ class TopologyMgr(Component):
         self.db       = None
         self.cursor   = None
         self.ior      = None
+        self.flag     = False
 
     def ior_add(self, ior):
         assert(ior is not None)
@@ -231,24 +236,44 @@ class TopologyMgr(Component):
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
 
-        log.debug("Retrieving IOR...")
-        orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+        if not self.flag:
+            log.debug("Retrieving IOR...")
+            orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
 
             # XXX FIXME: Fill with proper values
-        pce_address = "localhost"
-        pce_port    = 9696
-        tcp_size    = 1024
-        req_type    = "topology"
-        pce_client  = pce_conn.PCE_Client(pce_address, pce_port, tcp_size)
-        pce_client.create()
+            pce_address = "10.0.6.30"
+            pce_port    = 9696
+            tcp_size    = 1024
+            req_type    = "topology"
+            pce_client  = pce_conn.PCE_Client(pce_address, pce_port, tcp_size)
+            pce_client.create()
 
-        resp = pce_client.send_msg(req_type)
-        if resp is None:
-            log.error("Cannot send message...")
+            resp = pce_client.send_msg(req_type)
+            if resp is None:
+                log.error("Cannot send message...")
+            else:
+                self.flag = True
+                log.info("Received the following response: %s" % str(resp))
+            # XXX FIXME: Insert proper code to extract the ior_value field
+                orb     = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+                parsed_resp = pce_client.decode_requests(resp)
+                if not parsed_resp:
+                    log.error("Got errors in response parsing...")
+                else:
+                    log.info("Received the following IOR: '%s'" % \
+                              str(parsed_resp))
+                #obj     = orb.string_to_object(resp)
+                #obj_ref = obj._narrow(TOPOLOGY.Info)
+                #if obj_ref is None:
+                #    log.error("Object reference is not an TOPOLOGY::Info")
+                #    return CONTINUE
+                #else:
+                    #eo.method()
+
+            return CONTINUE
         else:
-            log.info("Received the following response: %s" % str(resp))
-
-        return CONTINUE
+            log.debug("IOR has already been received...")
+            return CONTINUE
 
     def datapath_join_handler(self, dpid, stats):
         assert (dpid  is not None)
