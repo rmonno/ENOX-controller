@@ -23,6 +23,7 @@ NOX_RUNTIMEFILES = meta.json	\
 	dnsspy.py		\
 	connections.py		\
 	pce_conn.py		\
+	fpce_dm.py		\
 	topologymgr.py
 
 all-local: nox-all-local
