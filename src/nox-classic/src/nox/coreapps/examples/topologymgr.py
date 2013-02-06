@@ -23,14 +23,13 @@ from omniORB                             import CORBA
 
 import nox.coreapps.examples.connections as connections
 import nox.coreapps.examples.pce_conn    as pce_conn
+import nox.coreapps.examples.fpce_dm     as fpce
 import MySQLdb                           as sqldb
 import threading
 import logging
 import sys
 
 log = logging.getLogger('topologymgr')
-# XXX FIXME: Remove ASAP
-sys.path.append("/home/nox/rep/eu-fibre/src/gmpls-build/checkout/gmpls-idl/src/idl")
 
 
 class ReceiverHandler(threading.Thread):
@@ -175,13 +174,8 @@ class TopologyMgr(Component):
         self.db_flag  = False
         self.db       = None
         self.cursor   = None
-        self.ior      = None
+        self.fpce     = fpce.FPCE()
         self.flag     = False
-
-    def ior_add(self, ior):
-        assert(ior is not None)
-        self.ior = ior
-        log.debug("Added IOR...")
 
     def ior_del(self):
         if self.ior is None:
@@ -238,7 +232,7 @@ class TopologyMgr(Component):
 
         if not self.flag:
             log.debug("Retrieving IOR...")
-            orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+            #orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
 
             # XXX FIXME: Fill with proper values
             pce_address = "10.0.6.30"
@@ -254,21 +248,14 @@ class TopologyMgr(Component):
             else:
                 self.flag = True
                 log.info("Received the following response: %s" % str(resp))
-            # XXX FIXME: Insert proper code to extract the ior_value field
-                orb     = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
                 parsed_resp = pce_client.decode_requests(resp)
                 if not parsed_resp:
                     log.error("Got errors in response parsing...")
+                    return CONTINUE
                 else:
                     log.info("Received the following IOR: '%s'" % \
                               str(parsed_resp))
-                #obj     = orb.string_to_object(resp)
-                #obj_ref = obj._narrow(TOPOLOGY.Info)
-                #if obj_ref is None:
-                #    log.error("Object reference is not an TOPOLOGY::Info")
-                #    return CONTINUE
-                #else:
-                    #eo.method()
+                    self.fpce.ior_add(parsed_resp)
 
             return CONTINUE
         else:
