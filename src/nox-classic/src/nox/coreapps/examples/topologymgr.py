@@ -177,6 +177,13 @@ class TopologyMgr(Component):
         self.fpce     = fpce.FPCE()
         self.flag     = False
 
+        # XXX FIXME: Fill with proper values
+        pce_address     = "10.0.6.30"
+        pce_port        = 9696
+        tcp_size        = 1024
+        self.pce_client = pce_conn.PCE_Client(pce_address, pce_port, tcp_size)
+        self.pce_client.create()
+
     def ior_del(self):
         if self.ior is None:
             log.error("Cannot delete IOR (no stored IOR)")
@@ -230,37 +237,7 @@ class TopologyMgr(Component):
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
 
-        if not self.flag:
-            log.debug("Retrieving IOR...")
-            #orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
-
-            # XXX FIXME: Fill with proper values
-            pce_address = "10.0.6.30"
-            pce_port    = 9696
-            tcp_size    = 1024
-            req_type    = "topology"
-            pce_client  = pce_conn.PCE_Client(pce_address, pce_port, tcp_size)
-            pce_client.create()
-
-            resp = pce_client.send_msg(req_type)
-            if resp is None:
-                log.error("Cannot send message...")
-            else:
-                self.flag = True
-                log.info("Received the following response: %s" % str(resp))
-                parsed_resp = pce_client.decode_requests(resp)
-                if not parsed_resp:
-                    log.error("Got errors in response parsing...")
-                    return CONTINUE
-                else:
-                    log.info("Received the following IOR: '%s'" % \
-                              str(parsed_resp))
-                    self.fpce.ior_add(parsed_resp)
-
-            return CONTINUE
-        else:
-            log.debug("IOR has already been received...")
-            return CONTINUE
+        return CONTINUE
 
     def datapath_join_handler(self, dpid, stats):
         assert (dpid  is not None)
@@ -280,6 +257,30 @@ class TopologyMgr(Component):
                 log.debug("Now TopologyDB contains the following parms: \n %s" %
                            str(self.dpids))
 
+        if not self.flag:
+            log.debug("Retrieving IOR...")
+            req_type = "topology"
+            resp     = self.pce_client.send_msg(req_type)
+            if resp is None:
+                log.error("Cannot send message...")
+            else:
+                self.flag = True
+                log.info("Received the following response: %s" % str(resp))
+                parsed_resp = self.pce_client.decode_requests(resp)
+                if not parsed_resp:
+                    log.error("Got errors in response parsing...")
+                    return CONTINUE
+                else:
+                    log.info("Received the following IOR: '%s'" % \
+                              str(parsed_resp))
+                    self.fpce.ior_add(parsed_resp)
+
+            return CONTINUE
+        else:
+            log.debug("IOR has already been received...")
+            return CONTINUE
+
+        # Insert code here to add node in the F-PCE...
         return CONTINUE
 
     def datapath_leave_handler(self, dpid):
