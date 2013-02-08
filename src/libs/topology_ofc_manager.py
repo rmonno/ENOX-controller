@@ -217,3 +217,30 @@ class TopologyOFCManager(TopologyOFCBase):
         finally:
             if cursor:
                 cursor.close()
+
+    def port_delete(self, d_id, port_no):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "ports"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            statement = "DELETE FROM " + table +\
+                        " WHERE datapath_id=%s AND port_no=%s"
+            values = (d_id, port_no)
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()

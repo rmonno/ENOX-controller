@@ -109,3 +109,14 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def port_delete(self, d_id, port_no):
+        """Delete an entry at ports table
+
+        :param d_id   : datapath identifier (primary key)
+        :param port_no: port number (primary key)
+
+        :raises: DBException
+        """
+        pass
