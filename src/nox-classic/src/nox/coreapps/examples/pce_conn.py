@@ -16,9 +16,14 @@ class PCE_Client:
     def create(self):
         assert(self.pce_addr is not None)
         assert(self.pce_port is not None)
-        self.csock = socket(AF_INET, SOCK_STREAM)
-        self.csock.setsockopt(SOL_TCP, TCP_NODELAY, 1)
-        self.csock.connect((self.pce_addr, self.pce_port))
+        try:
+            self.csock = socket(AF_INET, SOCK_STREAM)
+            self.csock.setsockopt(SOL_TCP, TCP_NODELAY, 1)
+            self.csock.settimeout(3)
+            self.csock.connect((self.pce_addr, self.pce_port))
+        except Exception, e:
+            log.error("Cannot create socket ('%s')" % str(e))
+            return
 
     def format_request(self, typee):
         if typee == "topology":

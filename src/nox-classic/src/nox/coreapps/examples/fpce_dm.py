@@ -24,8 +24,8 @@ class Node(object):
         if type(self.typee) == str:
             nodeType = GLOB.gmplsTypes.NODETYPE_NETWORK
 
-        nodeToOrb = GLOB.gmplsTypes.nodeIdent(nodeId,nodeType)
-        return nodetoOrb
+        node_orb = GLOB.gmplsTypes.nodeIdent(nodeId,nodeType)
+        return node_orb
 
 class FPCE(object):
     def __init__(self):
