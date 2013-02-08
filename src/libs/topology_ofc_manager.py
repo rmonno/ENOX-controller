@@ -123,4 +123,26 @@ class TopologyOFCManager(TopologyOFCBase):
                 cursor.close()
 
     def datapath_delete(self, d_id):
-        raise DBException("Not implemented yet!")
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "datapaths"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            statement = "DELETE FROM " + table + " WHERE id=" + str(d_id)
+            self._debug(statement)
+
+            cursor.execute(statement)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
