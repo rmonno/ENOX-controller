@@ -146,3 +146,74 @@ class TopologyOFCManager(TopologyOFCBase):
         finally:
             if cursor:
                 cursor.close()
+
+    def port_insert(self, d_id, port_no, hw_addr=None, name=None,
+                    config=None, state=None, curr=None, advertised=None,
+                    supported=None, peer=None):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "ports"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            stat_header = "INSERT INTO " + table + "(datapath_id, port_no"
+            stat_body   = "VALUES (%s, %s"
+            values      = (str(d_id), str(port_no))
+
+            if hw_addr:
+                stat_header += ", hw_addr"
+                stat_body   += ", %s"
+                values      = values + (str(hw_addr),)
+
+            if name:
+                stat_header += ", name"
+                stat_body   += ", %s"
+                values      = values + (str(name),)
+
+            if config:
+                stat_header += ", config"
+                stat_body   += ", %s"
+                values      = values + (str(config),)
+
+            if state:
+                stat_header += ", state"
+                stat_body   += ", %s"
+                values      = values + (str(state),)
+
+            if curr:
+                stat_header += ", curr"
+                stat_body   += ", %s"
+                values      = values + (str(curr),)
+
+            if advertised:
+                stat_header += ", advertised"
+                stat_body   += ", %s"
+                values      = values + (str(advertised),)
+
+            if supported:
+                stat_header += ", supported"
+                stat_body   += ", %s"
+                values      = values + (str(supported),)
+
+            if peer:
+                stat_header += ", peer"
+                stat_body   += ", %s"
+                values      = values + (str(peer),)
+
+            statement = stat_header + ") " + stat_body + ")"
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()

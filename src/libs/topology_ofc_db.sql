@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `datapaths` (
 CREATE TABLE IF NOT EXISTS `ports` (
   `datapath_id` bigint(20) unsigned NOT NULL COMMENT 'datapath identifier',
   `port_no` mediumint(8) unsigned NOT NULL COMMENT 'port number',
-  `hw_addr` varchar(6) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'mac address (typically)',
+  `hw_addr` varchar(18) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'mac address (typically)',
   `name` varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'port human name',
   `config` int(11) unsigned DEFAULT NULL COMMENT 'spanning tree and administrative settings',
   `state` int(11) unsigned DEFAULT NULL COMMENT 'spanning tree state',

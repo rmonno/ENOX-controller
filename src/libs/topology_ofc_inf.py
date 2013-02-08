@@ -83,7 +83,28 @@ class TopologyOFCBase(object):
     def datapath_delete(self, d_id):
         """Delete an entry at datapaths table
 
-        :param d_id   : datapath identifier (primary key)
+        :param d_id: datapath identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def port_insert(self, d_id, port_no, hw_addr=None, name=None,
+                    config=None, state=None, curr=None, advertised=None,
+                    supported=None, peer=None):
+        """Insert a new entry at ports table
+
+        :param d_id      : datapath identifier (primary key)
+        :param port_no   : port number (primary key)
+        :param hw_addr   : mac address (typically)
+        :param name      : port human name
+        :param config    : spanning tree and administrative settings
+        :param state     : spanning tree state
+        :param curr      : current features
+        :param advertised: features being advertised by the port
+        :param supported : features supported by the port
+        :param peer      : features advertised by peer
 
         :raises: DBException
         """
