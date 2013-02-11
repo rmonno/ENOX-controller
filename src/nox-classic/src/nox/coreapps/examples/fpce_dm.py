@@ -2,6 +2,8 @@ import logging
 import sys
 
 from omniORB      import CORBA
+# XXX FIXME: Remove asap
+sys.path.append("/home/nox/broken/eu-fibre/src/gmpls-build/checkout/gmpls-idl/src/idl")
 sys.path.append("/home/nox/rep/eu-fibre/src/gmpls-build/checkout/gmpls-idl/src/idl")
 import TOPOLOGY
 import _GlobalIDL as GLOB
@@ -72,27 +74,17 @@ class Port(object):
 class Link(object):
     def __init__(self,
                  idd,
-                 from_node = None,
                  from_port = None,
-                 dest_node   = None,
-                 dest_port   = None):
+                 dest_port = None):
         assert(idd is not None)
         self.idd        = idd
-        self.from_node  = from_node
-        self.from_port  = from_port
-        self.dest_node  = dest_node
-        self.dest_port  = dest_port
+        self.ports_bind = { from_port : dest_port}
 
-    def adjacency_add(self, from_node, from_port, dest_node, dest_port):
-        assert(from_node is not None)
+    def adjacency_add(self, from_port, dest_port):
         assert(from_port is not None)
-        assert(dest_node is not None)
         assert(dest_port is not None)
 
-        self.from_node = from_node
-        self.from_port = from_port
-        self.dest_node = dest_node
-        self.dest_port = dest_port
+        self.ports_bind[from_port] = dest_port
 
 class FPCE(object):
     def __init__(self):

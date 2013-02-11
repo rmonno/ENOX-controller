@@ -315,9 +315,7 @@ class TopologyMgr(Component):
                 log.debug("Adding new detected link '%s'..." % str(link_key))
                 self.links[link_key] = fpce.Link(link_key)
 
-            self.links[link_key].adjacency_add(data['dpsrc'],
-                                               data['sport'],
-                                               data['dpdst'],
+            self.links[link_key].adjacency_add(data['sport'],
                                                data['dport'])
         except Exception, err:
             log.error("Cannot add link ('%s')" % str(err))
