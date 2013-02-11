@@ -71,12 +71,12 @@ class Port(object):
 
 class Link(object):
     def __init__(self, idd):
-        assert(idd is not None):
-            self.idd       = idd
-            self.from_node = None
-            self.from_port = None
-            self.to_node   = None
-            self.to_port   = None
+        assert(idd is not None)
+        self.idd       = idd
+        self.from_node = None
+        self.from_port = None
+        self.to_node   = None
+        self.to_port   = None
 
 class FPCE(object):
     def __init__(self):
