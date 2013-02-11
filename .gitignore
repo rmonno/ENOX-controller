@@ -16,6 +16,5 @@ tags
 *~
 *.swp
 *.log
-*.m4
 *Makefile
 */doc/*
