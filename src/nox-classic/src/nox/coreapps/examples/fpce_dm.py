@@ -27,6 +27,57 @@ class Node(object):
         node_orb = GLOB.gmplsTypes.nodeIdent(nodeId,nodeType)
         return node_orb
 
+class OFSwitch(Node):
+    def __init__(self, idd, stats):
+        assert(idd   is not None)
+        assert(stats is not None)
+        super(Node, self).__init__(idd,
+                                   typee = "OFSwitch")
+        self.stats   = stats
+        self.ports   = [ ]
+        self.tables  = None
+        self.buffers = None
+        self.actions = None
+        self.caps    = None
+
+class Host(Node):
+    def __init__(self, idd):
+        assert(idd is not None)
+        super(Node, self).__init__(idd,
+                                   typee = "Host")
+
+class Port(object):
+    def __init__(self, number):
+        assert(number is not None)
+        self.number     = number
+        self.hw_addr    = None
+        self.name       = None
+        self.config     = None
+        self.state      = None
+        self.curr       = None
+        self.advertised = None
+        self.supported  = None
+        self.peer       = None
+
+        self.links      = [ ]
+        self.speed      = None
+
+    def link_add(self, link):
+        assert(link is not None)
+        if link.__class__.__name__ != "Link":
+            log.error("Cannot add link...")
+        else:
+            self.append(link)
+
+class Link(object):
+    def __init__(self, idd):
+        assert(idd is not None):
+            self.idd       = idd
+            self.from_node = None
+            self.from_port = None
+            self.to_node   = None
+            self.to_port   = None
+
 class FPCE(object):
     def __init__(self):
         self.nodes = { }
