@@ -317,11 +317,28 @@ class TopologyMgr(Component):
 
             self.links[link_key].adjacency_add(data['sport'],
                                                data['dport'])
+            log.info("Added a new adjacency for link '%s'" % str(link_key))
+
         except Exception, err:
             log.error("Cannot add link ('%s')" % str(err))
 
     def link_del(self, data):
-        pass
+        assert(data is not None)
+        try:
+            link_key = self.link_key_build(data['dpsrc'], data['dpdst'])
+            if self.links.has_key(link_key):
+                log.debug("Link '%s' will be updated by removing adjancency" % \
+                           str(link_key))
+            else:
+                log.error("Cannot find any link with id '%s'" % str(link_key))
+
+            self.links[link_key].adjacency_del(data['sport'],
+                                               data['dport'])
+            log.info("Removed an existing adjacency for link '%s'" % \
+                      str(link_key))
+
+        except Exception, err:
+            log.error("Cannot remove info for link ('%s')" % str(err))
 
     def link_event_handler(self, ingress):
         assert (ingress is not None)
@@ -333,11 +350,14 @@ class TopologyMgr(Component):
                 log.debug("Adding new detected link...")
                 self.link_add(link_data)
 
+            elif link_data['action'] == "remove":
+                log.debug("Removing link...")
+                self.link_del(link_data)
+
             else:
-                log.error("Cannot handle the foloowing action: '%s'" % \
+                log.error("Cannot handle the following action: '%s'" % \
                            str(link_data['action']))
                 return CONTINUE
-
 
         except Exception, err:
             log.error("Got errors in link_event handler ('%s')" % str(err))

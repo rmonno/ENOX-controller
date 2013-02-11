@@ -86,6 +86,12 @@ class Link(object):
 
         self.ports_bind[from_port] = dest_port
 
+    def adjacency_del(self, from_port, dest_port):
+        assert(from_port is not None)
+        assert(dest_port is not None)
+
+        self.ports_bind.pop(from_port)
+
 class FPCE(object):
     def __init__(self):
         self.nodes = { }
