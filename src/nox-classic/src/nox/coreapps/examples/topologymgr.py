@@ -364,6 +364,8 @@ class TopologyMgr(Component):
             return CONTINUE
 
         log.debug("Link_event handled successfully...")
+        link_key = self.link_key_build(link_data['dpsrc'], link_data['dpdst'])
+        log.debug(str(self.links[link_key]))
         return CONTINUE
 
     def install(self):
