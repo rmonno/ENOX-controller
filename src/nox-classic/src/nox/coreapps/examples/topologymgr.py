@@ -171,6 +171,7 @@ class TopologyMgr(Component):
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
         self.dpids    = { }
+        self.links    = { }
         self.db_flag  = False
         self.db       = None
         self.cursor   = None
@@ -296,8 +297,55 @@ class TopologyMgr(Component):
                    str(self.dpids))
         return CONTINUE
 
+    def link_key_build(self, from_node, to_node):
+        assert(from_node is not None)
+        assert(to_node is not None)
+        key = None
+        key = str(from_node) + "TO" + str(to_node)
+        return key
+
+    def link_add(self, data):
+        assert(data is not None)
+        try:
+            link_key = self.link_key_build(data['dpsrc'], data['dpdst'])
+            if self.links.has_key(link_key):
+                log.debug("Link '%s' will be updated with received info" % \
+                           str(link_key))
+            else:
+                log.debug("Adding new detected link '%s'..." % str(link_key))
+                self.links[link_key] = fpce.Link(link_key)
+
+            self.links[link_key].adjacency_add(data['dpsrc'],
+                                               data['sport'],
+                                               data['dpdst'],
+                                               data['dport'])
+        except Exception, err:
+            log.error("Cannot add link ('%s')" % str(err))
+
+    def link_del(self, data):
+        pass
+
     def link_event_handler(self, ingress):
         assert (ingress is not None)
+        try:
+            link_data = ingress.__dict__
+            log.debug("Received link event with the following data: %s" % \
+                       str(link_data))
+            if link_data['action'] == "add":
+                log.debug("Adding new detected link...")
+                self.link_add(link_data)
+
+            else:
+                log.error("Cannot handle the foloowing action: '%s'" % \
+                           str(link_data['action']))
+                return CONTINUE
+
+
+        except Exception, err:
+            log.error("Got errors in link_event handler ('%s')" % str(err))
+            return CONTINUE
+
+        log.debug("Link_event handled successfully...")
         return CONTINUE
 
     def install(self):
