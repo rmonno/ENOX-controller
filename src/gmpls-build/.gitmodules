@@ -1,3 +1,0 @@
-[submodule "build-aux/jhbuild"]
-	path = build-aux/jhbuild
-	url = git://git.gnome.org/jhbuild
