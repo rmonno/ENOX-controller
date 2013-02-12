@@ -20,13 +20,13 @@ For our purpose, the option "--switch user" MUST BE USED (1)
 2) Start NOX (from the folder nox-classic/build/src) with the following
    command:
 
-    ./nox_core -v -i ptcp:6633 pyswitch discovery pytopology
+    ./nox_core -v -i ptcp:6633 pyswitch discovery pytopology topologymgr
 
 3) Verify the correct behaviuor of the discovery application. In particular,
    the port_status_change() function must be called whenever a port status
    change is detected.
 
-(1) In order to use user reference switch, it is required to get 
+(1) In order to use user reference switch, it is required to get
     openflow source code:
     1) git clone git://openflow.org/openflow.git
     2) boot-configure-make-make install
