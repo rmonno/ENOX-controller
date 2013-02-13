@@ -24,21 +24,15 @@ def main (argv=None):
         conn.open_transaction()
 
         # make an action
-        # datapath_delete: d_id
-        conn.datapath_delete(1)
-        conn.datapath_delete(2)
-        conn.datapath_delete(3)
-        conn.datapath_delete(4)
-        conn.datapath_delete(5)
-        conn.datapath_delete(6)
+        # port_get_index: d_id, port_no
+        index = conn.port_get_index(1,1)
+        log.debug("INDEX=%s", index)
 
-        # commit transaction
-        conn.commit()
+        index = conn.port_get_index(22,55)
+        log.debug("INDEX=%s", index)
 
     except DBException as e:
         log.error(str(e))
-        # rollback transaction
-        conn.rollback()
 
     conn.close()
 

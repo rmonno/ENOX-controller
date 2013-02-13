@@ -90,6 +90,16 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def datapath_get_index(self, d_id):
+        """Get unique index at datapaths table
+
+        :param d_id: datapath identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
                     supported=None, peer=None):
@@ -113,6 +123,17 @@ class TopologyOFCBase(object):
     @abstractmethod
     def port_delete(self, d_id, port_no):
         """Delete an entry at ports table
+
+        :param d_id   : datapath identifier (primary key)
+        :param port_no: port number (primary key)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def port_get_index(self, d_id, port_no):
+        """Get unique index at ports table
 
         :param d_id   : datapath identifier (primary key)
         :param port_no: port number (primary key)

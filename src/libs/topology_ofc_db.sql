@@ -18,8 +18,11 @@ SET time_zone = "+00:00";
 
 --
 -- Database: `topology_ofc_db`
+-- user='topology_user'
+-- pswd='topology_pwd'
 --
 CREATE DATABASE IF NOT EXISTS topology_ofc_db;
+GRANT ALL ON topology_ofc_db.* TO 'topology_user'@'%' IDENTIFIED BY 'topology_pwd';
 USE topology_ofc_db;
 -- --------------------------------------------------------
 
@@ -36,6 +39,9 @@ CREATE TABLE IF NOT EXISTS `datapaths` (
   `ofp_actions` int(11) unsigned DEFAULT NULL,
   `buffers` int(11) unsigned DEFAULT NULL COMMENT 'Max packets buffered at once',
   `tables` int(11) unsigned DEFAULT NULL COMMENT 'Number of tables supported by datapath',
+  `dID` tinyint unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique datapath ID',
+  UNIQUE (`dID`),
+  CHECK (`dID` BETWEEN 1 AND 255),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='datapaths details';
 
@@ -58,6 +64,9 @@ CREATE TABLE IF NOT EXISTS `ports` (
   `advertised` int(11) unsigned DEFAULT NULL COMMENT 'Features being advertised by the port',
   `supported` int(11) unsigned DEFAULT NULL COMMENT 'Features supported by the port',
   `peer` int(11) unsigned DEFAULT NULL COMMENT 'Features advertised by peer',
+  `nodeID` smallint unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique node identifier',
+  UNIQUE (`nodeID`),
+  CHECK (`nodeID` BETWEEN 1 AND 255),
   PRIMARY KEY (`datapath_id`,`port_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='port details';
 

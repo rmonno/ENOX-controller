@@ -190,14 +190,12 @@ class TopologyMgr(Component):
         Component.__init__(self, ctxt)
         self.dpids    = { }
         self.links    = { }
-        self.db_flag  = False
-        self.db       = None
-        self.cursor   = None
+        self.db_conn  = None
         self.fpce     = nxw_utils.FPCE()
-        self.flag     = False
+        self.ior_topo = False
 
         # XXX FIXME: Fill with proper values
-        pce_address     = "10.0.6.30"
+        pce_address     = "10.0.2.169"
         pce_port        = 9696
         tcp_size        = 1024
         self.pce_client = nxw_utils.PCE_Client(pce_address, pce_port, tcp_size)
@@ -213,36 +211,38 @@ class TopologyMgr(Component):
                      host    = "localhost",
                      user    = "topology_user",
                      pwd     = "topology_pwd",
-                     db_name = "topologydb"):
-        assert(host    is not None)
-        assert(user    is not None)
-        assert(pwd     is not None)
-        assert(db_name is not None)
-        if self.db_flag == True:
-            log.error("Connection with Topology DB is already enabled...")
-            return
-        else:
-            try:
-                self.db     = sqldb.connect(host, user, pwd, db_name)
-                self.cursor = self.db.cursor()
-                self.db_flag  = True
-                log.debug("Enabled connection with Topology DB")
-            except Exception, e:
-                self.db_flag  = False
-                log.error("Cannot connect to topology DB (%s)" % str(e))
+                     db_name = "topology_ofc_db"):
+        self.db_conn = nxw_utils.TopologyOFCManager(host,
+                                                    user,
+                                                    pwd,
+                                                    db_name,
+                                                    log)
+        log.debug("Enabled connection with Topology DB (%s, %s, %s)",
+                  host, user, db_name)
 
-    def mysql_disable(self):
-        if self.db_flag == False:
-            log.error("Connection with Topology DB is already closed...")
-            return
-        else:
-            try:
-                self.db.close()
-                self.db_flag = False
-                log.debug("Closed connection with Topology DB")
-            except Exception, e:
-                log.error("Cannot close connection with topology DB (%s)" %
-                           str(e))
+    def pce_topology_enable(self):
+        log.debug("Retrieving IOR for topology requests")
+        try:
+            resp = self.pce_client.send_msg("topology")
+            if resp is None:
+                self.ior_topo = False
+            else:
+                log.debug("Received the following response: %s", str(resp))
+                parsed_resp = self.pce_client.decode_requests(resp)
+                if not parsed_resp:
+                    log.error("Got an error in response parsing...")
+                    self.ior_topo = False
+                else:
+                    log.info("Received the following IOR: '%s'",
+                             str(parsed_resp))
+                    self.fpce.ior_add(parsed_resp)
+                    self.ior_topo = True
+
+        except Exception as e:
+            log.error("Pce Topology Failure: %s", str(e))
+            self.ior_topo = False
+
+        return self.ior_topo
 
     def testing(self, data):
         print(type(data))
@@ -266,44 +266,52 @@ class TopologyMgr(Component):
         assert (dpid  is not None)
         assert (stats is not None)
 
-        if self.dpids.has_key(str(dpid)):
-            log.error("Switch %s is already registred...")
+        # insert values into topology-db
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+
+            # datapath_insert
+            self.db_conn.datapath_insert(d_id=dpid,
+                                         d_name="ofswitch-" + str(dpid),
+                                         caps=stats['caps'],
+                                         actions=stats['actions'],
+                                         buffers=stats['n_bufs'],
+                                         tables=stats['n_tables'])
+            # port_insert
+            for p_info in stats['ports']:
+                # FIXME: decode hw_addr information
+                self.db_conn.port_insert(d_id=dpid,
+                                         port_no=p_info['port_no'],
+                                         #hw_addr=p_info['hw_addr'],
+                                         name=p_info['name'],
+                                         config=p_info['config'],
+                                         state=p_info['state'],
+                                         curr=p_info['curr'],
+                                         advertised=p_info['advertised'],
+                                         supported=p_info['supported'],
+                                         peer=p_info['peer'])
+            # commit transaction
+            self.db_conn.commit()
+            log.debug("Successfull committed information!")
+
+        except nxw_utils.DBException as e:
+            log.error(str(e))
+            # rollback transaction
+            self.db_conn.rollback()
+
+        finally:
+            self.db_conn.close()
+
+        # update flow-pce
+        if not self.ior_topo and not self.pce_topology_enable():
+            log.error("Unable to contact FLOW-PCE!")
             return CONTINUE
-        else:
-            log.debug("Switch %s joined with the following stats:\n %s" %
-                      (str(dpid), str(stats)))
-            self.dpids[str(dpid)] = stats
 
-            if self.db_flag:
-                sql = """INSERT INTO ofswitches(dpid, stats) VALUES \
-                        ('%s', '%s')""" % (str(dpid), str(stats))
-                log.debug("Now TopologyDB contains the following parms: \n %s" %
-                           str(self.dpids))
+        # add NODE to flow-pce
 
-        if not self.flag:
-            log.debug("Retrieving IOR...")
-            req_type = "topology"
-            resp     = self.pce_client.send_msg(req_type)
-            if resp is None:
-                log.error("Cannot send message...")
-            else:
-                self.flag = True
-                log.info("Received the following response: %s" % str(resp))
-                parsed_resp = self.pce_client.decode_requests(resp)
-                if not parsed_resp:
-                    log.error("Got errors in response parsing...")
-                    return CONTINUE
-                else:
-                    log.info("Received the following IOR: '%s'" % \
-                              str(parsed_resp))
-                    self.fpce.ior_add(parsed_resp)
+        # add LINKS to flow-pce
 
-            return CONTINUE
-        else:
-            log.debug("IOR has already been received...")
-            return CONTINUE
-
-        # Insert code here to add node in the F-PCE...
         return CONTINUE
 
     def datapath_leave_handler(self, dpid):
@@ -427,7 +435,6 @@ class TopologyMgr(Component):
         self.register_for_datapath_join(self.datapath_join_handler)
         self.register_for_datapath_leave(self.datapath_leave_handler)
 	self.register_for_packet_in(self.packet_in_handler)
-        self.bindings = self.resolve(pybindings_storage)
         self.register_handler(Link_event.static_get_name(),
                               self.link_event_handler)
 
@@ -442,8 +449,9 @@ class TopologyMgr(Component):
 
 
         self.mysql_enable()
-	log.debug("%s started..." % str(self.__class__.__name__))
-	self.receiver = Receiver()
+        self.pce_topology_enable()
+        log.debug("%s started..." % str(self.__class__.__name__))
+        self.receiver = Receiver()
 
     def getInterface(self):
         return str(TopologyMgr)
