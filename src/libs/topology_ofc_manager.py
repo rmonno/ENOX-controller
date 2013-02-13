@@ -147,6 +147,36 @@ class TopologyOFCManager(TopologyOFCBase):
             if cursor:
                 cursor.close()
 
+    def datapath_get_index(self, d_id):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "datapaths"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT dID FROM " + table + " WHERE id=" + str(d_id)
+            self._debug(statement)
+
+            cursor.execute(statement)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return cursor.fetchone()["dID"]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("Index not found!")
+
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
                     supported=None, peer=None):
@@ -244,3 +274,35 @@ class TopologyOFCManager(TopologyOFCBase):
         finally:
             if cursor:
                 cursor.close()
+
+    def port_get_index(self, d_id, port_no):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "ports"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT nodeID FROM " + table +\
+                        " WHERE datapath_id=%s AND port_no=%s"
+            values = (d_id, port_no)
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return cursor.fetchone()["nodeID"]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("Index not found!")
