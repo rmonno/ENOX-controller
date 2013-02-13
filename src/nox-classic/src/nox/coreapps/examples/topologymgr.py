@@ -204,7 +204,7 @@ class TopologyMgr(Component):
                      host    = "localhost",
                      user    = "topology_user",
                      pwd     = "topology_pwd",
-                     db_name = "topologydb"):
+                     db_name = "topology_ofc_db"):
         self.db_conn = nxw_utils.TopologyOFCManager(host,
                                                     user,
                                                     pwd,
@@ -230,6 +230,44 @@ class TopologyMgr(Component):
     def datapath_join_handler(self, dpid, stats):
         assert (dpid  is not None)
         assert (stats is not None)
+
+        # insert values into topology-db
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+
+            # datapath_insert
+            self.db_conn.datapath_insert(d_id=dpid,
+                                         d_name="ofswitch-" + str(dpid),
+                                         caps=stats['caps'],
+                                         actions=stats['actions'],
+                                         buffers=stats['n_bufs'],
+                                         tables=stats['n_tables'])
+
+            # port_insert
+            for p_info in stats['ports']:
+                # FIXME: decode hw_addr information
+                self.db_conn.port_insert(d_id=dpid,
+                                         port_no=p_info['port_no'],
+                                         #hw_addr=p_info['hw_addr'],
+                                         name=p_info['name'],
+                                         config=p_info['config'],
+                                         state=p_info['state'],
+                                         curr=p_info['curr'],
+                                         advertised=p_info['advertised'],
+                                         supported=p_info['supported'],
+                                         peer=p_info['peer'])
+            # commit transaction
+            self.db_conn.commit()
+            log.debug("Successfull committed information!")
+
+        except nxw_utils.DBException as e:
+            log.error(str(e))
+            # rollback transaction
+            self.db_conn.rollback()
+
+        self.db_conn.close()
+        return CONTINUE
 
         if self.dpids.has_key(str(dpid)):
             log.error("Switch %s is already registred...")

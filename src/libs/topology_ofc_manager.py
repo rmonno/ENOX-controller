@@ -81,27 +81,27 @@ class TopologyOFCManager(TopologyOFCBase):
             stat_body   = "VALUES (%s"
             values      = (str(d_id),)
 
-            if d_name:
+            if d_name is not None:
                 stat_header += ", name"
                 stat_body   += ", %s"
                 values      = values + (str(d_name),)
 
-            if caps:
+            if caps is not None:
                 stat_header += ", ofp_capabilities"
                 stat_body   += ", %s"
                 values      = values + (str(caps),)
 
-            if actions:
+            if actions is not None:
                 stat_header += ", ofp_actions"
                 stat_body   += ", %s"
                 values      = values + (str(actions),)
 
-            if buffers:
+            if buffers is not None:
                 stat_header += ", buffers"
                 stat_body   += ", %s"
                 values      = values + (str(buffers),)
 
-            if tables:
+            if tables is not None:
                 stat_header += ", tables"
                 stat_body   += ", %s"
                 values      = values + (str(tables),)
@@ -162,42 +162,42 @@ class TopologyOFCManager(TopologyOFCBase):
             stat_body   = "VALUES (%s, %s"
             values      = (str(d_id), str(port_no))
 
-            if hw_addr:
+            if hw_addr is not None:
                 stat_header += ", hw_addr"
                 stat_body   += ", %s"
                 values      = values + (str(hw_addr),)
 
-            if name:
+            if name is not None:
                 stat_header += ", name"
                 stat_body   += ", %s"
                 values      = values + (str(name),)
 
-            if config:
+            if config is not None:
                 stat_header += ", config"
                 stat_body   += ", %s"
                 values      = values + (str(config),)
 
-            if state:
+            if state is not None:
                 stat_header += ", state"
                 stat_body   += ", %s"
                 values      = values + (str(state),)
 
-            if curr:
+            if curr is not None:
                 stat_header += ", curr"
                 stat_body   += ", %s"
                 values      = values + (str(curr),)
 
-            if advertised:
+            if advertised is not None:
                 stat_header += ", advertised"
                 stat_body   += ", %s"
                 values      = values + (str(advertised),)
 
-            if supported:
+            if supported is not None:
                 stat_header += ", supported"
                 stat_body   += ", %s"
                 values      = values + (str(supported),)
 
-            if peer:
+            if peer is not None:
                 stat_header += ", peer"
                 stat_body   += ", %s"
                 values      = values + (str(peer),)

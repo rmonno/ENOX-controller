@@ -18,8 +18,11 @@ SET time_zone = "+00:00";
 
 --
 -- Database: `topology_ofc_db`
+-- user='topology_user'
+-- pswd='topology_pwd'
 --
 CREATE DATABASE IF NOT EXISTS topology_ofc_db;
+GRANT ALL ON topology_ofc_db.* TO 'topology_user'@'%' IDENTIFIED BY 'topology_pwd';
 USE topology_ofc_db;
 -- --------------------------------------------------------
 
