@@ -147,4 +147,11 @@ class FPCE(object):
         except Exception, e:
             log.error("Got generic exception ('%s')" % str(e))
 
+    def add_node_from_string(self, node):
+        assert(node is not None)
+        log.info("Try to add node=%s" % node)
 
+    def add_link_from_strings(self, node_a, node_b):
+        assert(node_a is not None)
+        assert(node_b is not None)
+        log.info("Try to add link=%s -> %s", node_a, node_b)
