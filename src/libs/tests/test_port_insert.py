@@ -18,7 +18,7 @@ from topology_ofc_manager import *
 
 def main (argv=None):
     log.level_set("DEBUG")
-    conn = TopologyOFCManager("127.0.0.1", "root", "monno", "topology_ofc_db", log)
+    conn = TopologyOFCManager("127.0.0.1", "root", "root", "topology_ofc_db", log)
     try:
         # connect and open transaction
         conn.open_transaction()
