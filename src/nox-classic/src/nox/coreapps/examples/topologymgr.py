@@ -183,9 +183,7 @@ class TopologyMgr(Component):
         Component.__init__(self, ctxt)
         self.dpids    = { }
         self.links    = { }
-        self.db_flag  = False
-        self.db       = None
-        self.cursor   = None
+        self.db_conn  = None
         self.fpce     = nxw_utils.FPCE()
         self.flag     = False
 
@@ -207,35 +205,13 @@ class TopologyMgr(Component):
                      user    = "topology_user",
                      pwd     = "topology_pwd",
                      db_name = "topologydb"):
-        assert(host    is not None)
-        assert(user    is not None)
-        assert(pwd     is not None)
-        assert(db_name is not None)
-        if self.db_flag == True:
-            log.error("Connection with Topology DB is already enabled...")
-            return
-        else:
-            try:
-                self.db     = sqldb.connect(host, user, pwd, db_name)
-                self.cursor = self.db.cursor()
-                self.db_flag  = True
-                log.debug("Enabled connection with Topology DB")
-            except Exception, e:
-                self.db_flag  = False
-                log.error("Cannot connect to topology DB (%s)" % str(e))
-
-    def mysql_disable(self):
-        if self.db_flag == False:
-            log.error("Connection with Topology DB is already closed...")
-            return
-        else:
-            try:
-                self.db.close()
-                self.db_flag = False
-                log.debug("Closed connection with Topology DB")
-            except Exception, e:
-                log.error("Cannot close connection with topology DB (%s)" %
-                           str(e))
+        self.db_conn = nxw_utils.TopologyOFCManager(host,
+                                                    user,
+                                                    pwd,
+                                                    db_name,
+                                                    log)
+        log.debug("Enabled connection with Topology DB (%s, %s, %s)",
+                  host, user, db_name)
 
     def packet_in_handler(self, dpid, inport, reason, len, bufid, packet):
 	assert packet is not None
@@ -382,13 +358,13 @@ class TopologyMgr(Component):
     def install(self):
         self.register_for_datapath_join(self.datapath_join_handler)
         self.register_for_datapath_leave(self.datapath_leave_handler)
-	self.register_for_packet_in(self.packet_in_handler)
+        self.register_for_packet_in(self.packet_in_handler)
         self.register_handler(Link_event.static_get_name(),
                               self.link_event_handler)
 
         self.mysql_enable()
-	log.debug("%s started..." % str(self.__class__.__name__))
-	self.receiver = Receiver()
+        log.debug("%s started..." % str(self.__class__.__name__))
+        self.receiver = Receiver()
 
     def getInterface(self):
         return str(TopologyMgr)
