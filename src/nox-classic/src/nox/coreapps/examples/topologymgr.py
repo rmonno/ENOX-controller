@@ -16,9 +16,16 @@
 # along with NOX.  If not, see <http://www.gnu.org/licenses/>.
 # ----------------------------------------------------------------------
 
-from nox.lib.core                        import *
-from nox.lib.packet.ethernet             import ethernet
-from nox.netapps.discovery.pylinkevent   import Link_event
+from nox.lib.core                         import *
+from nox.lib.packet.ethernet              import ethernet
+from nox.netapps.discovery.pylinkevent    import Link_event
+from nox.netapps.authenticator.pyauth     import Host_auth_event
+from nox.netapps.authenticator.pyauth     import Host_bind_event
+from nox.netapps.authenticator.pyauth     import Host_join_event
+from nox.netapps.authenticator.pyflowutil import Flow_in_event
+
+#from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
+from nox.netapps.bindings_storage.pybindings_storage import pybindings_storage
 
 import threading
 import logging
@@ -237,11 +244,15 @@ class TopologyMgr(Component):
                 log.error("Cannot close connection with topology DB (%s)" %
                            str(e))
 
+    def testing(self, data):
+        print(type(data))
+        print(data)
+
     def packet_in_handler(self, dpid, inport, reason, len, bufid, packet):
 	assert packet is not None
 	log.debug("%s has caught the packet_in event" %
                    str(self.__class__.__name__))
-
+        #ret = self.bindings.get_all_links(self.testing)
         if not packet.parsed:
             log.debug("Ignoring incomplete packet")
 
@@ -379,12 +390,56 @@ class TopologyMgr(Component):
         log.debug(str(self.links[link_key]))
         return CONTINUE
 
+    def host_auth_event_handler(self, data):
+        assert(data is not None)
+        try:
+            auth_data = data.__dict__
+            log.debug("Received host_auth_event with the following data: %s" %
+                       str(auth_data))
+
+        return CONTINUE
+
+    def host_bind_event_handler(self, data):
+        assert(data is not None)
+        try:
+            bind_data = data.__dict__
+            log.debug("Received host_bind_event with the following data: %s" %
+                       str(bind_data))
+        return CONTINUE
+
+    def host_join_event_handler(self, data):
+        assert(data is not None)
+        try:
+            join_data = data.__dict__
+            log.debug("Received host_join_event with the following data: %s" %
+                       str(join_data))
+        return CONTINUE
+
+    def flowin_event_handler(self, data):
+        assert(data is not None)
+        try:
+            flowin_data = data.__dict__
+            log.debug("Received host_flowin_ev with the following data: %s" %
+                       str(flowin_data))
+        return CONTINUE
+
     def install(self):
         self.register_for_datapath_join(self.datapath_join_handler)
         self.register_for_datapath_leave(self.datapath_leave_handler)
 	self.register_for_packet_in(self.packet_in_handler)
+        self.bindings = self.resolve(pybindings_storage)
         self.register_handler(Link_event.static_get_name(),
                               self.link_event_handler)
+
+        self.register_handler(Host_auth_event.static_get_name(),
+                              self.host_auth_event_handler)
+        self.register_handler(Host_bind_event.static_get_name(),
+                              self.host_bind_event_handler)
+        self.register_handler(Host_join_event.static_get_name(),
+                              self.host_join_event_handler)
+        self.register_handler(Flow_in_event.static_get_name(),
+                              self.flowin_event_handler)
+
 
         self.mysql_enable()
 	log.debug("%s started..." % str(self.__class__.__name__))

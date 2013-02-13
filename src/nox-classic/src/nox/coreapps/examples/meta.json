@@ -45,7 +45,8 @@
         {
             "name": "topologymgr" ,
             "dependencies": [
-                "python"
+                "python",
+                "pyauthenticator"
             ],
             "python": "nox.coreapps.examples.topologymgr"
         }
