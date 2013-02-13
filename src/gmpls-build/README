@@ -1,5 +1,0 @@
-This is gmpls-build, the default environment for building Nextworks-GMPLS stack
-
-PREREQUISITES:
- * bash
- * Python >= 2.3

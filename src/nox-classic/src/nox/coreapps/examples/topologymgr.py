@@ -19,15 +19,26 @@
 from nox.lib.core                        import *
 from nox.lib.packet.ethernet             import ethernet
 from nox.netapps.discovery.pylinkevent   import Link_event
-from omniORB                             import CORBA
 
-import nox.coreapps.examples.connections as connections
-import nox.coreapps.examples.pce_conn    as pce_conn
-import nox.coreapps.examples.fpce_dm     as fpce
-import MySQLdb                           as sqldb
 import threading
 import logging
-import sys
+import sys, os
+
+# update sys python path
+key = 'nox-classic'
+basepath = os.path.dirname(os.path.abspath(sys.argv[0]))
+nox_index = basepath.find(key)
+
+libs_path = basepath[0:nox_index-1]
+sys.path.insert(0, libs_path)
+
+idl_find_path = basepath[0:nox_index] + key + '/build/src'
+for (root, dirs, names) in os.walk(idl_find_path):
+    if 'idl' in dirs:
+        sys.path.insert(0, root + '/idl')
+
+import libs as nxw_utils
+
 
 log = logging.getLogger('topologymgr')
 
@@ -160,11 +171,11 @@ class Receiver(object):
     def __init__(self):
         self.handler = ReceiverHandler()
         # XXX FIXME: Fill with proper values
-        self.server    = connections.Server("test",
-                                            "localhost",
-                                            9001,
-                                            5,
-                                            self.handler)
+        self.server    = nxw_utils.Server("test",
+                                          "localhost",
+                                          9001,
+                                          5,
+                                          self.handler)
 
 class TopologyMgr(Component):
 
@@ -175,14 +186,14 @@ class TopologyMgr(Component):
         self.db_flag  = False
         self.db       = None
         self.cursor   = None
-        self.fpce     = fpce.FPCE()
+        self.fpce     = nxw_utils.FPCE()
         self.flag     = False
 
         # XXX FIXME: Fill with proper values
         pce_address     = "10.0.6.30"
         pce_port        = 9696
         tcp_size        = 1024
-        self.pce_client = pce_conn.PCE_Client(pce_address, pce_port, tcp_size)
+        self.pce_client = nxw_utils.PCE_Client(pce_address, pce_port, tcp_size)
         self.pce_client.create()
 
     def ior_del(self):
@@ -313,7 +324,7 @@ class TopologyMgr(Component):
                            str(link_key))
             else:
                 log.debug("Adding new detected link '%s'..." % str(link_key))
-                self.links[link_key] = fpce.Link(link_key)
+                self.links[link_key] = nxw_utils.Link(link_key)
 
             self.links[link_key].adjacency_add(data['sport'],
                                                data['dport'])

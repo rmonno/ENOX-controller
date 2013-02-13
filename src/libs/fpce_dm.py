@@ -1,10 +1,7 @@
 import logging
 import sys
 
-from omniORB      import CORBA
-# XXX FIXME: Remove asap
-sys.path.append("/home/nox/broken/eu-fibre/src/gmpls-build/checkout/gmpls-idl/src/idl")
-sys.path.append("/home/nox/rep/eu-fibre/src/gmpls-build/checkout/gmpls-idl/src/idl")
+from omniORB import CORBA
 import TOPOLOGY
 import _GlobalIDL as GLOB
 
