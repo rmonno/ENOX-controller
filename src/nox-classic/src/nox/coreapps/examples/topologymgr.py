@@ -24,9 +24,6 @@ from nox.netapps.authenticator.pyauth     import Host_bind_event
 from nox.netapps.authenticator.pyauth     import Host_join_event
 from nox.netapps.authenticator.pyflowutil import Flow_in_event
 
-#from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
-from nox.netapps.bindings_storage.pybindings_storage import pybindings_storage
-
 import threading
 import logging
 import sys, os
@@ -244,10 +241,6 @@ class TopologyMgr(Component):
 
         return self.ior_topo
 
-    def testing(self, data):
-        print(type(data))
-        print(data)
-
     def packet_in_handler(self, dpid, inport, reason, len, bufid, packet):
 	assert packet is not None
 	log.debug("%s has caught the packet_in event" %
@@ -405,7 +398,11 @@ class TopologyMgr(Component):
             log.debug("Received host_auth_event with the following data: %s" %
                        str(auth_data))
 
-        return CONTINUE
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_auth_ev handler ('%s')" % str(err))
+            return CONTINUE
 
     def host_bind_event_handler(self, data):
         assert(data is not None)
@@ -413,7 +410,11 @@ class TopologyMgr(Component):
             bind_data = data.__dict__
             log.debug("Received host_bind_event with the following data: %s" %
                        str(bind_data))
-        return CONTINUE
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_bind_ev handler ('%s')" % str(err))
+            return CONTINUE
 
     def host_join_event_handler(self, data):
         assert(data is not None)
@@ -421,7 +422,11 @@ class TopologyMgr(Component):
             join_data = data.__dict__
             log.debug("Received host_join_event with the following data: %s" %
                        str(join_data))
-        return CONTINUE
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_join_ev handler ('%s')" % str(err))
+            return CONTINUE
 
     def flowin_event_handler(self, data):
         assert(data is not None)
@@ -429,7 +434,11 @@ class TopologyMgr(Component):
             flowin_data = data.__dict__
             log.debug("Received host_flowin_ev with the following data: %s" %
                        str(flowin_data))
-        return CONTINUE
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_flowin_ev handler ('%s')" % str(err))
+            return CONTINUE
 
     def install(self):
         self.register_for_datapath_join(self.datapath_join_handler)
