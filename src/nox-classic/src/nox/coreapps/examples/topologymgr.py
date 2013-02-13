@@ -185,10 +185,10 @@ class TopologyMgr(Component):
         self.links    = { }
         self.db_conn  = None
         self.fpce     = nxw_utils.FPCE()
-        self.flag     = False
+        self.ior_topo = False
 
         # XXX FIXME: Fill with proper values
-        pce_address     = "10.0.6.30"
+        pce_address     = "10.0.2.169"
         pce_port        = 9696
         tcp_size        = 1024
         self.pce_client = nxw_utils.PCE_Client(pce_address, pce_port, tcp_size)
@@ -212,6 +212,30 @@ class TopologyMgr(Component):
                                                     log)
         log.debug("Enabled connection with Topology DB (%s, %s, %s)",
                   host, user, db_name)
+
+    def pce_topology_enable(self):
+        log.debug("Retrieving IOR for topology requests")
+        try:
+            resp = self.pce_client.send_msg("topology")
+            if resp is None:
+                self.ior_topo = False
+            else:
+                log.debug("Received the following response: %s", str(resp))
+                parsed_resp = self.pce_client.decode_requests(resp)
+                if not parsed_resp:
+                    log.error("Got an error in response parsing...")
+                    self.ior_topo = False
+                else:
+                    log.info("Received the following IOR: '%s'",
+                             str(parsed_resp))
+                    self.fpce.ior_add(parsed_resp)
+                    self.ior_topo = True
+
+        except Exception as e:
+            log.error("Pce Topology Failure: %s", str(e))
+            self.ior_topo = False
+
+        return self.ior_topo
 
     def packet_in_handler(self, dpid, inport, reason, len, bufid, packet):
 	assert packet is not None
@@ -243,7 +267,6 @@ class TopologyMgr(Component):
                                          actions=stats['actions'],
                                          buffers=stats['n_bufs'],
                                          tables=stats['n_tables'])
-
             # port_insert
             for p_info in stats['ports']:
                 # FIXME: decode hw_addr information
@@ -266,47 +289,18 @@ class TopologyMgr(Component):
             # rollback transaction
             self.db_conn.rollback()
 
-        self.db_conn.close()
-        return CONTINUE
+        finally:
+            self.db_conn.close()
 
-        if self.dpids.has_key(str(dpid)):
-            log.error("Switch %s is already registred...")
-            return CONTINUE
-        else:
-            log.debug("Switch %s joined with the following stats:\n %s" %
-                      (str(dpid), str(stats)))
-            self.dpids[str(dpid)] = stats
-
-            if self.db_flag:
-                sql = """INSERT INTO ofswitches(dpid, stats) VALUES \
-                        ('%s', '%s')""" % (str(dpid), str(stats))
-                log.debug("Now TopologyDB contains the following parms: \n %s" %
-                           str(self.dpids))
-
-        if not self.flag:
-            log.debug("Retrieving IOR...")
-            req_type = "topology"
-            resp     = self.pce_client.send_msg(req_type)
-            if resp is None:
-                log.error("Cannot send message...")
-            else:
-                self.flag = True
-                log.info("Received the following response: %s" % str(resp))
-                parsed_resp = self.pce_client.decode_requests(resp)
-                if not parsed_resp:
-                    log.error("Got errors in response parsing...")
-                    return CONTINUE
-                else:
-                    log.info("Received the following IOR: '%s'" % \
-                              str(parsed_resp))
-                    self.fpce.ior_add(parsed_resp)
-
-            return CONTINUE
-        else:
-            log.debug("IOR has already been received...")
+        # update flow-pce
+        if not self.ior_topo and not self.pce_topology_enable():
+            log.error("Unable to contact FLOW-PCE!")
             return CONTINUE
 
-        # Insert code here to add node in the F-PCE...
+        # add NODE to flow-pce
+
+        # add LINKS to flow-pce
+
         return CONTINUE
 
     def datapath_leave_handler(self, dpid):
@@ -401,6 +395,7 @@ class TopologyMgr(Component):
                               self.link_event_handler)
 
         self.mysql_enable()
+        self.pce_topology_enable()
         log.debug("%s started..." % str(self.__class__.__name__))
         self.receiver = Receiver()
 
