@@ -187,6 +187,7 @@ class TopologyMgr(Component):
         Component.__init__(self, ctxt)
         self.dpids    = { }
         self.links    = { }
+        self.hosts    = { }
         self.db_conn  = None
         self.fpce     = nxw_utils.FPCE()
         self.ior_topo = False
@@ -397,6 +398,20 @@ class TopologyMgr(Component):
             auth_data = data.__dict__
             log.debug("Received host_auth_event with the following data: %s" %
                        str(auth_data))
+            host_ipaddr = auth_data['nwaddr']
+            if int(host_ipaddr) == 0:
+                log.debug("Received auth_event without ipaddr info...")
+                return CONTINUE
+
+            # XXX FIXME: Use hostname as key for hosts dict
+            if not self.hosts.has_key(host_ipaddr):
+                self.hosts[host_ipaddr] = nxw_utils.Host(host_ipaddr)
+            self.hosts[host_ipaddr].mac_addr = auth_data['dladdr']
+            self.hosts[host_ipaddr].ip_addr  = auth_data['nwaddr']
+            self.hosts[host_ipaddr].dpid     = auth_data['datapath_id']
+            self.hosts[host_ipaddr].port     = auth_data['port']
+            log.debug("Updated host '%s' with the following values: %s" % \
+                       (str(host_ipaddr), str(self.hosts[host_ipaddr])))
 
             return CONTINUE
 
@@ -410,6 +425,22 @@ class TopologyMgr(Component):
             bind_data = data.__dict__
             log.debug("Received host_bind_event with the following data: %s" %
                        str(bind_data))
+            host_ipaddr = auth_data['nwaddr']
+            if int(host_ipaddr) == 0:
+                log.debug("Received bind_event without ipaddr info...")
+                return CONTINUE
+
+            if not self.hosts.has_key(host_ipaddr):
+                log.error("Received host_bind_ev for a host not registred..")
+                return CONTINUE
+
+            self.hosts[host_ipaddr].mac_addr = auth_data['dladdr']
+            self.hosts[host_ipaddr].ip_addr  = auth_data['nwaddr']
+            self.hosts[host_ipaddr].dpid     = auth_data['datapath_id']
+            self.hosts[host_ipaddr].port     = auth_data['port']
+
+            log.debug("Updated host '%s' with the following values: %s" % \
+                       (str(host_ipaddr), str(self.hosts[host_ipaddr])))
             return CONTINUE
 
         except Exception, err:
