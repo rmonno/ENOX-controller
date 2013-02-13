@@ -297,14 +297,42 @@ class TopologyMgr(Component):
         finally:
             self.db_conn.close()
 
-        # update flow-pce
+        # check ior-dispatcher on pce node
         if not self.ior_topo and not self.pce_topology_enable():
-            log.error("Unable to contact FLOW-PCE!")
+            log.error("Unable to contact ior-dispatcher on PCE node!")
             return CONTINUE
 
-        # add NODE to flow-pce
+        # get datapath and ports index from topology-db
+        nodes = []
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
 
-        # add LINKS to flow-pce
+            d_idx = self.db_conn.datapath_get_index(d_id=dpid)
+            for p_info in stats['ports']:
+                p_idx = self.db_conn.port_get_index(d_id=dpid,
+                                                    port_no=p_info['port_no'])
+                node = "0." + str(d_idx) + ".0." + str(p_idx)
+                nodes.append(node)
+
+        except nxw_utils.DBException as e:
+            log.error(str(e))
+
+        finally:
+            self.db_conn.close()
+
+        # update flow-pce topology (nodes)
+        log.debug("Nodes=%s", nodes)
+        for node in nodes:
+            self.fpce.add_node_from_string(node)
+
+        # update flow-pce topology (links)
+        for node in nodes:
+            others = list(nodes)
+            others.remove(node)
+
+            for onode in others:
+                self.fpce.add_link_from_strings(node, onode)
 
         return CONTINUE
 
