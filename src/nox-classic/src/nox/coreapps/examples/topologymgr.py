@@ -256,21 +256,21 @@ class TopologyMgr(Component):
 
         # XXX FIXME: To be tested...
         dl_addr = str(pkt_utils.mac_to_str(packet.src))
-        dl_addr_int = pkt_utils.mac_to_int(packet.src)
         if not self.hosts.has_key(dl_addr):
             log.debug("Added new host with the following MAC: %s" % \
                         str(dl_addr))
             self.hosts[dl_addr] = nxw_utils.Host(dl_addr)
 
-        # XXX FIXME: Insert a proper check to avoid too many updates
-        #self.bindings.get_names_by_mac(ethernetaddr(dl_addr_int), self.cb)
-        log.debug("Updating info for host '%s'" % dl_addr)
-        self.hosts[dl_addr].mac_addr = dl_addr
-        self.hosts[dl_addr].ip_addr  = None
-        self.hosts[dl_addr].dpid     = dpid
-        self.hosts[dl_addr].port     = inport
-        log.debug("Updated host '%s' with the following values: %s" % \
-                    (dl_addr, str(self.hosts[dl_addr])))
+            log.debug("Updating info for host '%s'" % dl_addr)
+            self.hosts[dl_addr].mac_addr = dl_addr
+            self.hosts[dl_addr].ip_addr  = None
+            self.hosts[dl_addr].dpid     = dpid
+            self.hosts[dl_addr].port     = inport
+
+            log.debug("Added host '%s' with the following values: %s" % \
+                      (dl_addr, str(self.hosts[dl_addr])))
+
+        # XXX FIXME: Add proper checks to allow host info update
 
         return CONTINUE
 
