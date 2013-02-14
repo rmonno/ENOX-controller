@@ -1,9 +1,15 @@
 ==============================================================================
 
 * topologymgr
-    * Move module from pox/ext into a proper folder and modify related imports
-
     * Insert F-PCE address as input parameter for NOX (and remove stub!)
+
+    * Test correct behaviour of the "host discovery" (inherited from
+      host_tracking application)
+        ** Authenticator related events seem be not able to provide correct
+           values for the "in_port" field (it justifies the adoption of this
+           alternative method)
+        ** Insert "hosts_leave" events handling. It is a known problem also for
+           other developers
 
     * Call F-PCE functions and test its functionalities
 
@@ -17,7 +23,4 @@
         ** Add response handling to retrieve received stats from switches
     * Move functions which handle events (e.g. flow_stats_recv) into
       ReceiverHandler class
-    * Verify the correct values for adjacences (i.e. _connection member of the
-      OFSwitch class)
-
 

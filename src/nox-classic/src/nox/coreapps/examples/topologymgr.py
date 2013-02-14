@@ -24,6 +24,8 @@ from nox.netapps.authenticator.pyauth     import Host_bind_event
 from nox.netapps.authenticator.pyauth     import Host_join_event
 from nox.netapps.authenticator.pyflowutil import Flow_in_event
 
+import nox.lib.packet.packet_utils        as     pkt_utils
+
 import threading
 import logging
 import sys, os
@@ -253,6 +255,22 @@ class TopologyMgr(Component):
         if packet.type == ethernet.LLDP_TYPE:
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
+
+        # XXX FIXME: To be tested...
+        dl_addr = str(pkt_utils.mac_to_str(packet.src))
+        if not self.hosts.has_key(dl_addr):
+            log.debug("Added new host with the following MAC: %s" % \
+                        str(dl_addr))
+            self.hosts[dl_addr] = nxw_utils.Host(dl_addr)
+
+        # XXX FIXME: Insert a proper check to avoid too many updates
+        log.debug("Updating info for host '%s'" % dl_addr)
+        self.hosts[dl_addr].mac_addr = dl_addr
+        self.hosts[dl_addr].ip_addr  = None
+        self.hosts[dl_addr].dpid     = dpid
+        self.hosts[dl_addr].port     = inport
+        log.debug("Updated host '%s' with the following values: %s" % \
+                    (dl_addr, str(self.hosts[dl_addr])))
 
         return CONTINUE
 
@@ -512,9 +530,8 @@ class TopologyMgr(Component):
                               self.host_bind_event_handler)
         self.register_handler(Host_join_event.static_get_name(),
                               self.host_join_event_handler)
-        self.register_handler(Flow_in_event.static_get_name(),
-                              self.flowin_event_handler)
-
+        #self.register_handler(Flow_in_event.static_get_name(),
+        #                      self.flowin_event_handler)
 
         self.mysql_enable()
         self.pce_topology_enable()
