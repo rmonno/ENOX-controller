@@ -1,6 +1,9 @@
 1) Start mininet with the following command:
 
-   sudo mn --topo linear --mac --switch user --controller remote
+   sudo mn --topo linear --switch user --controller remote
+
+WARNING: Mininet MUST be run without option --mac in order to avoid that OF
+switches use SAME MAC address used by hosts!!
 
 IMPORTANT NOTE: The Open vSwitch seems not support the LLDP protocol. In fact,
 if we launch the mininet with the options --switch ovsk the NOX controller will
