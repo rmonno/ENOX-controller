@@ -19,6 +19,10 @@
 from nox.lib.core                         import *
 from nox.lib.packet.ethernet              import ethernet
 from nox.netapps.discovery.pylinkevent    import Link_event
+from nox.netapps.authenticator.pyauth     import Host_auth_event
+from nox.netapps.authenticator.pyauth     import Host_bind_event
+from nox.netapps.authenticator.pyauth     import Host_join_event
+from nox.netapps.authenticator.pyflowutil import Flow_in_event
 
 import nox.lib.packet.packet_utils        as     pkt_utils
 
@@ -434,12 +438,100 @@ class TopologyMgr(Component):
         log.debug(str(self.links[link_key]))
         return CONTINUE
 
+    def host_auth_event_handler(self, data):
+        assert(data is not None)
+        try:
+            auth_data = data.__dict__
+            log.debug("Received host_auth_event with the following data: %s" %
+                       str(auth_data))
+            host_ipaddr = auth_data['nwaddr']
+            if int(host_ipaddr) == 0:
+                log.debug("Received auth_event without ipaddr info...")
+                return CONTINUE
+
+            # XXX FIXME: Use hostname as key for hosts dict
+            if not self.hosts.has_key(host_ipaddr):
+                self.hosts[host_ipaddr] = nxw_utils.Host(host_ipaddr)
+            self.hosts[host_ipaddr].mac_addr = auth_data['dladdr']
+            self.hosts[host_ipaddr].ip_addr  = auth_data['nwaddr']
+            self.hosts[host_ipaddr].dpid     = auth_data['datapath_id']
+            self.hosts[host_ipaddr].port     = auth_data['port']
+            log.debug("Updated host '%s' with the following values: %s" % \
+                       (str(host_ipaddr), str(self.hosts[host_ipaddr])))
+
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_auth_ev handler ('%s')" % str(err))
+            return CONTINUE
+
+    def host_bind_event_handler(self, data):
+        assert(data is not None)
+        try:
+            bind_data = data.__dict__
+            log.debug("Received host_bind_event with the following data: %s" %
+                       str(bind_data))
+            host_ipaddr = auth_data['nwaddr']
+            if int(host_ipaddr) == 0:
+                log.debug("Received bind_event without ipaddr info...")
+                return CONTINUE
+
+            if not self.hosts.has_key(host_ipaddr):
+                log.error("Received host_bind_ev for a host not registred..")
+                return CONTINUE
+
+            self.hosts[host_ipaddr].mac_addr = auth_data['dladdr']
+            self.hosts[host_ipaddr].ip_addr  = auth_data['nwaddr']
+            self.hosts[host_ipaddr].dpid     = auth_data['datapath_id']
+            self.hosts[host_ipaddr].port     = auth_data['port']
+
+            log.debug("Updated host '%s' with the following values: %s" % \
+                       (str(host_ipaddr), str(self.hosts[host_ipaddr])))
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_bind_ev handler ('%s')" % str(err))
+            return CONTINUE
+
+    def host_join_event_handler(self, data):
+        assert(data is not None)
+        try:
+            join_data = data.__dict__
+            log.debug("Received host_join_event with the following data: %s" %
+                       str(join_data))
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_join_ev handler ('%s')" % str(err))
+            return CONTINUE
+
+    def flowin_event_handler(self, data):
+        assert(data is not None)
+        try:
+            flowin_data = data.__dict__
+            log.debug("Received host_flowin_ev with the following data: %s" %
+                       str(flowin_data))
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_flowin_ev handler ('%s')" % str(err))
+            return CONTINUE
+
     def install(self):
         self.register_for_datapath_join(self.datapath_join_handler)
         self.register_for_datapath_leave(self.datapath_leave_handler)
 	self.register_for_packet_in(self.packet_in_handler)
         self.register_handler(Link_event.static_get_name(),
                               self.link_event_handler)
+
+        self.register_handler(Host_auth_event.static_get_name(),
+                              self.host_auth_event_handler)
+        self.register_handler(Host_bind_event.static_get_name(),
+                              self.host_bind_event_handler)
+        self.register_handler(Host_join_event.static_get_name(),
+                              self.host_join_event_handler)
+        #self.register_handler(Flow_in_event.static_get_name(),
+        #                      self.flowin_event_handler)
 
         self.mysql_enable()
         self.pce_topology_enable()

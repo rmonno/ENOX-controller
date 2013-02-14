@@ -1,0 +1,7 @@
+It is a brief description of the file cointained in this folder:
+
+* topologymgr_host_event: It is a version of the topologymgr that uses the
+                          information retrieved from auth/bind/join events of
+                          the authenticator application. Problems with the
+                          wrong values for the "in_port" field suggest to not
+                          adopt this solution
