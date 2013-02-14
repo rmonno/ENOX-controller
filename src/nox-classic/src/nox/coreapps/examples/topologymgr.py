@@ -16,11 +16,14 @@
 # along with NOX.  If not, see <http://www.gnu.org/licenses/>.
 # ----------------------------------------------------------------------
 
-from nox.lib.core                         import *
-from nox.lib.packet.ethernet              import ethernet
-from nox.netapps.discovery.pylinkevent    import Link_event
+from nox.lib.core                                     import *
+from nox.lib.packet.ethernet                          import ethernet
+from nox.netapps.discovery.pylinkevent                import Link_event
+from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage, Name
+from nox.netapps.authenticator.pyauth                 import Host_bind_event
+from nox.lib.netinet.netinet                          import *
 
-import nox.lib.packet.packet_utils        as     pkt_utils
+import nox.lib.packet.packet_utils                    as     pkt_utils
 
 import threading
 import logging
@@ -244,7 +247,6 @@ class TopologyMgr(Component):
 	assert packet is not None
 	log.debug("%s has caught the packet_in event" %
                    str(self.__class__.__name__))
-        #ret = self.bindings.get_all_links(self.testing)
         if not packet.parsed:
             log.debug("Ignoring incomplete packet")
 
@@ -254,12 +256,14 @@ class TopologyMgr(Component):
 
         # XXX FIXME: To be tested...
         dl_addr = str(pkt_utils.mac_to_str(packet.src))
+        dl_addr_int = pkt_utils.mac_to_int(packet.src)
         if not self.hosts.has_key(dl_addr):
             log.debug("Added new host with the following MAC: %s" % \
                         str(dl_addr))
             self.hosts[dl_addr] = nxw_utils.Host(dl_addr)
 
         # XXX FIXME: Insert a proper check to avoid too many updates
+        #self.bindings.get_names_by_mac(ethernetaddr(dl_addr_int), self.cb)
         log.debug("Updating info for host '%s'" % dl_addr)
         self.hosts[dl_addr].mac_addr = dl_addr
         self.hosts[dl_addr].ip_addr  = None
@@ -434,15 +438,44 @@ class TopologyMgr(Component):
         log.debug(str(self.links[link_key]))
         return CONTINUE
 
+    def host_bind_event_handler(self, data):
+        assert(data is not None)
+        try:
+            bind_data = data.__dict__
+            log.debug("Received host_bind_event with the following data: %s" %
+                       str(bind_data))
+            host_dladdr     = pkt_utils.mac_to_str(bind_data['dladdr'])
+            host_ipaddr     = pkt_utils.ip_to_str(bind_data['nwaddr'])
+            if host_ipaddr == "0.0.0.0":
+                log.debug("Received bind_event without ipaddr info...")
+                return CONTINUE
+
+            if not self.hosts.has_key(host_dladdr):
+                log.error("Received host_bind_ev for a host not registred...")
+                return CONTINUE
+
+            self.hosts[host_dladdr].ip_addr  = host_ipaddr
+
+            log.debug("Updated host '%s' with the following values: %s" % \
+                       (str(host_dladdr), str(self.hosts[host_dladdr])))
+            return CONTINUE
+
+        except Exception, err:
+            log.error("Got errors in host_bind_ev handler ('%s')" % str(err))
+            return CONTINUE
+
     def install(self):
         self.register_for_datapath_join(self.datapath_join_handler)
         self.register_for_datapath_leave(self.datapath_leave_handler)
 	self.register_for_packet_in(self.packet_in_handler)
         self.register_handler(Link_event.static_get_name(),
                               self.link_event_handler)
+        self.register_handler(Host_bind_event.static_get_name(),
+                              self.host_bind_event_handler)
 
         self.mysql_enable()
         self.pce_topology_enable()
+        self.bindings = self.resolve(pybindings_storage)
         log.debug("%s started..." % str(self.__class__.__name__))
         self.receiver = Receiver()
 
