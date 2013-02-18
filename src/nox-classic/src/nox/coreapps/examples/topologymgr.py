@@ -346,11 +346,10 @@ class TopologyMgr(Component):
 
         # update flow-pce topology (links)
         for node in nodes:
-            others = list(nodes)
-            others.remove(node)
+            others = [n for n in nodes if n != node]
 
-            for onode in others:
-                self.fpce.add_link_from_strings(node, onode)
+            for o in others:
+                self.fpce.add_link_from_strings(node, o)
 
         return CONTINUE
 
