@@ -7,6 +7,11 @@ import _GlobalIDL as GLOB
 
 log = logging.getLogger('fpce-dm')
 
+def convert_ipv4_to_int(node_str):
+    "Convert dotted IPv4 address to integer."
+    return reduce(lambda a,b: a<<8 | b, map(int, node_str.split(".")))
+
+
 class Node(object):
     def __init__(self, idd, typee):
         assert(idd   is not None)
@@ -25,6 +30,54 @@ class Node(object):
 
         node_orb = GLOB.gmplsTypes.nodeIdent(nodeId,nodeType)
         return node_orb
+
+class NetNode(object):
+    def __init__(self, node_str):
+        self.nid   = convert_ipv4_to_int(node_str)
+        self.ident = GLOB.gmplsTypes.nodeIdent(self.nid,
+                                            GLOB.gmplsTypes.NODETYPE_NETWORK)
+    def __str__(self):
+        return str(self.ident)
+
+    def netParams(self):
+        ss = GLOB.gmplsTypes.statesBundle(GLOB.gmplsTypes.OPERSTATE_UP,
+                                          GLOB.gmplsTypes.ADMINSTATE_ENABLED)
+        return GLOB.gmplsTypes.netNodeParams(False, ss, 0, [], 0)
+
+class NetLink(object):
+    maxBW = 1318388473
+
+    def __init__(self, a_str, b_str):
+        lnid = convert_ipv4_to_int(a_str)
+        lid = GLOB.gmplsTypes.linkId(GLOB.gmplsTypes.LINKIDTYPE_IPV4, lnid)
+        rnid = convert_ipv4_to_int(b_str)
+        rid = GLOB.gmplsTypes.linkId(GLOB.gmplsTypes.LINKIDTYPE_IPV4, rnid)
+        rcid = convert_ipv4_to_int("0.0.0.0")
+
+        self.ident = GLOB.gmplsTypes.teLinkIdent(lnid, lid, rnid, rid,
+                                        GLOB.gmplsTypes.LINKMODE_P2P_NUMBERED,
+                                                 rcid, rcid)
+
+    def __str__(self):
+        return str(self.ident)
+
+    def comParams(self):
+        m = NetLink.maxBW
+        return GLOB.gmplsTypes.teLinkComParams(10, 1, 0, chr(0), m, m, 0, [])
+
+    def availBW(self):
+        return [NetLink.maxBW]*8
+
+    def iscGen(self):
+        i = GLOB.gmplsTypes.iscParamsGen(GLOB.gmplsTypes.SWITCHINGCAP_LSC,
+                                         GLOB.gmplsTypes.ENCODINGTYPE_LAMBDA,
+                                         [NetLink.maxBW]*8)
+        return [GLOB.gmplsTypes.isc(GLOB.gmplsTypes.SWITCHINGCAP_LSC, i)]
+
+    def states(self):
+        ss = GLOB.gmplsTypes.statesBundle(GLOB.gmplsTypes.OPERSTATE_UP,
+                                          GLOB.gmplsTypes.ADMINSTATE_ENABLED)
+        return ss
 
 class OFSwitch(Node):
     def __init__(self, idd, stats):
@@ -170,7 +223,45 @@ class FPCE(object):
         assert(node is not None)
         log.info("Try to add node=%s" % node)
 
+        try:
+            n = NetNode(node)
+            self.info.nodeAdd(n.ident)
+            # update net-params (enabled + up)
+            self.info.netNodeUpdate(n.nid, n.netParams())
+            log.debug("Successfully added node: %s", str(n))
+
+        except TOPOLOGY.NodeAlreadyExists, e:
+            log.error("NodeAlreadyExists exception: %s", str(e))
+        except TOPOLOGY.InternalProblems, e:
+            log.error("InternalProblems exception: %s", str(e))
+        except TOPOLOGY.InvocationNotAllowed, e:
+            log.error("InvocationNotAllowed exception: %s", str(e))
+        except Exception, e:
+            log.error("Generic exception: %s", str(e))
+
     def add_link_from_strings(self, node_a, node_b):
         assert(node_a is not None)
         assert(node_b is not None)
         log.info("Try to add link=%s -> %s", node_a, node_b)
+
+        try:
+            l = NetLink(node_a, node_b)
+            self.info.linkAdd(l.ident)
+            # update common link-params
+            self.info.teLinkUpdateCom(l.ident, l.comParams())
+            # update available bandwidth
+            self.info.teLinkUpdateGenBw(l.ident, l.availBW())
+            # append isc gen
+            self.info.teLinkAppendIsc(l.ident, l.iscGen())
+            # update states
+            self.info.teLinkUpdateStates(l.ident, l.states())
+            log.debug("Successfully added link: %s", str(l))
+
+        except TOPOLOGY.NodeAlreadyExists, e:
+            log.error("NodeAlreadyExists exception: %s", str(e))
+        except TOPOLOGY.InternalProblems, e:
+            log.error("InternalProblems exception: %s", str(e))
+        except TOPOLOGY.InvocationNotAllowed, e:
+            log.error("InvocationNotAllowed exception: %s", str(e))
+        except Exception, e:
+            log.error("Generic exception: %s", str(e))
