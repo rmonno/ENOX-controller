@@ -257,8 +257,53 @@ class FPCE(object):
             self.info.teLinkUpdateStates(l.ident, l.states())
             log.debug("Successfully added link: %s", str(l))
 
-        except TOPOLOGY.NodeAlreadyExists, e:
-            log.error("NodeAlreadyExists exception: %s", str(e))
+        except TOPOLOGY.CannotFetchNode, e:
+            log.error("CannotFetchNode exception: %s", str(e))
+        except TOPOLOGY.CannotFetchLink, e:
+            log.error("CannotFetchLink exception: %s", str(e))
+        except TOPOLOGY.LinkAlreadyExists, e:
+            log.error("LinkAlreadyExists exception: %s", str(e))
+        except TOPOLOGY.LinkParamsMismatch, e:
+            log.error("LinkParamsMismatch exception: %s", str(e))
+        except TOPOLOGY.InternalProblems, e:
+            log.error("InternalProblems exception: %s", str(e))
+        except TOPOLOGY.InvocationNotAllowed, e:
+            log.error("InvocationNotAllowed exception: %s", str(e))
+        except Exception, e:
+            log.error("Generic exception: %s", str(e))
+
+    def del_node_from_string(self, node):
+        assert(node is not None)
+        log.info("Try to del node=%s" % node)
+
+        try:
+            n = NetNode(node)
+            self.info.nodeDel(n.ident)
+            log.debug("Successfully deleted node: %s", str(n))
+
+        except TOPOLOGY.CannotFetchNode, e:
+            log.error("CannotFetchNode exception: %s", str(e))
+        except TOPOLOGY.InternalProblems, e:
+            log.error("InternalProblems exception: %s", str(e))
+        except TOPOLOGY.InvocationNotAllowed, e:
+            log.error("InvocationNotAllowed exception: %s", str(e))
+        except Exception, e:
+            log.error("Generic exception: %s", str(e))
+
+    def del_link_from_strings(self, node_a, node_b):
+        assert(node_a is not None)
+        assert(node_b is not None)
+        log.info("Try to del link=%s -> %s", node_a, node_b)
+
+        try:
+            l = NetLink(node_a, node_b)
+            self.info.linkDel(l.ident)
+            log.debug("Successfully deleted link: %s", str(l))
+
+        except TOPOLOGY.CannotFetchNode, e:
+            log.error("CannotFetchNode exception: %s", str(e))
+        except TOPOLOGY.CannotFetchLink, e:
+            log.error("CannotFetchLink exception: %s", str(e))
         except TOPOLOGY.InternalProblems, e:
             log.error("InternalProblems exception: %s", str(e))
         except TOPOLOGY.InvocationNotAllowed, e:

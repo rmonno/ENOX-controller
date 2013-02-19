@@ -306,3 +306,35 @@ class TopologyOFCManager(TopologyOFCBase):
                 cursor.close()
 
         raise DBException("Index not found!")
+
+    def port_get_indexes(self, d_id):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "ports"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT nodeID FROM " + table +\
+                        " WHERE datapath_id=%s"
+            values = (d_id)
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return [x["nodeID"] for x in cursor.fetchall()]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("Index not found!")
