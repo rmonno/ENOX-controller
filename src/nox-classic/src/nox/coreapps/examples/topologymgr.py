@@ -397,7 +397,7 @@ class TopologyMgr(Component):
 
             # datapath_delete
             # (automatically delete all ports associated with it)
-            self.db_conn.datapath_insert(d_id=dpid)
+            self.db_conn.datapath_delete(d_id=dpid)
 
             # commit transaction
             self.db_conn.commit()
