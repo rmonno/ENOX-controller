@@ -144,14 +144,13 @@ class Port(object):
 class Link(object):
     def __init__(self,
                  idd,
-                 from_port = None,
-                 dest_port = None):
+                 src_dpid,
+                 dst_dpid):
         assert(idd is not None)
         self.idd        = idd
-        if from_port:
-            self.ports_bind = { from_port : dest_port}
-        else:
-            self.ports_bind = { }
+        self.src_dpid   = src_dpid
+        self.dst_dpid   = dst_dpid
+        self.ports_bind = { }
 
     def adjacency_add(self, from_port, dest_port):
         assert(from_port is not None)
@@ -166,8 +165,11 @@ class Link(object):
         self.ports_bind.pop(from_port)
 
     def __str__(self):
-        ret = "Link '%s' (Adjacencies: %s)" % (str(self.idd),
-                                               str(self.ports_bind.items()))
+        ret = "Link '%s'(drc_dpid='%s', dst_dpid='%s', adj: %s)" % \
+                (str(self.idd),
+                 str(self.src_dpid),
+                 str(self.dst_dpid),
+                 str(self.ports_bind.items()))
         return ret
 
 class FPCE(object):

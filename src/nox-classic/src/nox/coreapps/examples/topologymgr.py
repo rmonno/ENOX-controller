@@ -468,11 +468,49 @@ class TopologyMgr(Component):
                            str(link_key))
             else:
                 log.debug("Adding new detected link '%s'..." % str(link_key))
-                self.links[link_key] = nxw_utils.Link(link_key)
+                self.links[link_key] = nxw_utils.Link(link_key,
+                                                      data['dpsrc'],
+                                                      data['dpdst'])
 
-            self.links[link_key].adjacency_add(data['sport'],
-                                               data['dport'])
+            self.links[link_key].adjacency_add(int(data['sport']),
+                                               int(data['dport']))
             log.info("Added a new adjacency for link '%s'" % str(link_key))
+
+            # check ior-dispatcher on pce node
+            if not self.ior_topo and not self.pce_topology_enable():
+                log.error("Unable to contact ior-dispatcher on PCE node!")
+                return CONTINUE
+
+            nodes = []
+
+            # Update flow-pce topology (links)
+            try:
+                # connect and open transaction
+                self.db_conn.open_transaction()
+
+                didx_1 = self.db_conn.datapath_get_index(data['dpsrc'])
+                pidx_1 = self.db_conn.port_get_index(int(data['dpsrc']),
+                                                   int(data['sport']))
+                node_1 = "0." + str(didx_1) + ".0." + str(pidx_1)
+                didx_2 = self.db_conn.datapath_get_index(data['dpdst'])
+                pidx_2 = self.db_conn.port_get_index(int(data['dpdst']),
+                                                     int(data['dport']))
+                node_2 = "0." + str(didx_2) + ".0." + str(pidx_2)
+
+                nodes.append(node_1)
+                nodes.append(node_2)
+
+            except nxw_utils.DBException as e:
+                log.error(str(e))
+
+            finally:
+                self.db_conn.close()
+
+            for node in nodes:
+                others = [n for n in nodes if n != node]
+
+                for o in others:
+                    self.fpce.add_link_from_strings(node, o)
 
         except Exception, err:
             log.error("Cannot add link ('%s')" % str(err))
