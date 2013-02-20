@@ -3,6 +3,7 @@ import sys
 
 from omniORB import CORBA
 import TOPOLOGY
+import PCERA
 import _GlobalIDL as GLOB
 
 log = logging.getLogger('fpce-dm')
@@ -173,51 +174,35 @@ class FPCE(object):
     def __init__(self):
         self.nodes = { }
         self.links = { }
-        self.ior   = None
-        self.info  = None
-        self.orb   = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+        self.info    = None
+        self.routing = None
+        self.orb     = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
 
-    def ior_add(self, ior):
+    def ior_topology_add(self, ior):
         assert(ior is not None)
-        if self.ior:
-            log.debug("Updating IOR...")
-        self.ior = ior
-        log.debug("Update IOR with the following value: %s" % str(self.ior))
+        log.debug("Update IOR with the following value: %s" % str(ior))
 
-        obj       = self.orb.string_to_object(self.ior)
+        obj       = self.orb.string_to_object(ior)
         self.info = obj._narrow(TOPOLOGY.Info)
         if self.info is None:
             log.error("Object reference is not an TOPOLOGY::Info")
-            return
-        else:
-            print("HEREEEEE")
+
+        log.debug("Created a topology-info object")
+
+    def ior_routing_add(self, ior):
+        assert(ior is not None)
+        log.debug("Update IOR with the following value: %s" % str(ior))
+
+        obj          = self.orb.string_to_object(ior)
+        self.routing = obj._narrow(PCERA.RoutingServices)
+        if self.routing is None:
+            log.error("Object reference is not an PCERA::ROUTINGSERVICES")
+
+        log.debug("Created a pcera-routingservices object")
 
     def ior_del(self):
-        if self.ior is None:
-            log.error("Cannot delete IOR (no stored IOR)")
-        else:
-            self.ior  = None
-            self.info = None
-
-
-    def node_add(self, node):
-        assert(node is not None)
-        try:
-            if self.ior is None:
-                # XXX FIXME: Insert code to retrieve IOR...
-                log.error("IOR has not already been received...")
-                return
-            self.info.nodeAdd(node.toOrb())
-            log.info("Added the node with ID '%s'" % str(node.id_get()))
-
-        except TOPOLOGY.NodeAlreadyExists, e:
-            log.error("Got exception ('%s')" % str(e))
-        except TOPOLOGY.InternalProblems, e:
-            log.error("Got exception ('%s')" % str(e))
-        except TOPOLOGY.InvocationNotAllowed, e:
-            log.error("Got exception ('%s')" % str(e))
-        except Exception, e:
-            log.error("Got generic exception ('%s')" % str(e))
+        # FIX-ME: you should deactivate objects
+        log.warning("Is it really needed?")
 
     def add_node_from_string(self, node):
         assert(node is not None)

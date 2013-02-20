@@ -234,7 +234,7 @@ class TopologyMgr(Component):
                 else:
                     log.info("Received the following IOR: '%s'",
                              str(parsed_resp))
-                    self.fpce.ior_add(parsed_resp)
+                    self.fpce.ior_topology_add(parsed_resp)
                     self.ior_topo = True
 
         except Exception as e:
@@ -243,16 +243,44 @@ class TopologyMgr(Component):
 
         return self.ior_topo
 
+    def pce_routing_enable(self):
+        log.debug("Retrieving IOR for routing requests")
+        try:
+            resp = self.pce_client.send_msg("routing")
+            if resp is None:
+                self.ior_rout = False
+            else:
+                log.debug("Received the following response: %s", str(resp))
+                parsed_resp = self.pce_client.decode_requests(resp)
+                if not parsed_resp:
+                    log.error("Got an error in response parsing...")
+                    self.ior_rout = False
+                else:
+                    log.info("Received the following IOR: '%s'",
+                             str(parsed_resp))
+                    self.fpce.ior_routing_add(parsed_resp)
+                    self.ior_rout = True
+
+        except Exception as e:
+            log.error("Pce Routing Failure: %s", str(e))
+            self.ior_rout = False
+
+        return self.ior_rout
+
     def packet_in_handler(self, dpid, inport, reason, len, bufid, packet):
-	assert packet is not None
-	log.debug("%s has caught the packet_in event" %
-                   str(self.__class__.__name__))
+        assert packet is not None
+        # checks packet consistency
         if not packet.parsed:
-            log.debug("Ignoring incomplete packet")
+            log.warning("Ignoring incomplete packet")
+            return CONTINUE
 
         if packet.type == ethernet.LLDP_TYPE:
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
+
+        log.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
+                  str(dpid), str(inport), str(reason), str(len),
+                  str(bufid), str(packet))
 
         # XXX FIXME: To be tested...
         dl_addr = str(pkt_utils.mac_to_str(packet.src))
@@ -271,6 +299,17 @@ class TopologyMgr(Component):
                       (dl_addr, str(self.hosts[dl_addr])))
 
         # XXX FIXME: Add proper checks to allow host info update
+
+        # switch over ethernet type
+        if packet.type == ethernet.IP_TYPE:
+            ip = packet.find('ipv4')
+            log.info("IPv4 packet: " + str(ip))
+
+        elif packet.type == ethernet.ARP_TYPE:
+            arp = packet.find('arp')
+            log.info("ARP packet " + str(arp))
+            self.__calculate_path(pkt_utils.ip_to_str(arp.protosrc),
+                                  pkt_utils.ip_to_str(arp.protodst))
 
         return CONTINUE
 
@@ -521,12 +560,17 @@ class TopologyMgr(Component):
 
         self.mysql_enable()
         self.pce_topology_enable()
+        self.pce_routing_enable()
         self.bindings = self.resolve(pybindings_storage)
         log.debug("%s started..." % str(self.__class__.__name__))
         self.receiver = Receiver()
 
     def getInterface(self):
         return str(TopologyMgr)
+
+    # private methods
+    def __calculate_path(self, ingress, egress):
+        log.debug("Ingress=%s, Egress=%s", ingress, egress)
 
 def getFactory():
     class Factory:
