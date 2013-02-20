@@ -458,7 +458,51 @@ class TopologyMgr(Component):
 
             log.debug("Updated host '%s' with the following values: %s" % \
                        (str(host_dladdr), str(self.hosts[host_dladdr])))
-            return CONTINUE
+
+            # insert values into topology-db
+            try:
+                # connect and open transaction
+                self.db_conn.open_transaction()
+
+                # Host_insert
+                self.db_conn.host_insert(self.hosts[host_dladdr].ip_addr,
+                                         self.hosts[host_dladdr].ip_addr,
+                                         self.hosts[host_dladdr].dpid,
+                                         self.hosts[host_dladdr].port)
+
+                # commit transaction
+                self.db_conn.commit()
+                log.debug("Successfull committed information!")
+
+            except nxw_utils.DBException as e:
+                log.error(str(e))
+                # rollback transaction
+                self.db_conn.rollback()
+
+            finally:
+                self.db_conn.close()
+
+            # check ior-dispatcher on pce node
+            if not self.ior_topo and not self.pce_topology_enable():
+                log.error("Unable to contact ior-dispatcher on PCE node!")
+                return CONTINUE
+
+            nodes = []
+            try:
+                # connect and open transaction
+                self.db_conn.open_transaction()
+
+                d_idx = self.db_conn.datapath_get_index(d_id=dpid)
+                node = "0." + str(d_idx) + ".0." + str(p_idx)
+                nodes.append(node)
+
+            except nxw_utils.DBException as e:
+                log.error(str(e))
+
+            finally:
+                self.db_conn.close()
+
+        #########
 
         except Exception, err:
             log.error("Got errors in host_bind_ev handler ('%s')" % str(err))
