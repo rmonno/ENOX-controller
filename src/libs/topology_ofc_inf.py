@@ -142,6 +142,15 @@ class TopologyOFCBase(object):
         """
         pass
 
+    @abstractmethod
+    def port_get_indexes(self, d_id):
+        """Get unique indexes at ports table
+
+        :param d_id: datapath identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
 
     # XXX FIXME: Check if necessary and then add hosts table
     @abstractmethod
@@ -165,7 +174,6 @@ class TopologyOFCBase(object):
         """Delete an entry at hosts table
 
         :param ip_addr  : Host IP Address
-
         :raises: DBException
         """
         pass
