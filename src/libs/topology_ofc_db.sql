@@ -8,7 +8,7 @@
 -- PHP Version: 5.3.2-1ubuntu4.18
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-
+SET time_zone = "+00:00";
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -18,7 +18,9 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 -- Database: `topology_ofc_db`
 --
-
+CREATE DATABASE IF NOT EXISTS topology_ofc_db;
+GRANT ALL ON topology_ofc_db.* TO 'topology_user'@'%' IDENTIFIED BY 'topology_pwd';
+USE topology_ofc_db;
 -- --------------------------------------------------------
 
 --
