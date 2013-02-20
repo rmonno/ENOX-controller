@@ -577,7 +577,7 @@ class TopologyMgr(Component):
                 # connect and open transaction
                 self.db_conn.open_transaction()
 
-                d_idx = self.db_conn.host_get_index(d_id=dpid)
+                d_idx = self.db_conn.host_get_index(host_dladdr)
                 node = "0." + str(d_idx) + ".0." + str(p_idx)
                 nodes.append(node)
 

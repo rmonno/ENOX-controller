@@ -421,8 +421,8 @@ class TopologyOFCManager(TopologyOFCBase):
         try:
             cursor = self._con.cursor(sql.cursors.DictCursor)
 
-            statement = "SELECT hostID FROM " + table + " WHERE mac_addr=" + \
-                         str(mac_addr)
+            statement = "SELECT hostID FROM %s WHERE mac_addr='%s'" % \
+                         (str(table), str(mac_addr))
             self._debug(statement)
 
             cursor.execute(statement)
