@@ -331,10 +331,10 @@ class TopologyMgr(Component):
                                          tables=stats['n_tables'])
             # port_insert
             for p_info in stats['ports']:
-                # FIXME: decode hw_addr information
+                mac = pkt_utils.mac_to_str(p_info['hw_addr'])
                 self.db_conn.port_insert(d_id=dpid,
                                          port_no=p_info['port_no'],
-                                         #hw_addr=p_info['hw_addr'],
+                                         hw_addr=mac,
                                          name=p_info['name'],
                                          config=p_info['config'],
                                          state=p_info['state'],
@@ -669,6 +669,13 @@ class TopologyMgr(Component):
     # private methods
     def __calculate_path(self, ingress, egress):
         log.debug("Ingress=%s, Egress=%s", ingress, egress)
+
+        # check ior-dispatcher on pce node
+        if not self.ior_rout and not self.pce_routing_enable():
+            log.error("Unable to contact ior-dispatcher on PCE node!")
+        else:
+            (w, p) = self.fpce.connection_route_from_hosts(ingress, egress)
+            log.info("WorkingEro=%s, ProtectedEro=%s", str(w), str(p))
 
 def getFactory():
     class Factory:

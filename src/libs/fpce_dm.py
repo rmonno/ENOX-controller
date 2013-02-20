@@ -80,6 +80,42 @@ class NetLink(object):
                                           GLOB.gmplsTypes.ADMINSTATE_ENABLED)
         return ss
 
+class ConnectionEP(object):
+    def __init__(self, ep_str):
+        nid = convert_ipv4_to_int(ep_str)
+        tid = GLOB.gmplsTypes.linkId(GLOB.gmplsTypes.LINKIDTYPE_IPV4, nid)
+        did = GLOB.gmplsTypes.linkId(GLOB.gmplsTypes.LINKIDTYPE_IPV4, 0)
+        lid = GLOB.gmplsTypes.labelId(GLOB.gmplsTypes.LABELTYPE_L32, 0)
+
+        self.ident = GLOB.gmplsTypes.connEndPoint(nid, tid, did, lid)
+
+    def __str__(self):
+        return str(self.ident)
+
+class CallID(object):
+    def __init__(self, source):
+        sid = convert_ipv4_to_int(source)
+        s = GLOB.gmplsTypes.sourceId(GLOB.gmplsTypes.SOURCEIDTYPE_IPV4, sid)
+        t = GLOB.gmplsTypes.CALLIDTYPE_OPSPEC
+
+        self.ident = GLOB.gmplsTypes.callIdent(t, s, sid)
+
+class LspParams(object):
+    def __init__(self):
+        t      = GLOB.gmplsTypes.LSPTYPE_SPC
+        r      = GLOB.gmplsTypes.LSPROLE_UNDEFINED
+        sw_cap = GLOB.gmplsTypes.SWITCHINGCAP_UNKNOWN
+        enc    = GLOB.gmplsTypes.ENCODINGTYPE_UNKNOWN
+        gpid   = GLOB.gmplsTypes.GPID_UNKNOWN
+        ptype  = GLOB.gmplsTypes.PROTTYPE_NONE
+        act    = GLOB.gmplsTypes.LSPRESOURCEACTION_XCONNECT
+        tinfo  = GLOB.gmplsTypes.timeInfo(0 ,0)
+        qos    = GLOB.gmplsTypes.qosParams(0, 0, 0)
+
+        self.ident = GLOB.gmplsTypes.lspParams(t, r, sw_cap, enc, gpid,
+                                               0, 0, 0, 0, 0, 0,
+                                               ptype, act, tinfo, [], qos)
+
 class OFSwitch(Node):
     def __init__(self, idd, stats):
         assert(idd   is not None)
@@ -295,5 +331,43 @@ class FPCE(object):
             log.error("InternalProblems exception: %s", str(e))
         except TOPOLOGY.InvocationNotAllowed, e:
             log.error("InvocationNotAllowed exception: %s", str(e))
+        except Exception, e:
+            log.error("Generic exception: %s", str(e))
+
+    def connection_route_from_hosts(self, ingr, egr):
+        assert(ingr is not None)
+        assert(egr  is not None)
+        log.info("Try to connection-route %s -> %s", ingr, egr)
+
+        call_id = CallID(ingr)
+        try:
+            cep_src = ConnectionEP(ingr)
+            cep_dst = ConnectionEP(egr)
+            lsp     = LspParams()
+
+            (wEro, pEro) = self.routing.connectionRoute(cep_src.ident,
+                                                        cep_dst.ident,
+                                                        call_id.ident,
+                                                        lsp.ident,
+                                                        [])
+            # in any case flush the call
+            self.routing.callFlush(call_id.ident)
+
+            return (wEro, pEro)
+
+        except PCERA.CannotFetchConnEndPoint, e:
+            log.error("CannotFetchConnEndPoint exception: %s", str(e))
+        except PCERA.ConnectionParamsMismatch, e:
+            log.error("ConnectionParamsMismatch exception: %s", str(e))
+        except PCERA.ConnectionEroMismatch, e:
+            log.error("ConnectionEroMismatch exception: %s", str(e))
+        except PCERA.ConnectionEroMismatch, e:
+            log.error("ConnectionEroMismatch exception: %s", str(e))
+        except PCERA.NoRoute, e:
+            log.error("NoRoute exception: %s", str(e))
+        except PCERA.CannotFetchCall, e:
+            log.error("CannotFetchCall exception: %s", str(e))
+        except PCERA.InternalProblems, e:
+            log.error("InternalProblems exception: %s", str(e))
         except Exception, e:
             log.error("Generic exception: %s", str(e))
