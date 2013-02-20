@@ -529,20 +529,20 @@ class TopologyMgr(Component):
             bind_data = data.__dict__
             log.debug("Received host_bind_event with the following data: %s" %
                        str(bind_data))
-            host_dladdr     = pkt_utils.mac_to_str(bind_data['dladdr'])
+            dladdr     = pkt_utils.mac_to_str(bind_data['dladdr'])
             host_ipaddr     = pkt_utils.ip_to_str(bind_data['nwaddr'])
             if host_ipaddr == "0.0.0.0":
                 log.debug("Received bind_event without ipaddr info...")
                 return CONTINUE
 
-            if not self.hosts.has_key(host_dladdr):
+            if not self.hosts.has_key(dladdr):
                 log.error("Received host_bind_ev for a host not registred...")
                 return CONTINUE
 
-            self.hosts[host_dladdr].ip_addr  = host_ipaddr
+            self.hosts[dladdr].ip_addr  = host_ipaddr
 
             log.debug("Updated host '%s' with the following values: %s" % \
-                       (str(host_dladdr), str(self.hosts[host_dladdr])))
+                       (str(dladdr), str(self.hosts[dladdr])))
 
             # insert values into topology-db
             try:
@@ -550,10 +550,10 @@ class TopologyMgr(Component):
                 self.db_conn.open_transaction()
 
                 # Host_insert
-                self.db_conn.host_insert(self.hosts[host_dladdr].mac_addr,
-                                         self.hosts[host_dladdr].dpid,
-                                         self.hosts[host_dladdr].port,
-                                         self.hosts[host_dladdr].ip_addr)
+                self.db_conn.host_insert(self.hosts[dladdr].mac_addr,
+                                         self.hosts[dladdr].dpid,
+                                         self.hosts[dladdr].port,
+                                         self.hosts[dladdr].ip_addr)
 
                 # commit transaction
                 self.db_conn.commit()
@@ -572,13 +572,23 @@ class TopologyMgr(Component):
                 log.error("Unable to contact ior-dispatcher on PCE node!")
                 return CONTINUE
 
-            hosts_list = []
+            nodes = [self.hosts[dladdr].ip_addr]
+
+            # Update flow-pce topology (hosts)
+            log.debug("Hosts=%s", nodes)
+            for host in nodes:
+                self.fpce.add_node_from_string(host)
+
+                # update flow-pce topology (links between DPID and host)
             try:
                 # connect and open transaction
                 self.db_conn.open_transaction()
 
-                d_idx = self.db_conn.host_get_index(host_dladdr)
-                hosts_list.append(self.hosts[host_dladdr].ip_addr)
+                didx = self.db_conn.datapath_get_index(self.hosts[dladdr].dpid)
+                pidx = self.db_conn.port_get_index(self.hosts[dladdr].dpid,
+                                                   self.hosts[dladdr].port)
+                node = "0." + str(didx) + ".0." + str(pidx)
+                nodes.append(node)
 
             except nxw_utils.DBException as e:
                 log.error(str(e))
@@ -586,14 +596,12 @@ class TopologyMgr(Component):
             finally:
                 self.db_conn.close()
 
-            # Update flow-pce topology (hosts)
-            log.debug("Hosts=%s", hosts_list)
-            for host in hosts_list:
-                self.fpce.add_node_from_string(host)
+            # update flow-pce topology (links)
+            for node in nodes:
+                others = [n for n in nodes if n != node]
 
-            # update flow-pce topology (links between DPID and host)
-            # XXX FIXME: Insert code here
-
+                for o in others:
+                    self.fpce.add_link_from_strings(node, o)
 
             return CONTINUE
 
