@@ -282,7 +282,6 @@ class TopologyMgr(Component):
                   str(dpid), str(inport), str(reason), str(len),
                   str(bufid), str(packet))
 
-        # XXX FIXME: To be tested...
         dl_addr = str(pkt_utils.mac_to_str(packet.src))
         if not self.hosts.has_key(dl_addr):
             log.debug("Added new host with the following MAC: %s" % \
@@ -362,21 +361,15 @@ class TopologyMgr(Component):
         # get datapath and ports index from topology-db
         nodes = []
         try:
-            # connect and open transaction
-            self.db_conn.open_transaction()
-
-            d_idx = self.db_conn.datapath_get_index(d_id=dpid)
             for p_info in stats['ports']:
-                p_idx = self.db_conn.port_get_index(d_id=dpid,
-                                                    port_no=p_info['port_no'])
-                node = "0." + str(d_idx) + ".0." + str(p_idx)
+                node = self.node_get_frompidport(dpid, p_info['port_no'])
                 nodes.append(node)
 
         except nxw_utils.DBException as e:
             log.error(str(e))
 
-        finally:
-            self.db_conn.close()
+        except Exception, e:
+            log.error(str(e))
 
         # update flow-pce topology (nodes)
         log.debug("Nodes=%s", nodes)
@@ -482,29 +475,20 @@ class TopologyMgr(Component):
                 return CONTINUE
 
             nodes = []
-
-            # Update flow-pce topology (links)
             try:
-                # connect and open transaction
-                self.db_conn.open_transaction()
+                src_node = self.node_get_frompidport(data['dpsrc'],
+                                                     data['sport'])
+                nodes.append(src_node)
 
-                didx_1 = self.db_conn.datapath_get_index(data['dpsrc'])
-                pidx_1 = self.db_conn.port_get_index(int(data['dpsrc']),
-                                                   int(data['sport']))
-                node_1 = "0." + str(didx_1) + ".0." + str(pidx_1)
-                didx_2 = self.db_conn.datapath_get_index(data['dpdst'])
-                pidx_2 = self.db_conn.port_get_index(int(data['dpdst']),
-                                                     int(data['dport']))
-                node_2 = "0." + str(didx_2) + ".0." + str(pidx_2)
-
-                nodes.append(node_1)
-                nodes.append(node_2)
+                dst_node = self.node_get_frompidport(data['dpdst'],
+                                                     data['dport'])
+                nodes.append(dst_node)
 
             except nxw_utils.DBException as e:
                 log.error(str(e))
 
-            finally:
-                self.db_conn.close()
+            except Exception, e:
+                log.error(str(e))
 
             for node in nodes:
                 others = [n for n in nodes if n != node]
@@ -595,7 +579,7 @@ class TopologyMgr(Component):
 
                 # commit transaction
                 self.db_conn.commit()
-                log.debug("Successfull committed information!")
+                log.debug("Successfully committed information!")
 
             except nxw_utils.DBException as e:
                 log.error(str(e))
@@ -614,25 +598,19 @@ class TopologyMgr(Component):
 
             # Update flow-pce topology (hosts)
             log.debug("Hosts=%s", nodes)
-            for host in nodes:
-                self.fpce.add_node_from_string(host)
+            self.fpce.add_node_from_string(self.hosts[dladdr].ip_addr)
 
-                # update flow-pce topology (links between DPID and host)
+            # update flow-pce topology (links between DPID and host)
             try:
-                # connect and open transaction
-                self.db_conn.open_transaction()
-
-                didx = self.db_conn.datapath_get_index(self.hosts[dladdr].dpid)
-                pidx = self.db_conn.port_get_index(self.hosts[dladdr].dpid,
-                                                   self.hosts[dladdr].port)
-                node = "0." + str(didx) + ".0." + str(pidx)
+                node = self.node_get_frompidport(self.hosts[dladdr].dpid,
+                                                 self.hosts[dladdr].port)
                 nodes.append(node)
 
             except nxw_utils.DBException as e:
                 log.error(str(e))
 
-            finally:
-                self.db_conn.close()
+            except Exception, e:
+                log.error(str(e))
 
             # update flow-pce topology (links)
             for node in nodes:
@@ -646,6 +624,22 @@ class TopologyMgr(Component):
         except Exception, err:
             log.error("Got errors in host_bind_ev handler ('%s')" % str(err))
             return CONTINUE
+
+    def node_get_frompidport(self, dpid, port):
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+
+            didx = self.db_conn.datapath_get_index(dpid)
+            pidx = self.db_conn.port_get_index(dpid, port)
+            node = "0." + str(didx) + ".0." + str(pidx)
+            return node
+
+        except nxw_utils.DBException as e:
+            raise
+
+        finally:
+            self.db_conn.close()
 
     def install(self):
         self.register_for_datapath_join(self.datapath_join_handler)
