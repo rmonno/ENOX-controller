@@ -346,25 +346,71 @@ class TopologyMgr(Component):
 
         # update flow-pce topology (links)
         for node in nodes:
-            others = list(nodes)
-            others.remove(node)
+            others = [n for n in nodes if n != node]
 
-            for onode in others:
-                self.fpce.add_link_from_strings(node, onode)
+            for o in others:
+                self.fpce.add_link_from_strings(node, o)
 
         return CONTINUE
 
     def datapath_leave_handler(self, dpid):
-        assert (dpid  is not None)
-        # XXX FIXME: Insert code here (delete dpid from dict created before)
+        assert (dpid is not None)
 
-        if not self.dpids.has_key(str(dpid)):
-            log.error("Received Switch %s is already registred")
-            return CONTINUE
-        del self.dpids[str(dpid)]
-        log.debug("Switch %s has left network" % str(dpid))
-        log.debug("Now TopologyDB contains the following parms: \n %s" %
-                   str(self.dpids))
+        # check ior-dispatcher on pce node
+        if not self.ior_topo and not self.pce_topology_enable():
+            log.error("Unable to contact ior-dispatcher on PCE node!")
+        else:
+            # get datapath and ports index from topology-db
+            nodes = []
+            try:
+                # connect and open transaction
+                self.db_conn.open_transaction()
+
+                d_idx  = self.db_conn.datapath_get_index(d_id=dpid)
+                p_idxs = self.db_conn.port_get_indexes(d_id=dpid)
+                for p_idx in p_idxs:
+                    node = "0." + str(d_idx) + ".0." + str(p_idx)
+                    nodes.append(node)
+
+            except nxw_utils.DBException as e:
+                log.error(str(e))
+
+            finally:
+                self.db_conn.close()
+
+            # update flow-pce topology (delete links)
+            log.debug("Nodes=%s", nodes)
+            for node in nodes:
+                others = [n for n in nodes if n != node]
+
+                for o in others:
+                    self.fpce.del_link_from_strings(node, o)
+
+            # update flow-pce topology (delete nodes)
+            for node in nodes:
+                self.fpce.del_node_from_string(node)
+
+        # delete values into topology-db
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+
+            # datapath_delete
+            # (automatically delete all ports associated with it)
+            self.db_conn.datapath_delete(d_id=dpid)
+
+            # commit transaction
+            self.db_conn.commit()
+            log.debug("Successfull committed information!")
+
+        except nxw_utils.DBException as e:
+            log.error(str(e))
+            # rollback transaction
+            self.db_conn.rollback()
+
+        finally:
+            self.db_conn.close()
+
         return CONTINUE
 
     def link_key_build(self, from_node, to_node):

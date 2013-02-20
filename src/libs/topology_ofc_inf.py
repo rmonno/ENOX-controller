@@ -141,3 +141,13 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def port_get_indexes(self, d_id):
+        """Get unique indexes at ports table
+
+        :param d_id: datapath identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
