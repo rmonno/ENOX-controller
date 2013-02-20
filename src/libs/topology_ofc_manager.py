@@ -338,3 +338,107 @@ class TopologyOFCManager(TopologyOFCBase):
                 cursor.close()
 
         raise DBException("Index not found!")
+
+    def host_insert(self,
+                    mac_addr,
+                    dpid    = None,
+                    in_port = None,
+                    ip_addr = None):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "hosts"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            stat_header = "INSERT INTO " + table + "(mac_addr"
+            stat_body   = "VALUES (%s"
+            values      = (str(mac_addr),)
+
+            if ip_addr is not None:
+                stat_header += ", ip_addr"
+                stat_body   += ", %s"
+                values      = values + (str(ip_addr),)
+
+            if dpid is not None:
+                stat_header += ", dpid"
+                stat_body   += ", %s"
+                values      = values + (str(dpid),)
+
+            if in_port is not None:
+                stat_header += ", in_port"
+                stat_body   += ", %s"
+                values      = values + (str(in_port),)
+
+            statement = stat_header + ") " + stat_body + ")"
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+    def host_delete(self, idd):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "hosts"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            statement = "DELETE FROM " + table + " WHERE hostID=" + str(idd)
+            self._debug(statement)
+
+            cursor.execute(statement)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+    def host_get_index(self, mac_addr):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "hosts"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT hostID FROM %s WHERE mac_addr='%s'" % \
+                         (str(table), str(mac_addr))
+            self._debug(statement)
+
+            cursor.execute(statement)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return cursor.fetchone()["hostID"]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("Index not found!")
