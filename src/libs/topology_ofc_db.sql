@@ -1,14 +1,13 @@
 -- phpMyAdmin SQL Dump
--- version 3.4.11.1deb1
+-- version 3.3.2deb1ubuntu1
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generato il: Feb 07, 2013 alle 16:04
--- Versione del server: 5.5.29
--- Versione PHP: 5.4.6-1ubuntu1.1
+-- Generation Time: Feb 20, 2013 at 12:33 PM
+-- Server version: 5.1.67
+-- PHP Version: 5.3.2-1ubuntu4.18
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -18,18 +17,12 @@ SET time_zone = "+00:00";
 
 --
 -- Database: `topology_ofc_db`
--- user='topology_user'
--- pswd='topology_pwd'
 --
-CREATE DATABASE IF NOT EXISTS topology_ofc_db;
-GRANT ALL ON topology_ofc_db.* TO 'topology_user'@'%' IDENTIFIED BY 'topology_pwd';
-USE topology_ofc_db;
+
 -- --------------------------------------------------------
 
 --
--- Struttura della tabella `datapaths`
---
--- Creazione: Feb 07, 2013 alle 15:04
+-- Table structure for table `datapaths`
 --
 
 CREATE TABLE IF NOT EXISTS `datapaths` (
@@ -39,18 +32,31 @@ CREATE TABLE IF NOT EXISTS `datapaths` (
   `ofp_actions` int(11) unsigned DEFAULT NULL,
   `buffers` int(11) unsigned DEFAULT NULL COMMENT 'Max packets buffered at once',
   `tables` int(11) unsigned DEFAULT NULL COMMENT 'Number of tables supported by datapath',
-  `dID` tinyint unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique datapath ID',
-  UNIQUE (`dID`),
-  CHECK (`dID` BETWEEN 1 AND 255),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='datapaths details';
+  `dID` tinyint(3) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique datapath ID',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `dID` (`dID`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='datapaths details' AUTO_INCREMENT=91 ;
 
 -- --------------------------------------------------------
 
 --
--- Struttura della tabella `ports`
+-- Table structure for table `hosts`
 --
--- Creazione: Feb 07, 2013 alle 13:47
+
+CREATE TABLE IF NOT EXISTS `hosts` (
+  `mac_addr` varchar(18) CHARACTER SET latin1 NOT NULL,
+  `ip_addr` int(10) unsigned NOT NULL,
+  `in_port` smallint(8) unsigned NOT NULL,
+  `dpid` bigint(20) unsigned NOT NULL,
+  `hostID` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`dpid`,`mac_addr`),
+  UNIQUE KEY `id` (`hostID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='hosts info' AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ports`
 --
 
 CREATE TABLE IF NOT EXISTS `ports` (
@@ -64,28 +70,23 @@ CREATE TABLE IF NOT EXISTS `ports` (
   `advertised` int(11) unsigned DEFAULT NULL COMMENT 'Features being advertised by the port',
   `supported` int(11) unsigned DEFAULT NULL COMMENT 'Features supported by the port',
   `peer` int(11) unsigned DEFAULT NULL COMMENT 'Features advertised by peer',
-  `nodeID` smallint unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique node identifier',
-  UNIQUE (`nodeID`),
-  CHECK (`nodeID` BETWEEN 1 AND 255),
-  PRIMARY KEY (`datapath_id`,`port_no`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='port details';
+  `nodeID` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique node identifier',
+  PRIMARY KEY (`datapath_id`,`port_no`),
+  UNIQUE KEY `nodeID` (`nodeID`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='port details' AUTO_INCREMENT=112 ;
 
 --
--- RELATIONS FOR TABLE `ports`:
---   `datapath_id`
---       `datapaths` -> `id`
+-- Constraints for dumped tables
 --
 
 --
--- Limiti per le tabelle scaricate
+-- Constraints for table `hosts`
 --
+ALTER TABLE `hosts`
+  ADD CONSTRAINT `hosts_ibfk_1` FOREIGN KEY (`dpid`) REFERENCES `datapaths` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Limiti per la tabella `ports`
+-- Constraints for table `ports`
 --
 ALTER TABLE `ports`
   ADD CONSTRAINT `ports_ibfk_1` FOREIGN KEY (`datapath_id`) REFERENCES `datapaths` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
