@@ -550,10 +550,10 @@ class TopologyMgr(Component):
                 self.db_conn.open_transaction()
 
                 # Host_insert
-                self.db_conn.host_insert(self.hosts[host_dladdr].ip_addr,
-                                         self.hosts[host_dladdr].ip_addr,
+                self.db_conn.host_insert(self.hosts[host_dladdr].mac_addr,
                                          self.hosts[host_dladdr].dpid,
-                                         self.hosts[host_dladdr].port)
+                                         self.hosts[host_dladdr].port,
+                                         self.hosts[host_dladdr].ip_addr)
 
                 # commit transaction
                 self.db_conn.commit()
@@ -577,7 +577,7 @@ class TopologyMgr(Component):
                 # connect and open transaction
                 self.db_conn.open_transaction()
 
-                d_idx = self.db_conn.datapath_get_index(d_id=dpid)
+                d_idx = self.db_conn.host_get_index(d_id=dpid)
                 node = "0." + str(d_idx) + ".0." + str(p_idx)
                 nodes.append(node)
 
@@ -586,8 +586,6 @@ class TopologyMgr(Component):
 
             finally:
                 self.db_conn.close()
-
-        #########
 
         except Exception, err:
             log.error("Got errors in host_bind_ev handler ('%s')" % str(err))

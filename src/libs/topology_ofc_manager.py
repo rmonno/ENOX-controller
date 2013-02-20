@@ -339,7 +339,11 @@ class TopologyOFCManager(TopologyOFCBase):
 
         raise DBException("Index not found!")
 
-    def host_insert(self, mac_addr, dpid = None, in_port=None, ip_addr=None):
+    def host_insert(self,
+                    mac_addr,
+                    dpid    = None,
+                    in_port = None,
+                    ip_addr = None):
         if not self._con:
             raise DBException("Transaction not opened yet!")
 
@@ -392,7 +396,7 @@ class TopologyOFCManager(TopologyOFCBase):
         try:
             cursor = self._con.cursor()
 
-            statement = "DELETE FROM " + table + " WHERE id=" + str(idd)
+            statement = "DELETE FROM " + table + " WHERE hostID=" + str(idd)
             self._debug(statement)
 
             cursor.execute(statement)
@@ -408,7 +412,7 @@ class TopologyOFCManager(TopologyOFCBase):
             if cursor:
                 cursor.close()
 
-    def datapath_get_index(self, idd):
+    def host_get_index(self, mac_addr):
         if not self._con:
             raise DBException("Transaction not opened yet!")
 
@@ -417,13 +421,14 @@ class TopologyOFCManager(TopologyOFCBase):
         try:
             cursor = self._con.cursor(sql.cursors.DictCursor)
 
-            statement = "SELECT id FROM " + table + " WHERE id=" + str(idd)
+            statement = "SELECT hostID FROM " + table + " WHERE mac_addr=" + \
+                         str(mac_addr)
             self._debug(statement)
 
             cursor.execute(statement)
             numrows = int(cursor.rowcount)
             if numrows:
-                return cursor.fetchone()["id"]
+                return cursor.fetchone()["hostID"]
 
         except sql.Error as e:
             message = "Error %d: %s" % (e.args[0], e.args[1])
