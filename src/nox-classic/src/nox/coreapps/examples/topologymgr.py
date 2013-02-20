@@ -572,20 +572,30 @@ class TopologyMgr(Component):
                 log.error("Unable to contact ior-dispatcher on PCE node!")
                 return CONTINUE
 
-            nodes = []
+            hosts_list = []
             try:
                 # connect and open transaction
                 self.db_conn.open_transaction()
 
                 d_idx = self.db_conn.host_get_index(host_dladdr)
-                node = "0." + str(d_idx) + ".0." + str(p_idx)
-                nodes.append(node)
+                hosts_list.append(self.hosts[host_dladdr].ip_addr)
 
             except nxw_utils.DBException as e:
                 log.error(str(e))
 
             finally:
                 self.db_conn.close()
+
+            # Update flow-pce topology (hosts)
+            log.debug("Hosts=%s", hosts_list)
+            for host in hosts_list:
+                self.fpce.add_node_from_string(host)
+
+            # update flow-pce topology (links between DPID and host)
+            # XXX FIXME: Insert code here
+
+
+            return CONTINUE
 
         except Exception, err:
             log.error("Got errors in host_bind_ev handler ('%s')" % str(err))
