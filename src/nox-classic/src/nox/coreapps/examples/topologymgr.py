@@ -616,6 +616,12 @@ class TopologyMgr(Component):
     def __calculate_path(self, ingress, egress):
         log.debug("Ingress=%s, Egress=%s", ingress, egress)
 
+        # check ior-dispatcher on pce node
+        if not self.ior_rout and not self.pce_routing_enable():
+            log.error("Unable to contact ior-dispatcher on PCE node!")
+        else:
+            self.fpce.connection_route_from_hosts(ingress, egress)
+
 def getFactory():
     class Factory:
         def instance(self, ctxt):
