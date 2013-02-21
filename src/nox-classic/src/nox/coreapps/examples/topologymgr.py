@@ -673,6 +673,10 @@ class TopologyMgr(Component):
             (w, p) = self.fpce.connection_route_from_hosts(ingress, egress)
             log.info("WorkingEro=%s, ProtectedEro=%s", str(w), str(p))
 
+    def __manage_flow_mod(self, flow_ip_in, flow_ip_out,
+                          dpid_in, port_in, dpid_out, port_out):
+        pass
+
 def getFactory():
     class Factory:
         def instance(self, ctxt):
