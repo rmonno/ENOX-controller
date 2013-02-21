@@ -18,6 +18,7 @@
 
 from nox.lib.core                                     import *
 from nox.lib.packet.ethernet                          import ethernet
+from nox.lib.packet.ipv4                              import ipv4
 from nox.netapps.discovery.pylinkevent                import Link_event
 from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage, Name
 from nox.netapps.authenticator.pyauth                 import Host_bind_event
@@ -278,6 +279,10 @@ class TopologyMgr(Component):
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
 
+        elif packet.type == ethernet.ARP_TYPE:
+            log.debug("Ignoring ARP packet " + str(packet.find('arp')))
+            return CONTINUE
+
         log.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
                   str(dpid), str(inport), str(reason), str(len),
                   str(bufid), str(packet))
@@ -304,12 +309,9 @@ class TopologyMgr(Component):
         if packet.type == ethernet.IP_TYPE:
             ip = packet.find('ipv4')
             log.info("IPv4 packet: " + str(ip))
-
-        elif packet.type == ethernet.ARP_TYPE:
-            arp = packet.find('arp')
-            log.info("ARP packet " + str(arp))
-            self.__calculate_path(pkt_utils.ip_to_str(arp.protosrc),
-                                  pkt_utils.ip_to_str(arp.protodst))
+            if ip.protocol == ipv4.ICMP_PROTOCOL:
+                self.__calculate_path(pkt_utils.ip_to_str(ip.srcip),
+                                      pkt_utils.ip_to_str(ip.dstip))
 
         return CONTINUE
 
