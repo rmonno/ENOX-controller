@@ -279,7 +279,7 @@ class TopologyMgr(Component):
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
 
-        elif packet.type == ethernet.ARP_TYPE:
+        if packet.type == ethernet.ARP_TYPE:
             log.debug("Ignoring ARP packet " + str(packet.find('arp')))
             return CONTINUE
 
@@ -312,7 +312,7 @@ class TopologyMgr(Component):
                 self.__calculate_path(pkt_utils.ip_to_str(ip.srcip),
                                       pkt_utils.ip_to_str(ip.dstip))
 
-        return CONTINUE
+        return STOP
 
     def datapath_join_handler(self, dpid, stats):
         assert (dpid  is not None)
