@@ -309,8 +309,8 @@ class TopologyMgr(Component):
             ip = packet.find('ipv4')
             log.info("IPv4 packet: " + str(ip))
             if ip.protocol == ipv4.ICMP_PROTOCOL:
-                self.__calculate_path(pkt_utils.ip_to_str(ip.srcip),
-                                      pkt_utils.ip_to_str(ip.dstip))
+                self.__resolve_path(pkt_utils.ip_to_str(ip.srcip),
+                                    pkt_utils.ip_to_str(ip.dstip))
 
         return STOP
 
@@ -663,7 +663,7 @@ class TopologyMgr(Component):
         return str(TopologyMgr)
 
     # private methods
-    def __calculate_path(self, ingress, egress):
+    def __resolve_path(self, ingress, egress):
         log.debug("Ingress=%s, Egress=%s", ingress, egress)
 
         # check ior-dispatcher on pce node
@@ -671,7 +671,49 @@ class TopologyMgr(Component):
             log.error("Unable to contact ior-dispatcher on PCE node!")
         else:
             (w, p) = self.fpce.connection_route_from_hosts(ingress, egress)
-            log.info("WorkingEro=%s, ProtectedEro=%s", str(w), str(p))
+            if not w: return
+
+            log.info("Wlen=%d, WorkingEro=%s", len(w), str(w))
+
+            flows = []
+            for x, y in zip(w, w[1:]):
+                (din_idx, pin_idx)   = self.fpce.decode_ero_item(x)
+                (dout_idx, pout_idx) = self.fpce.decode_ero_item(y)
+
+                flows.append((din_idx, pin_idx, dout_idx, pout_idx))
+
+            cflows = self.__convert_flows_from_index(flows)
+            for d_in, p_in, d_out, p_out in cflows:
+                log.info("d_in=%s, p_in=%s, d_out=%s, p_out=%s",
+                         str(d_in), str(p_in), str(d_out), str(p_out))
+
+                self.__manage_flow_mod(ingress, egress,
+                                       d_in, p_in, d_out, p_out)
+
+    def __convert_flows_from_index(self, flows):
+        log.debug("Flows=%s", str(flows))
+        try:
+            self.db_conn.open_transaction()
+
+            res = []
+            for din, pin, dout, pout in flows:
+                try:
+                    (d_in, p_in)   = self.db_conn.port_get_did_pno(pin)
+                    (d_out, p_out) = self.db_conn.port_get_did_pno(pout)
+
+                    res.append((d_in, p_in, d_out, p_out))
+
+                except nxw_utils.DBException as e:
+                    log.error(str(e))
+
+            return res
+
+        except nxw_utils.DBException as e:
+            log.error(str(e))
+            return []
+
+        finally:
+            self.db_conn.close()
 
     def __manage_flow_mod(self, flow_ip_in, flow_ip_out,
                           dpid_in, port_in, dpid_out, port_out):

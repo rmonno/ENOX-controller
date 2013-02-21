@@ -339,6 +339,39 @@ class TopologyOFCManager(TopologyOFCBase):
 
         raise DBException("Index not found!")
 
+    def port_get_did_pno(self, node_index):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "ports"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT datapath_id, port_no FROM " + table +\
+                        " WHERE nodeID=%s"
+            values = (node_index)
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                row = cursor.fetchone()
+                return (row["datapath_id"], row["port_no"])
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("Index not found!")
+
     def host_insert(self,
                     mac_addr,
                     dpid    = None,

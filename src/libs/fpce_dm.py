@@ -8,9 +8,14 @@ import _GlobalIDL as GLOB
 
 log = logging.getLogger('fpce-dm')
 
+
 def convert_ipv4_to_int(node_str):
     "Convert dotted IPv4 address to integer."
     return reduce(lambda a,b: a<<8 | b, map(int, node_str.split(".")))
+
+def convert_ipv4_to_str(node_int):
+    "Convert 32-bit integer to dotted IPv4 address."
+    return ".".join(map(lambda n: str(node_int>>n & 0xFF), [24,16,8,0]))
 
 
 class Node(object):
@@ -242,6 +247,14 @@ class FPCE(object):
         # FIX-ME: you should deactivate objects
         log.warning("Is it really needed?")
 
+    def decode_ero_item(self, ero_item):
+        if ero_item._d != GLOB.gmplsTypes.EROSUBOBJTYPE_PUBLIC:
+            log.warning("Not managed ERO-TYPE!")
+            return (None, None)
+
+        nid = convert_ipv4_to_str(ero_item.hop.node).split('.')
+        return (nid[1], nid[3])
+
     def add_node_from_string(self, node):
         assert(node is not None)
         log.info("Try to add node=%s" % node)
@@ -371,3 +384,5 @@ class FPCE(object):
             log.error("InternalProblems exception: %s", str(e))
         except Exception, e:
             log.error("Generic exception: %s", str(e))
+
+        return (None, None)

@@ -152,6 +152,17 @@ class TopologyOFCBase(object):
         """
         pass
 
+    @abstractmethod
+    def port_get_did_pno(self, node_index):
+        """Get datapath identifier and port number at ports table
+
+        :param node_index: node index
+
+        :raises: DBException
+        """
+        pass
+
+
     # XXX FIXME: Check if necessary and then add hosts table
     @abstractmethod
     def host_insert(self,
