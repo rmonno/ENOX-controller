@@ -739,15 +739,15 @@ class TopologyMgr(Component):
             # Send flow_mod message
             log.debug("Sending FLOW_MOD message to dpid '%s'" % str(dpid))
             # XXX FIXME: TO be tested
-            install_datapath_flow(dpid    = dpid_in,
-                                  attrs   = attrs,
-                                  idle_t  = CACHE_TIMEOUT,
-                                  hard_t  = penflow.OFP_FLOW_PERMANENT,
-                                  actions = actions,
-                                  bufid   = None,
-                                  prio    = openflow.OFP_DEFAULT_PRIORITY,
-                                  inport  = port_in,
-                                  buf     = None)
+            self.install_datapath_flow(dpid_in,
+                                       attrs,
+                                       5,
+                                       openflow.OFP_FLOW_PERMANENT,
+                                       actions,
+                                       None,
+                                       openflow.OFP_DEFAULT_PRIORITY,
+                                       port_in,
+                                       None)
             log.debug("Sent FLOW_MOD message to dpid '%s'" % str(dpid))
 
         except Exception, e:
@@ -773,14 +773,16 @@ class TopologyMgr(Component):
                 self.db_conn.close()
 
             attributes[core.IN_PORT]  = in_port
-            attributes[core.DL_SRC]   = dl_src
-            attributes[core.DL_DST]   = dl_dst
-            attributes[core.DL_TYPE]  = 0
-            attributes[core.NW_SRC]   = 0
-            attributes[core.NW_DST]   = src_ip
-            attributes[core.NW_PROTO] = dst_ip
-            attributes[core.TP_SRC]   = 0
-            attributes[core.TP_DST]   = 0
+            attributes[core.NW_SRC]   = src_ip
+            attributes[core.NW_DST]   = dst_ip
+
+            # XXX FIXME: Use wildcards
+            #attributes[core.DL_SRC]   = 0
+            #attributes[core.DL_DST]   = 0
+            #attributes[core.DL_TYPE]  = 0
+            #attributes[core.NW_PROTO] = 0
+            #attributes[core.TP_SRC]   = 0
+            #attributes[core.TP_DST]   = 0
             return attributes
 
         except Exception, e:
