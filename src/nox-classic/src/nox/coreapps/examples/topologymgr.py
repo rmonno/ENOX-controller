@@ -727,7 +727,8 @@ class TopologyMgr(Component):
                 dpid = dpid_in
             # Build flow entry
             log.debug("Building flow entry for OF switch '%s'" % str(dpid))
-            attrs = self.__flow_entry_build(flow_ip_in,
+            attrs = self.__flow_entry_build(dpid,
+                                            flow_ip_in,
                                             flow_ip_out,
                                             port_in,
                                             port_out)
