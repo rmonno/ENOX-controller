@@ -752,22 +752,34 @@ class TopologyMgr(Component):
         except Exception, e:
             log.error("Got error in manage_flow_mod ('%s')" % str(e))
 
-    def __flow_entry_build(self, src_ip, dst_ip, in_port, dst_port):
+    def __flow_entry_build(self, dpid, src_ip, dst_ip, in_port, dst_port):
+        assert(dpid     is not None)
         assert(src_ip   is not None)
         assert(dst_ip   is not None)
         assert(in_port  is not None)
         assert(dst_port is not None)
         try:
             attributes = { }
-            # XXX FIXME: Retrieve mac_addr by using proper DB query
-            attributes[core.DL_SRC]  = in_port
-            attributes[core.DL_DST]  = dst_port
-            attributes[core.DL_TYPE] = 0
-            attrs[core.NW_SRC]       = 0
-            attrs[core.NW_DST]       = src_ip
-            attrs[core.NW_PROTO]     = dst_ip
-            attrs[core.TP_SRC]       = 0
-            attrs[core.TP_DST]       = 0
+            # Retrieve mac_address for in_port and dest_port
+            try:
+                self.db_conn.open_transaction()
+                dl_src = self.db_conn.port_get_mac_addr(dpid, in_port)
+                dl_dst = self.db_conn.port_get_mac_addr(dpid, dst_port)
+
+            except nxw_utils.DBException as e:
+                raise
+            finally:
+                self.db_conn.close()
+
+            attributes[core.IN_PORT]  = in_port
+            attributes[core.DL_SRC]   = dl_src
+            attributes[core.DL_DST]   = dl_dst
+            attributes[core.DL_TYPE]  = 0
+            attributes[core.NW_SRC]   = 0
+            attributes[core.NW_DST]   = src_ip
+            attributes[core.NW_PROTO] = dst_ip
+            attributes[core.TP_SRC]   = 0
+            attributes[core.TP_DST]   = 0
             return attributes
 
         except Exception, e:

@@ -339,6 +339,40 @@ class TopologyOFCManager(TopologyOFCBase):
 
         raise DBException("Index not found!")
 
+    def port_get_mac_addr(self, dpid, port_no):
+        assert(dpid    is not None)
+        assert(port_no is not None)
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "ports"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT hw_addr FROM " + table + \
+                        "WHERE datapath_id=%s AND port_no=%s"
+            values = (dpid, port_no)
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return cursor.fetchone()["nodeID"]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("Mac_address not found!")
+
     def port_get_did_pno(self, node_index):
         if not self._con:
             raise DBException("Transaction not opened yet!")
