@@ -351,14 +351,14 @@ class TopologyOFCManager(TopologyOFCBase):
             cursor = self._con.cursor(sql.cursors.DictCursor)
 
             statement = "SELECT hw_addr FROM " + table + \
-                        "WHERE datapath_id=%s AND port_no=%s"
+                        " WHERE datapath_id=%s AND port_no=%s"
             values = (dpid, port_no)
             self._debug(statement % values)
 
             cursor.execute(statement, values)
             numrows = int(cursor.rowcount)
             if numrows:
-                return cursor.fetchone()["nodeID"]
+                return cursor.fetchone()["hw_addr"]
 
         except sql.Error as e:
             message = "Error %d: %s" % (e.args[0], e.args[1])
