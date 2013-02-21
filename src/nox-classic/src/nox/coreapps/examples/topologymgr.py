@@ -675,7 +675,61 @@ class TopologyMgr(Component):
 
     def __manage_flow_mod(self, flow_ip_in, flow_ip_out,
                           dpid_in, port_in, dpid_out, port_out):
-        pass
+        try:
+            log.debug("Got requests for flow_mod sending...")
+            if dpid_in != dpid_out:
+                log.debug("Nothing to do (received request for flow_mod" + \
+                          "sending with different dpids")
+                return
+            else:
+                dpid = dpid_in
+            # Build flow entry
+            log.debug("Building flow entry for OF switch '%s'" % str(dpid))
+            attrs = self.__flow_entry_build(flow_ip_in,
+                                            flow_ip_out,
+                                            port_in,
+                                            port_out)
+            log.debug("Built the following flow entry for dpid '%s': %s" % \
+                       (str(dpid), str(attrs)))
+            actions = [[openflow.OFPAT_OUTPUT, [0, port_out]]]
+
+            # Send flow_mod message
+            log.debug("Sending FLOW_MOD message to dpid '%s'" % str(dpid))
+            # XXX FIXME: TO be tested
+            install_datapath_flow(dpid    = dpid_in,
+                                  attrs   = attrs,
+                                  idle_t  = CACHE_TIMEOUT,
+                                  hard_t  = penflow.OFP_FLOW_PERMANENT,
+                                  actions = actions,
+                                  bufid   = None,
+                                  prio    = openflow.OFP_DEFAULT_PRIORITY,
+                                  inport  = port_in,
+                                  buf     = None)
+            log.debug("Sent FLOW_MOD message to dpid '%s'" % str(dpid))
+
+        except Exception, e:
+            log.error("Got error in manage_flow_mod ('%s')" % str(e))
+
+    def __flow_entry_build(self, src_ip, dst_ip, in_port, dst_port):
+        assert(src_ip   is not None)
+        assert(dst_ip   is not None)
+        assert(in_port  is not None)
+        assert(dst_port is not None)
+        try:
+            attributes = { }
+            # XXX FIXME: Retrieve mac_addr by using proper DB query
+            attributes[core.DL_SRC]  = in_port
+            attributes[core.DL_DST]  = dst_port
+            attributes[core.DL_TYPE] = 0
+            attrs[core.NW_SRC]       = 0
+            attrs[core.NW_DST]       = src_ip
+            attrs[core.NW_PROTO]     = dst_ip
+            attrs[core.TP_SRC]       = 0
+            attrs[core.TP_DST]       = 0
+            return attributes
+
+        except Exception, e:
+            raise
 
 def getFactory():
     class Factory:
