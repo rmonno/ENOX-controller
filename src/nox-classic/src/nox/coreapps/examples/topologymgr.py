@@ -51,9 +51,7 @@ log = logging.getLogger('topologymgr')
 class TopologyMgr(Component):
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
-        self.dpids    = { }
         self.links    = { }
-        self.hosts    = { }
         self.db_conn  = None
         self.fpce     = nxw_utils.FPCE()
         self.ior_topo = False
@@ -152,21 +150,34 @@ class TopologyMgr(Component):
                   str(bufid), str(packet))
 
         dl_addr = str(pkt_utils.mac_to_str(packet.src))
-        if not self.hosts.has_key(dl_addr):
-            log.debug("Added new host with the following MAC: %s" % \
-                        str(dl_addr))
-            self.hosts[dl_addr] = nxw_utils.Host(dl_addr)
 
-            log.debug("Updating info for host '%s'" % dl_addr)
-            self.hosts[dl_addr].mac_addr = dl_addr
-            self.hosts[dl_addr].ip_addr  = None
-            self.hosts[dl_addr].dpid     = dpid
-            self.hosts[dl_addr].port     = inport
+        # XXX FIXME: Retrieve hosts by using DB
+        host_idx = None
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+            host_idx = self.db_conn.host_get_index(dl_addr)
+        except nxw_utils.DBException as e:
+            log.error(e)
+        finally:
+            self.db_conn.close()
 
-            log.debug("Added host '%s' with the following values: %s" % \
-                      (dl_addr, str(self.hosts[dl_addr])))
+        if host_idx is None:
+            log.debug("Adding new host with MAC address '%s'" % str(dl_addr))
+            try:
+                # Insert Host info into DB
+                self.__host_insert_db(dl_addr, dpid, inport, None)
+                log.debug("Added host '%s' into DB" % str(dl_addr))
+            except nxw_utils.DBException as e:
+                log.error(str(e))
+            except Exception, e:
+                log.error("Cannot insert host info into DB ('%s')")
 
-        # XXX FIXME: Add proper checks to allow host info update
+        else:
+            log.debug("Found entry for an host with mac_addr '%s'" %
+                       str(dl_addr))
+            # XXX FIXME: Add proper checks to allow host info update
+
 
         # switch over ethernet type
         if packet.type == ethernet.IP_TYPE:
@@ -411,6 +422,38 @@ class TopologyMgr(Component):
         log.debug(str(self.links[link_key]))
         return CONTINUE
 
+    def __host_insert_db(self, mac_addr, dpid, port, ip_addr = None):
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+            # Host_insert
+            self.db_conn.host_insert(mac_addr, dpid, port, ip_addr)
+
+            # commit transaction
+            self.db_conn.commit()
+            log.debug("Successfully committed information!")
+
+        except nxw_utils.DBException as e:
+            self.db_conn.rollback()
+            raise
+        finally:
+            self.db_conn.close()
+
+    def __host_update_db(self, mac_addr, ip_addr):
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+            # Host_insert
+            self.db_conn.host_update(mac_addr, ip_addr)
+            # commit transaction
+            self.db_conn.commit()
+            log.debug("Successfully committed information!")
+        except nxw_utils.DBException as e:
+            self.db_conn.rollback()
+            raise
+        finally:
+            self.db_conn.close()
+
     def host_bind_event_handler(self, data):
         assert(data is not None)
         try:
@@ -419,65 +462,68 @@ class TopologyMgr(Component):
                        str(bind_data))
             dladdr      = pkt_utils.mac_to_str(bind_data['dladdr'])
             host_ipaddr = pkt_utils.ip_to_str(bind_data['nwaddr'])
-            print("AAAAAAA")
-            print(host_ipaddr)
-            print("BBBBBBB")
             if host_ipaddr == "0.0.0.0":
                 log.debug("Received bind_event without ipaddr info...")
                 return CONTINUE
 
-            if not self.hosts.has_key(dladdr):
-                log.error("Received host_bind_ev for a host not registred...")
-                return CONTINUE
-
-            self.hosts[dladdr].ip_addr  = host_ipaddr
-
-            log.debug("Updated host '%s' with the following values: %s" % \
-                       (str(dladdr), str(self.hosts[dladdr])))
-
-            # insert values into topology-db
+            host_idx = None
             try:
                 # connect and open transaction
                 self.db_conn.open_transaction()
-
-                # Host_insert
-                self.db_conn.host_insert(self.hosts[dladdr].mac_addr,
-                                         self.hosts[dladdr].dpid,
-                                         self.hosts[dladdr].port,
-                                         self.hosts[dladdr].ip_addr)
-
-                # commit transaction
-                self.db_conn.commit()
-                log.debug("Successfully committed information!")
-
+                host_idx = self.db_conn.host_get_index(dladdr)
             except nxw_utils.DBException as e:
-                log.error(str(e))
-                # rollback transaction
                 self.db_conn.rollback()
-
+                raise
             finally:
                 self.db_conn.close()
+
+            if host_idx is None:
+                log.error("Received host_bind_ev for a host not registred...")
+                return CONTINUE
+            else:
+                try:
+                    self.__host_update_db(dladdr, host_ipaddr)
+                    log.debug("Updated host '%s'" % str(dladdr))
+                except nxw_utils.DBException as e:
+                    self.db_conn.rollback()
+                    raise
+                except Exception, e:
+                    log.error("Cannot update host info in DB ('%s')" % str(e))
+                finally:
+                    self.db_conn.close()
 
             # check ior-dispatcher on pce node
             if not self.ior_topo and not self.pce_topology_enable():
                 log.error("Unable to contact ior-dispatcher on PCE node!")
                 return CONTINUE
 
-            nodes = [self.hosts[dladdr].ip_addr]
+            nodes = [host_ipaddr]
 
             # Update flow-pce topology (hosts)
             log.debug("Hosts=%s", nodes)
-            self.fpce.add_node_from_string(self.hosts[dladdr].ip_addr)
+            self.fpce.add_node_from_string(host_ipaddr)
 
             # update flow-pce topology (links between DPID and host)
             try:
-                node = self.node_get_frompidport(self.hosts[dladdr].dpid,
-                                                 self.hosts[dladdr].port)
-                nodes.append(node)
+                # connect and open transaction
+                self.db_conn.open_transaction()
+                # Host_insert
+                dpid    = self.db_conn.host_get_dpid(mac_addr)
+                in_port = self.db_conn.host_get_in_port(mac_addr)
+                # commit transaction
+                self.db_conn.commit()
+                log.debug("Successfully committed information!")
+            except nxw_utils.DBException as e:
+                self.db_conn.rollback()
+                raise
+            finally:
+                self.db_conn.close()
 
+            try:
+                node = self.node_get_frompidport(dpid, in_port)
+                nodes.append(node)
             except nxw_utils.DBException as e:
                 log.error(str(e))
-
             except Exception, e:
                 log.error(str(e))
 

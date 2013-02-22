@@ -134,31 +134,6 @@ class OFSwitch(Node):
         self.actions = None
         self.caps    = None
 
-class Host(Node):
-    def __init__(self,
-                 idd,
-                 mac_addr = None,
-                 ip_addr  = None,
-                 dpid     = None,
-                 port     = None):
-        assert(idd is not None)
-        super(Host, self).__init__(idd,
-                                   typee = "Host")
-        self.mac_addr = mac_addr
-        self.ip_addr  = ip_addr
-        self.dpid     = dpid
-        self.port     = port
-
-    def __str__(self):
-        s = "Host(id='%s', type='%s' mac='%s', ip='%s', dpid='%s', port='%s')" % \
-             (str(self.idd),
-              str(self.typee),
-              str(self.mac_addr),
-              str(self.ip_addr),
-              str(self.dpid),
-              str(self.port))
-        return s
-
 class Port(object):
     def __init__(self, number):
         assert(number is not None)
