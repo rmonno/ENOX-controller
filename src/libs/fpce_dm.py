@@ -125,8 +125,8 @@ class OFSwitch(Node):
     def __init__(self, idd, stats):
         assert(idd   is not None)
         assert(stats is not None)
-        super(Node, self).__init__(idd,
-                                   typee = "OFSwitch")
+        super(OFSwitch, self).__init__(idd,
+                                       typee = "OFSwitch")
         self.stats   = stats
         self.ports   = [ ]
         self.tables  = None
@@ -180,7 +180,7 @@ class Port(object):
         if link.__class__.__name__ != "Link":
             log.error("Cannot add link...")
         else:
-            self.append(link)
+            self.links.append(link)
 
 class Link(object):
     def __init__(self,
