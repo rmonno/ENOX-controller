@@ -479,6 +479,34 @@ class TopologyOFCManager(TopologyOFCBase):
             if cursor:
                 cursor.close()
 
+    def host_update(self,
+                    mac_addr,
+                    ip_addr):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "hosts"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            statement = "UPDATE " + table + \
+                        " set ip_addr='%s'" % str(ip_addr) + \
+                        " WHERE mac_addr='%s'" % str(mac_addr)
+            self._debug(statement)
+            cursor.execute(statement)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
     def host_get_index(self, mac_addr):
         if not self._con:
             raise DBException("Transaction not opened yet!")
@@ -507,8 +535,66 @@ class TopologyOFCManager(TopologyOFCBase):
         finally:
             if cursor:
                 cursor.close()
-
         raise DBException("Index not found!")
+
+    def host_get_dpid(self, mac_addr):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+        table = "hosts"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT dpid FROM %s WHERE mac_addr='%s'" % \
+                         (str(table), str(mac_addr))
+            self._debug(statement)
+
+            cursor.execute(statement)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return cursor.fetchone()["dpid"]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("DPID not found!")
+
+    def host_get_inport(self, mac_addr):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+        table = "hosts"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT in_port FROM %s WHERE mac_addr='%s'" % \
+                         (str(table), str(mac_addr))
+            self._debug(statement)
+
+            cursor.execute(statement)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return cursor.fetchone()["in_port"]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+        raise DBException("in_port not found!")
 
     def host_get_mac_addr(self, ip_addr):
         if not self._con:
