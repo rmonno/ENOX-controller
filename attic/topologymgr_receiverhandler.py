@@ -48,7 +48,143 @@ import libs as nxw_utils
 
 log = logging.getLogger('topologymgr')
 
+
+class ReceiverHandler(threading.Thread):
+    def __init__(self, name = None, sock = None):
+        self.__name = name
+        self.__sock = sock
+        log.debug("Initializing ReceiverHandler....")
+        super(ReceiverHandler, self).__init__()
+        self.__stop = threading.Event()
+
+    def msg_handle(self, msg):
+        assert(msg is not None)
+        if msg == "GET_TOPOLOGY":
+            log.debug("Got the following topology: %s" %
+                       str(discovery_sample.getTopology()))
+            topo = discovery_sample.getTopology()
+            # XXX FIXME: Move the following lines into a proper function...
+            for i in topo._entities.keys():
+                name = topo._entities[i].__class__.__name__
+                if name in ents.ents_supp.keys():
+                    log.debug("Got an '%s' entity" % str(name))
+                    log.debug("Initializing entity...")
+                    self.__entity_create(topo._entities[i])
+            log.debug("TOPOLOGY='%s'" % str(self.test))
+            return self.test
+
+        # XXX FIXME: Merge GET_ENTRY_INFO with GET_TABLE_INFO
+        elif msg == "GET_ENTRIES":
+            try:
+            	log.debug("Received info_request for entries")
+                #msg_request = of.ofp_stats_request()
+                #msg_request.type = 1
+
+                if self.test is None:
+                    # XXX FIXME: Insert topology information retrieval
+                    log.error("Topology info has not been retrieved yet")
+                for dpid in self.test.of_switch_dpids_get():
+                    # Used sendToDPID method in the pox.pox.connection_arbiter
+                    # module
+                    log.debug("Sending stats_req msg to OF switch %d" % \
+                               int(dpid))
+                #    core.openflow.sendToDPID(dpid, msg_request.pack())
+                #    log.debug("Sent stats_req msg to OF switch %d" % int(dpid))
+                    return("HELLO")
+            except Exception, e:
+                log.error("Cannot get requested info ('%s')" % str(e))
+
+        elif msg == "GET_TABLES":
+            try:
+                log.debug("Received info_request for tables")
+                #msg_request = of.ofp_stats_request()
+                #msg_request.type = 3
+
+                if self.test is None:
+                    # XXX FIXME: Insert topology information retrieval
+                    log.error("Topology info has not been retrieved yet")
+                for dpid in self.test.of_switch_dpids_get():
+                    # Used sendToDPID method in the pox.pox.connection_arbiter
+                    # module
+                    log.debug("Sending stats_req msg to OF switch %d" % \
+                               int(dpid))
+                #    core.openflow.sendToDPID(dpid, msg_request.pack())
+                #    log.debug("Sent stats_req msg to OF switch %d" % int(dpid))
+                return("HELLO")
+            except Exception, e:
+                log.error("Cannot get requested info ('%s')" % str(e))
+        else:
+            log.debug("Cannot handle this message")
+
+    def run(self):
+        assert(self.__name is not None)
+        assert(self.__sock is not None)
+	# XXX FIXME: Use the functions and members defined in the directory module
+        #self.test = ents.Topology()
+        log.debug("ReceiverHandler '%s' started" % str(self.__name))
+        log.debug("ReceiverHandler '%s' is listening mode" % self.__name)
+
+        while not self.__stop.is_set():
+            try:
+                message = self.__msg_recv()
+                time.sleep(5)
+                if len(message) == 0:
+                    continue
+                log.debug("Received the following message: %s" % str(message))
+                resp = self.msg_handle(message)
+                try:
+                    connections.message_send(self.__sock, str(resp))
+                except Exception, e:
+                    log.error("Cannot send response ('%s')" % str(e))
+            except Exception, e:
+                log.error(e)
+
+    def __entity_create(self, entity):
+        assert(entity is not None)
+        name = entity.__class__.__name__
+        if name == "OpenFlowSwitch":
+            of_switch = ents.OFSwitch(entity.dpid)
+            of_switch.create(entity.dpid,
+                             entity.ports,
+                             entity.flow_table,
+                             entity.capabilities,
+                             entity._connection,
+                             entity._listeners)
+            self.test.add_ofswitch(of_switch)
+
+    def __msg_recv(self):
+        msg = None
+        try:
+            msg = connections.msg_receive(self.__sock)
+            if len(msg) > 0:
+                log.debug("Received a message...")
+            return msg
+        except Exception, e:
+            log.error(e)
+
+    def create(self, name, sock):
+        assert(name is not None)
+        assert(sock is not None)
+        self.__name = name
+        self.__sock = sock
+        self.daemon = True
+        self.start()
+
+    def stop(self):
+        self.__stop.set()
+
+class Receiver(object):
+    def __init__(self):
+        self.handler = ReceiverHandler()
+        # XXX FIXME: Fill with proper values
+        self.server    = nxw_utils.Server("test",
+                                          "localhost",
+                                          9001,
+                                          5,
+                                          self.handler)
+
 class TopologyMgr(Component):
+
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
         self.dpids    = { }
@@ -524,6 +660,7 @@ class TopologyMgr(Component):
         self.pce_routing_enable()
         self.bindings = self.resolve(pybindings_storage)
         log.debug("%s started..." % str(self.__class__.__name__))
+        self.receiver = Receiver()
 
     def getInterface(self):
         return str(TopologyMgr)
@@ -617,21 +754,23 @@ class TopologyMgr(Component):
             log.error("Got error in manage_flow_mod ('%s')" % str(e))
 
     def __flow_entry_build(self, src_ip, dst_ip, in_port):
+        assert(dpid     is not None)
         assert(src_ip   is not None)
         assert(dst_ip   is not None)
         assert(in_port  is not None)
+        assert(dst_port is not None)
         try:
             attributes = { }
             # Retrieve mac_address for in_port and dest_port
-            #try:
-            #    self.db_conn.open_transaction()
-            #    dl_src  = self.db_conn.host_get_mac_addr(src_ip)
-            #    dl_dst  = self.db_conn.host_get_mac_addr(dst_ip)
+            try:
+                self.db_conn.open_transaction()
+                dl_src  = self.db_conn.host_get_mac_addr(src_ip)
+                dl_dst  = self.db_conn.host_get_mac_addr(dst_ip)
 
-            #except nxw_utils.DBException as e:
-            #    raise
-            #finally:
-            #    self.db_conn.close()
+            except nxw_utils.DBException as e:
+                raise
+            finally:
+                self.db_conn.close()
 
             attributes[core.IN_PORT]  = in_port
             attributes[core.NW_SRC]   = src_ip
