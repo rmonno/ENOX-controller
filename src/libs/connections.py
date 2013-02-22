@@ -1,9 +1,12 @@
 import socket
 import threading
 import struct
-
 import logging
-log = logging.getLogger('connections')
+
+from color_log import *
+
+log = ColorLog(logging.getLogger('connections'))
+
 
 class Client(object):
     def __init__(self, name, host, port, timeout = 5):

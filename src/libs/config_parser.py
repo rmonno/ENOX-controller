@@ -5,10 +5,12 @@
 
 import sys
 import os
-import logging, logging.handlers
+import logging
 import ConfigParser
 
-log = logging.getLogger('config_parser')
+from color_log import *
+
+log = ColorLog(logging.getLogger('config_parser'))
 
 
 class NoxConfigParser:

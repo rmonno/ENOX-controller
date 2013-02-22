@@ -1,6 +1,10 @@
-import logging, logging.handlers
+import logging
 from   socket   import *
-log = logging.getLogger('pce_conn')
+
+from color_log import *
+
+log = ColorLog(logging.getLogger('pce_conn'))
+
 
 class PCE_Client:
     def __init__(self, pce_addr, pce_port, tcp_size = 1024):

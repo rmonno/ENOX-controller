@@ -6,7 +6,9 @@ import TOPOLOGY
 import PCERA
 import _GlobalIDL as GLOB
 
-log = logging.getLogger('fpce-dm')
+from color_log import *
+
+log = ColorLog(logging.getLogger('fpce-dm'))
 
 
 def convert_ipv4_to_int(node_str):
