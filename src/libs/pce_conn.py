@@ -1,7 +1,5 @@
-import sys
 import logging, logging.handlers
-from socket import *
-import time
+from   socket   import *
 log = logging.getLogger('pce_conn')
 
 class PCE_Client:

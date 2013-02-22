@@ -20,13 +20,12 @@ from nox.lib.core                                     import *
 from nox.lib.packet.ethernet                          import ethernet
 from nox.lib.packet.ipv4                              import ipv4
 from nox.netapps.discovery.pylinkevent                import Link_event
-from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage, Name
+from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
 from nox.netapps.authenticator.pyauth                 import Host_bind_event
 from nox.lib.netinet.netinet                          import *
 
 import nox.lib.packet.packet_utils                    as     pkt_utils
 
-import threading
 import logging
 import sys, os
 
@@ -432,7 +431,7 @@ class TopologyMgr(Component):
             self.db_conn.commit()
             log.debug("Successfully committed information!")
 
-        except nxw_utils.DBException as e:
+        except nxw_utils.DBException:
             self.db_conn.rollback()
             raise
         finally:
@@ -447,7 +446,7 @@ class TopologyMgr(Component):
             # commit transaction
             self.db_conn.commit()
             log.debug("Successfully committed information!")
-        except nxw_utils.DBException as e:
+        except nxw_utils.DBException:
             self.db_conn.rollback()
             raise
         finally:
@@ -549,9 +548,8 @@ class TopologyMgr(Component):
             node = "0." + str(didx) + ".0." + str(pidx)
             return node
 
-        except nxw_utils.DBException as e:
+        except nxw_utils.DBException:
             raise
-
         finally:
             self.db_conn.close()
 
@@ -667,17 +665,6 @@ class TopologyMgr(Component):
         assert(in_port  is not None)
         try:
             attributes = { }
-            # Retrieve mac_address for in_port and dest_port
-            #try:
-            #    self.db_conn.open_transaction()
-            #    dl_src  = self.db_conn.host_get_mac_addr(src_ip)
-            #    dl_dst  = self.db_conn.host_get_mac_addr(dst_ip)
-
-            #except nxw_utils.DBException as e:
-            #    raise
-            #finally:
-            #    self.db_conn.close()
-
             attributes[core.IN_PORT]  = in_port
             attributes[core.NW_SRC]   = src_ip
             attributes[core.NW_DST]   = dst_ip
@@ -690,8 +677,7 @@ class TopologyMgr(Component):
             #attributes[core.TP_SRC]   = 0
             #attributes[core.TP_DST]   = 0
             return attributes
-
-        except Exception, e:
+        except Exception:
             raise
 
 def getFactory():
