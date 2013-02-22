@@ -57,7 +57,7 @@ class TopologyMgr(Component):
         self.ior_topo = False
 
         # XXX FIXME: Fill with proper values
-        pce_address     = "10.0.2.169"
+        pce_address     = "192.168.56.100"
         pce_port        = 9696
         tcp_size        = 1024
         self.pce_client = nxw_utils.PCE_Client(pce_address, pce_port, tcp_size)
