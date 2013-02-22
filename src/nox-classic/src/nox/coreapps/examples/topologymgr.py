@@ -49,6 +49,8 @@ import libs as nxw_utils
 log = logging.getLogger('topologymgr')
 
 class TopologyMgr(Component):
+    CONFIG_FILE = libs_path + "/libs/" + "nox_topologymgr.cfg"
+
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
         self.dpids    = { }
@@ -57,12 +59,12 @@ class TopologyMgr(Component):
         self.db_conn  = None
         self.fpce     = nxw_utils.FPCE()
         self.ior_topo = False
+        self.ior_rout = False
 
-        # XXX FIXME: Fill with proper values
-        pce_address     = "192.168.56.100"
-        pce_port        = 9696
-        tcp_size        = 1024
-        self.pce_client = nxw_utils.PCE_Client(pce_address, pce_port, tcp_size)
+        conf = nxw_utils.NoxConfigParser(TopologyMgr.CONFIG_FILE)
+        self.pce_client = nxw_utils.PCE_Client(conf.address,
+                                               conf.port,
+                                               conf.size)
         self.pce_client.create()
 
     def ior_del(self):
