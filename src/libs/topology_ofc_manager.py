@@ -509,3 +509,34 @@ class TopologyOFCManager(TopologyOFCBase):
                 cursor.close()
 
         raise DBException("Index not found!")
+
+    def host_get_mac_addr(self, ip_addr):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "hosts"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT mac_addr FROM %s WHERE ip_addr='%s'" % \
+                         (str(table), str(ip_addr))
+            self._debug(statement)
+
+            cursor.execute(statement)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return cursor.fetchone()["mac_addr"]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("mac_address not found!")
