@@ -28,6 +28,7 @@ import nox.lib.packet.packet_utils                    as     pkt_utils
 
 import logging
 import sys, os
+from time import time
 
 # update sys python path
 key = 'nox-classic'
@@ -53,6 +54,7 @@ class TopologyMgr(Component):
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
         self.links    = { }
+        self.st       = { }
         self.db_conn  = None
         self.fpce     = nxw_utils.FPCE()
         self.ior_topo = False
@@ -142,6 +144,16 @@ class TopologyMgr(Component):
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
 
+        # Handle ARP packets
+        if packet.type == ethernet.ARP_TYPE:
+            log.debug("Received ARP packet " + str(packet.find('arp')))
+            if not self.st.has_key(dpid):
+                log.debug("Registering new switch %s" % str(dpid))
+                self.st[dpid] = { }
+
+            self.__do_l2_learning(dpid, inport, packet)
+            self.__forward_l2_packet(dpid, inport, packet, packet.arr, bufid)
+
         log.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
                   str(dpid), str(inport), str(reason), str(len),
                   str(bufid), str(packet))
@@ -174,11 +186,6 @@ class TopologyMgr(Component):
                        str(dl_addr))
             # XXX FIXME: Add proper checks to allow host info update
 
-        if packet.type == ethernet.ARP_TYPE:
-            log.debug("Ignoring ARP packet " + str(packet.find('arp')))
-            return CONTINUE
-
-
         # switch over ethernet type
         if packet.type == ethernet.IP_TYPE:
             ip = packet.find('ipv4')
@@ -187,7 +194,54 @@ class TopologyMgr(Component):
                 self.__resolve_path(pkt_utils.ip_to_str(ip.srcip),
                                     pkt_utils.ip_to_str(ip.dstip))
 
-        return STOP
+        return CONTINUE
+
+    def __do_l2_learning(self, dpid, inport, packet):
+        assert(dpid   is not None)
+        assert(inport is not None)
+        assert(packet is not None)
+        # learn MAC on incoming port
+        srcaddr = packet.src.tostring()
+        if ord(srcaddr[0]) & 1:
+            return
+        if self.st[dpid].has_key(srcaddr):
+            dst = self.st[dpid][srcaddr]
+            if dst[0] != inport:
+                log.debug("MAC has moved from '%s' to '%s' " % (str(dst),
+                                                                str(inport)))
+            else:
+                return
+        else:
+            log.debug("Learned MAC '%s' on %d %d " % \
+                        (pkt_utils.mac_to_str(packet.src),
+                         dpid, inport))
+
+        # learn or update timestamp of entry
+        self.st[dpid][srcaddr] = (inport, time(), packet)
+
+    def __forward_l2_packet(self, dpid, inport, packet, buf, bufid):
+        dstaddr = packet.dst.tostring()
+        if not ord(dstaddr[0]) & 1 and self.st[dpid].has_key(dstaddr):
+            prt = self.st[dpid][dstaddr]
+            if prt[0] == inport:
+                log.err("**WARNING** Learned port = inport")
+                self.send_openflow(dpid, bufid, buf,
+                                   openflow.OFPP_FLOOD,
+                                   inport)
+            else:
+                # We know the outport, set up a flow
+                log.debug("Installing flow for %s" % str(packet))
+                flow = extract_flow(packet)
+                flow[core.IN_PORT] = inport
+                actions = [[openflow.OFPAT_OUTPUT, [0, prt[0]]]]
+                self.install_datapath_flow(dpid, flow, 5,
+                                           openflow.OFP_FLOW_PERMANENT,
+                                           actions, bufid,
+                                           openflow.OFP_DEFAULT_PRIORITY,
+                                           inport, buf)
+        else:
+            # haven't learned destination MAC. Flood
+            self.send_openflow(dpid, bufid, buf, openflow.OFPP_FLOOD, inport)
 
     def datapath_join_handler(self, dpid, stats):
         assert (dpid  is not None)
