@@ -26,7 +26,6 @@ from nox.lib.netinet.netinet                          import *
 
 import nox.lib.packet.packet_utils                    as     pkt_utils
 
-import logging
 import sys, os
 
 # update sys python path
@@ -44,8 +43,8 @@ for (root, dirs, names) in os.walk(idl_find_path):
 
 import libs as nxw_utils
 
+log = nxw_utils.ColorLog(logging.getLogger('topologymgr'))
 
-log = logging.getLogger('topologymgr')
 
 class TopologyMgr(Component):
     CONFIG_FILE = libs_path + "/libs/" + "nox_topologymgr.cfg"
@@ -61,7 +60,7 @@ class TopologyMgr(Component):
         conf = nxw_utils.NoxConfigParser(TopologyMgr.CONFIG_FILE)
         self.pce_client = nxw_utils.PCE_Client(conf.address,
                                                conf.port,
-                                               conf.size)
+                                               int(conf.size))
         self.pce_client.create()
 
     def ior_del(self):
