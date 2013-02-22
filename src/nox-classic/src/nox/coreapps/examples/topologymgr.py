@@ -141,10 +141,6 @@ class TopologyMgr(Component):
             log.debug("Ignoring received LLDP packet...")
             return CONTINUE
 
-        if packet.type == ethernet.ARP_TYPE:
-            log.debug("Ignoring ARP packet " + str(packet.find('arp')))
-            return CONTINUE
-
         log.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
                   str(dpid), str(inport), str(reason), str(len),
                   str(bufid), str(packet))
@@ -172,11 +168,14 @@ class TopologyMgr(Component):
                 log.error(str(e))
             except Exception, e:
                 log.error("Cannot insert host info into DB ('%s')")
-
         else:
             log.debug("Found entry for an host with mac_addr '%s'" %
                        str(dl_addr))
             # XXX FIXME: Add proper checks to allow host info update
+
+        if packet.type == ethernet.ARP_TYPE:
+            log.debug("Ignoring ARP packet " + str(packet.find('arp')))
+            return CONTINUE
 
 
         # switch over ethernet type
@@ -508,8 +507,8 @@ class TopologyMgr(Component):
                 # connect and open transaction
                 self.db_conn.open_transaction()
                 # Host_insert
-                dpid    = self.db_conn.host_get_dpid(mac_addr)
-                in_port = self.db_conn.host_get_in_port(mac_addr)
+                dpid    = self.db_conn.host_get_dpid(dladdr)
+                in_port = self.db_conn.host_get_inport(dladdr)
                 # commit transaction
                 self.db_conn.commit()
                 log.debug("Successfully committed information!")
