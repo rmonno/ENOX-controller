@@ -2,6 +2,9 @@
 
    sudo mn --topo linear --switch user --controller remote
 
+or
+   sudo mn --custom <path>/mininet_2h-2s.py --topo=mytopo --switch user --controller=remote
+
 WARNING: Mininet MUST be run without option --mac in order to avoid that OF
 switches use SAME MAC address used by hosts!!
 
