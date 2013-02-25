@@ -499,11 +499,11 @@ class TopologyMgr(Component):
                       str(auth_data))
 
             dladdr   = pkt_utils.mac_to_str(auth_data['dladdr'])
-            if dladdr in self.hosts:
+            if dladdr in self.auth_hosts:
                 log.debug("Ignoring auth_event (multiple notifications for" + \
                           " multiple inter-switch links")
                 return CONTINUE
-            self.hosts.append(dladdr)
+            self.auth_hosts.append(dladdr)
 
             host_idx = None
             try:
