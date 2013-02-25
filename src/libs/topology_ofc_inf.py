@@ -162,6 +162,29 @@ class TopologyOFCBase(object):
         """
         pass
 
+    @abstractmethod
+    def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno):
+        """Insert a new entry at links table
+
+        :param src_dpid : source datapath identifier (primary key)
+        :param src_pno  : source port number (primary key)
+        :param dst_dpid : destination datapath identifier
+        :param src_pno  : destination port number
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def link_delete(self, src_dpid, src_pno):
+        """Delete an entry at links table
+
+        :param src_dpid : source datapath identifier (primary key)
+        :param src_pno  : source port number (primary key)
+
+        :raises: DBException
+        """
+        pass
 
     # XXX FIXME: Check if necessary and then add hosts table
     @abstractmethod

@@ -78,6 +78,20 @@ CREATE TABLE IF NOT EXISTS `ports` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='port details' AUTO_INCREMENT=112 ;
 
 --
+-- Table structure for table `links`
+--
+
+CREATE TABLE IF NOT EXISTS `links` (
+  `src_dpid` bigint(20) unsigned NOT NULL COMMENT 'source datapath identifier',
+  `src_pno` mediumint(8) unsigned NOT NULL COMMENT 'source port number',
+  `dst_dpid` bigint(20) unsigned NOT NULL COMMENT 'destination datapath identifier',
+  `dst_pno` mediumint(8) unsigned NOT NULL COMMENT 'destination port number',
+  PRIMARY KEY (`src_dpid`,`src_pno`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='links info' ;
+
+-- --------------------------------------------------------
+
+--
 -- Constraints for dumped tables
 --
 
@@ -92,3 +106,12 @@ ALTER TABLE `hosts`
 --
 ALTER TABLE `ports`
   ADD CONSTRAINT `ports_ibfk_1` FOREIGN KEY (`datapath_id`) REFERENCES `datapaths` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `links`
+--
+ALTER TABLE `links`
+  ADD CONSTRAINT `links_ibfk_1` FOREIGN KEY (`src_dpid`,`src_pno`) REFERENCES `ports` (`datapath_id`,`port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `links`
+  ADD CONSTRAINT `links_ibfk_2` FOREIGN KEY (`dst_dpid`,`dst_pno`) REFERENCES `ports` (`datapath_id`,`port_no`) ON DELETE CASCADE ON UPDATE CASCADE;

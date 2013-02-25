@@ -406,6 +406,64 @@ class TopologyOFCManager(TopologyOFCBase):
 
         raise DBException("Index not found!")
 
+    def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "links"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            stat_header = "INSERT INTO " + table +\
+                          "(src_dpid, src_pno, dst_dpid, dst_pno"
+            stat_body   = "VALUES (%s, %s, %s, %s"
+            values      = (str(src_dpid), str(src_pno),
+                           str(dst_dpid), str(dst_pno))
+
+            statement = stat_header + ") " + stat_body + ")"
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+    def link_delete(self, src_dpid, src_pno):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "links"
+        cursor = None
+        try:
+            cursor = self._con.cursor()
+
+            statement = "DELETE FROM " + table +\
+                        " WHERE src_dpid=%s AND src_pno=%s"
+            values = (src_dpid, src_pno)
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
     def host_insert(self,
                     mac_addr,
                     dpid    = None,
