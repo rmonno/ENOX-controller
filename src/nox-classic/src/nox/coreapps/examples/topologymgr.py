@@ -328,6 +328,7 @@ class TopologyMgr(Component):
         else:
             # get datapath and ports index from topology-db
             nodes = []
+            links = []
             try:
                 # connect and open transaction
                 self.db_conn.open_transaction()
@@ -338,6 +339,19 @@ class TopologyMgr(Component):
                     node = "0." + str(d_idx) + ".0." + str(p_idx)
                     nodes.append(node)
 
+                l_idxs = self.db_conn.link_get_indexes(src_dpid=dpid)
+                for src_pno, dst_dpid, dst_pno in l_idxs:
+                    src_port = self.db_conn.port_get_index(d_id=dpid,
+                                                           port_no=src_pno)
+                    src_node = "0." + str(d_idx) + ".0." + str(src_port)
+
+                    dst_d_idx = self.db_conn.datapath_get_index(d_id=dst_dpid)
+                    dst_port = self.db_conn.port_get_index(d_id=dst_dpid,
+                                                           port_no=dst_pno)
+                    dst_node = "0." + str(dst_d_idx) + ".0." + str(dst_port)
+
+                    links.append((src_node, dst_node))
+
             except nxw_utils.DBException as e:
                 log.error(str(e))
 
@@ -345,12 +359,18 @@ class TopologyMgr(Component):
                 self.db_conn.close()
 
             # update flow-pce topology (delete links)
-            log.debug("Nodes=%s", nodes)
+            log.debug("DataPath_leave nodes=%s", nodes)
             for node in nodes:
                 others = [n for n in nodes if n != node]
 
                 for o in others:
                     self.fpce.del_link_from_strings(node, o)
+
+            # update flow-pce topology (delete interswitch links)
+            log.debug("DataPath_leave links=%s", links)
+            for src, dst in links:
+                self.fpce.del_link_from_strings(src, dst)
+                self.fpce.del_link_from_strings(dst, src)
 
             # update flow-pce topology (delete nodes)
             for node in nodes:
@@ -432,6 +452,27 @@ class TopologyMgr(Component):
 
         except Exception, err:
             log.error("Cannot add link ('%s')" % str(err))
+
+        # update inter-switch value into topology-db
+        try:
+            # connect and open transaction
+            self.db_conn.open_transaction()
+
+            # links insert
+            self.db_conn.link_insert(src_dpid=data['dpsrc'],
+                                     src_pno=data['sport'],
+                                     dst_dpid=data['dpdst'],
+                                     dst_pno=data['dport'])
+            # commit transaction
+            self.db_conn.commit()
+
+        except nxw_utils.DBException as e:
+            log.error(str(e))
+            # rollback transaction
+            self.db_conn.rollback()
+
+        finally:
+            self.db_conn.close()
 
     def link_del(self, data):
         assert(data is not None)
@@ -605,17 +646,16 @@ class TopologyMgr(Component):
             didx = self.db_conn.datapath_get_index(dpid)
             pidx = self.db_conn.port_get_index(dpid, port)
             node = "0." + str(didx) + ".0." + str(pidx)
+
             return node
 
-        except nxw_utils.DBException:
-            raise
         finally:
             self.db_conn.close()
 
     def install(self):
         self.register_for_datapath_join(self.datapath_join_handler)
         self.register_for_datapath_leave(self.datapath_leave_handler)
-	self.register_for_packet_in(self.packet_in_handler)
+        self.register_for_packet_in(self.packet_in_handler)
         self.register_handler(Link_event.static_get_name(),
                               self.link_event_handler)
         self.register_handler(Host_bind_event.static_get_name(),

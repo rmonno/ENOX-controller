@@ -464,6 +464,38 @@ class TopologyOFCManager(TopologyOFCBase):
             if cursor:
                 cursor.close()
 
+    def link_get_indexes(self, src_dpid):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "links"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT src_pno, dst_dpid, dst_pno FROM " + table +\
+                        " WHERE src_dpid=%s"
+            values = (src_dpid)
+            self._debug(statement % values)
+
+            cursor.execute(statement, values)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return [(x["src_pno"], x["dst_dpid"], x["dst_pno"])
+                        for x in cursor.fetchall()]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("Index not found!")
     def host_insert(self,
                     mac_addr,
                     dpid    = None,

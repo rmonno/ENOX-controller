@@ -186,6 +186,16 @@ class TopologyOFCBase(object):
         """
         pass
 
+    @abstractmethod
+    def link_get_indexes(self, src_dpid):
+        """Get unique indexes at links table
+
+        :param src_dpid : source datapath identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
+
     # XXX FIXME: Check if necessary and then add hosts table
     @abstractmethod
     def host_insert(self,
