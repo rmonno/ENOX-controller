@@ -2,7 +2,7 @@
 #
 from topology_ofc_manager import TopologyOFCManager, DBException
 from connections import Server, message_send, msg_receive
-from fpce_dm import FPCE, Link
+from fpce_dm import FPCE, Link, convert_ipv4_to_str
 from pce_conn import PCE_Client
 from config_parser import NoxConfigParser
 from color_log import ColorLog

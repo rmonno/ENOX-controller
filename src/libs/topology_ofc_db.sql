@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS `datapaths` (
 
 CREATE TABLE IF NOT EXISTS `hosts` (
   `mac_addr` varchar(18) CHARACTER SET latin1 NOT NULL,
-  `ip_addr` int(10) unsigned NOT NULL,
+  `ip_addr` varchar(18) CHARACTER SET latin1 NOT NULL,
   `in_port` smallint(8) unsigned NOT NULL,
   `dpid` bigint(20) unsigned NOT NULL,
   `hostID` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
