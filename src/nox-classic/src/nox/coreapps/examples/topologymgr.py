@@ -189,9 +189,11 @@ class TopologyMgr(Component):
         if packet.type == ethernet.IP_TYPE:
             ip = packet.find('ipv4')
             log.info("IPv4 packet: " + str(ip))
+            # XXXX FIXME: Remove the following check in order to be generic...
             if ip.protocol == ipv4.ICMP_PROTOCOL:
                 self.__resolve_path(pkt_utils.ip_to_str(ip.srcip),
-                                    pkt_utils.ip_to_str(ip.dstip))
+                                    pkt_utils.ip_to_str(ip.dstip),
+                                    packet)
 
         return CONTINUE
 
@@ -231,16 +233,18 @@ class TopologyMgr(Component):
                 # We know the outport, set up a flow
                 log.debug("Installing flow for %s" % str(packet))
                 flow = extract_flow(packet)
-                flow[core.IN_PORT] = inport
                 actions = [[openflow.OFPAT_OUTPUT, [0, prt[0]]]]
                 self.install_datapath_flow(dpid, flow, 5,
                                            openflow.OFP_FLOW_PERMANENT,
                                            actions, bufid,
                                            openflow.OFP_DEFAULT_PRIORITY,
                                            inport, buf)
+                log.info("New installed flow entry for dpid '%s': %s" % \
+                          (str(dpid), str(flow)))
         else:
             # haven't learned destination MAC. Flood
             self.send_openflow(dpid, bufid, buf, openflow.OFPP_FLOOD, inport)
+            log.debug("Flooding received packet...")
 
     def datapath_join_handler(self, dpid, stats):
         assert (dpid  is not None)
@@ -627,7 +631,7 @@ class TopologyMgr(Component):
         return str(TopologyMgr)
 
     # private methods
-    def __resolve_path(self, ingress, egress):
+    def __resolve_path(self, ingress, egress, packet):
         log.debug("Ingress=%s, Egress=%s", ingress, egress)
 
         # check ior-dispatcher on pce node
@@ -652,7 +656,8 @@ class TopologyMgr(Component):
                          str(d_in), str(p_in), str(d_out), str(p_out))
 
                 self.__manage_flow_mod(ingress, egress,
-                                       d_in, p_in, d_out, p_out)
+                                       d_in, p_in, d_out, p_out,
+                                       packet)
 
     def __convert_flows_from_index(self, flows):
         log.debug("Flows=%s", str(flows))
@@ -680,12 +685,13 @@ class TopologyMgr(Component):
             self.db_conn.close()
 
     def __manage_flow_mod(self, flow_ip_in, flow_ip_out,
-                          dpid_in, port_in, dpid_out, port_out):
+                          dpid_in, port_in, dpid_out, port_out,
+                          packet):
         try:
             log.debug("Got requests for flow_mod sending...")
             if dpid_in != dpid_out:
                 log.debug("Nothing to do (received request for flow_mod" + \
-                          "sending with different dpids")
+                          "sending with different dpids)")
                 return
             else:
                 dpid = dpid_in
@@ -693,45 +699,47 @@ class TopologyMgr(Component):
             log.debug("Building flow entry for OF switch '%s'" % str(dpid))
             attrs = self.__flow_entry_build(flow_ip_in,
                                             flow_ip_out,
-                                            port_in)
+                                            port_in,
+                                            packet)
             log.debug("Built the following flow entry for dpid '%s': %s" % \
                        (str(dpid), str(attrs)))
             actions = [[openflow.OFPAT_OUTPUT, [0, port_out]]]
 
             # Send flow_mod message
             log.debug("Sending FLOW_MOD message to dpid '%s'" % str(dpid))
+            # XXX FIXME: Remove the following stubs
+            idle_timeout = 5
+            buffer_id    = None
+            pkt          = None
+
             self.install_datapath_flow(dpid_in,
                                        attrs,
-                                       5,
+                                       idle_timeout,
                                        openflow.OFP_FLOW_PERMANENT,
                                        actions,
-                                       None,
+                                       buffer_id,
                                        openflow.OFP_DEFAULT_PRIORITY,
                                        port_in,
-                                       None)
-            log.debug("Sent FLOW_MOD message to dpid '%s'" % str(dpid))
+                                       pkt)
+            log.info("Sent FLOW_MOD to dpid %s: Flowentry=%s, actions=%s" % \
+                      (str(dpid), str(attrs), str(actions)))
 
         except Exception, e:
             log.error("Got error in manage_flow_mod ('%s')" % str(e))
 
-    def __flow_entry_build(self, src_ip, dst_ip, in_port):
-        assert(src_ip   is not None)
-        assert(dst_ip   is not None)
-        assert(in_port  is not None)
+    def __flow_entry_build(self, src_ip, dst_ip, in_port, packet):
+        assert(src_ip  is not None)
+        assert(dst_ip  is not None)
+        assert(in_port is not None)
+        assert(packet  is not None)
         try:
-            attributes = { }
+            attributes = extract_flow(packet)
+
             attributes[core.IN_PORT]  = in_port
             attributes[core.NW_SRC]   = src_ip
             attributes[core.NW_DST]   = dst_ip
-
-            # XXX FIXME: Use wildcards
-            #attributes[core.DL_SRC]   = 0
-            #attributes[core.DL_DST]   = 0
-            #attributes[core.DL_TYPE]  = 0
-            #attributes[core.NW_PROTO] = 0
-            #attributes[core.TP_SRC]   = 0
-            #attributes[core.TP_DST]   = 0
             return attributes
+
         except Exception:
             raise
 
