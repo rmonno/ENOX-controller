@@ -488,9 +488,8 @@ class TopologyMgr(Component):
         assert(data is not None)
         try:
             auth_data = data.__dict__
-            host_ipaddr = auth_data['nwaddr']
 
-            if int(host_ipaddr) == 0:
+            if auth_data['nwaddr'] == 0:
                 log.debug(auth_data)
                 log.debug("Received auth_event for a switch...")
                 return CONTINUE
@@ -498,7 +497,8 @@ class TopologyMgr(Component):
             log.info("Received host_auth_ev with the following data: %s" %
                       str(auth_data))
 
-            dladdr   = pkt_utils.mac_to_str(auth_data['dladdr'])
+            dladdr      = pkt_utils.mac_to_str(auth_data['dladdr'])
+            host_ipaddr = nxw_utils.convert_ipv4_to_str(auth_data['nwaddr'])
             if dladdr in self.auth_hosts:
                 log.debug("Ignoring auth_event (multiple notifications for" + \
                           " multiple inter-switch links")
