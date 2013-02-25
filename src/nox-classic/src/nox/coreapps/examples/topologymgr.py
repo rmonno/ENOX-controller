@@ -21,7 +21,7 @@ from nox.lib.packet.ethernet                          import ethernet
 from nox.lib.packet.ipv4                              import ipv4
 from nox.netapps.discovery.pylinkevent                import Link_event
 from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
-from nox.netapps.authenticator.pyauth                 import Host_bind_event
+from nox.netapps.authenticator.pyauth                 import Host_auth_event
 from nox.lib.netinet.netinet                          import *
 
 import nox.lib.packet.packet_utils                    as     pkt_utils
@@ -52,12 +52,13 @@ class TopologyMgr(Component):
 
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
-        self.links    = { }
-        self.st       = { }
-        self.db_conn  = None
-        self.fpce     = nxw_utils.FPCE()
-        self.ior_topo = False
-        self.ior_rout = False
+        self.auth_hosts = [ ]
+        self.links      = { }
+        self.st         = { }
+        self.db_conn    = None
+        self.fpce       = nxw_utils.FPCE()
+        self.ior_topo   = False
+        self.ior_rout   = False
 
         conf = nxw_utils.NoxConfigParser(TopologyMgr.CONFIG_FILE)
         self.pce_client = nxw_utils.PCE_Client(conf.address,
@@ -156,34 +157,6 @@ class TopologyMgr(Component):
         log.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
                   str(dpid), str(inport), str(reason), str(len),
                   str(bufid), str(packet))
-
-        dl_addr = str(pkt_utils.mac_to_str(packet.src))
-
-        # XXX FIXME: Retrieve hosts by using DB
-        host_idx = None
-        try:
-            # connect and open transaction
-            self.db_conn.open_transaction()
-            host_idx = self.db_conn.host_get_index(dl_addr)
-        except nxw_utils.DBException as e:
-            log.error(e)
-        finally:
-            self.db_conn.close()
-
-        if host_idx is None:
-            log.debug("Adding new host with MAC address '%s'" % str(dl_addr))
-            try:
-                # Insert Host info into DB
-                self.__host_insert_db(dl_addr, dpid, inport, None)
-                log.debug("Added host '%s' into DB" % str(dl_addr))
-            except nxw_utils.DBException as e:
-                log.error(str(e))
-            except Exception, e:
-                log.error("Cannot insert host info into DB ('%s')")
-        else:
-            log.debug("Found entry for an host with mac_addr '%s'" %
-                       str(dl_addr))
-            # XXX FIXME: Add proper checks to allow host info update
 
         # switch over ethernet type
         if packet.type == ethernet.IP_TYPE:
@@ -511,17 +484,26 @@ class TopologyMgr(Component):
         finally:
             self.db_conn.close()
 
-    def host_bind_event_handler(self, data):
+    def host_auth_event_handler(self, data):
         assert(data is not None)
         try:
-            bind_data = data.__dict__
-            log.debug("Received host_bind_event with the following data: %s" %
-                       str(bind_data))
-            dladdr      = pkt_utils.mac_to_str(bind_data['dladdr'])
-            host_ipaddr = pkt_utils.ip_to_str(bind_data['nwaddr'])
-            if host_ipaddr == "0.0.0.0":
-                log.debug("Received bind_event without ipaddr info...")
+            auth_data = data.__dict__
+            host_ipaddr = auth_data['nwaddr']
+
+            if int(host_ipaddr) == 0:
+                log.debug(auth_data)
+                log.debug("Received auth_event for a switch...")
                 return CONTINUE
+
+            log.info("Received host_auth_ev with the following data: %s" %
+                      str(auth_data))
+
+            dladdr   = pkt_utils.mac_to_str(auth_data['dladdr'])
+            if dladdr in self.hosts:
+                log.debug("Ignoring auth_event (multiple notifications for" + \
+                          " multiple inter-switch links")
+                return CONTINUE
+            self.hosts.append(dladdr)
 
             host_idx = None
             try:
@@ -530,24 +512,34 @@ class TopologyMgr(Component):
                 host_idx = self.db_conn.host_get_index(dladdr)
             except nxw_utils.DBException as e:
                 self.db_conn.rollback()
-                raise
             finally:
                 self.db_conn.close()
 
             if host_idx is None:
-                log.error("Received host_bind_ev for a host not registred...")
-                return CONTINUE
-            else:
+                log.debug("Adding new host with MAC addr '%s'" % str(dladdr))
                 try:
+                    # Insert Host info into DB
+                    self.__host_insert_db(dladdr,
+                                          auth_data['datapath_id'],
+                                          auth_data['port'],
+                                          host_ipaddr)
+                    log.info("Added host '%s' into DB" % str(dladdr))
+                    self.auth_hosts.pop(self.auth_hosts.index(dladdr))
+                except nxw_utils.DBException as e:
+                    log.error(str(e))
+                except Exception, e:
+                    log.error("Cannot insert host info into DB ('%s')")
+            else:
+                log.debug("Found entry for an host with mac_addr '%s'" %
+                           str(dladdr))
+                try:
+                    # XXX FIXME: Add proper checks to allow host info update
                     self.__host_update_db(dladdr, host_ipaddr)
                     log.debug("Updated host '%s'" % str(dladdr))
                 except nxw_utils.DBException as e:
-                    self.db_conn.rollback()
-                    raise
+                    log.error(str(e))
                 except Exception, e:
-                    log.error("Cannot update host info in DB ('%s')" % str(e))
-                finally:
-                    self.db_conn.close()
+                    log.error("Cannot insert host info into DB ('%s')")
 
             # check ior-dispatcher on pce node
             if not self.ior_topo and not self.pce_topology_enable():
@@ -594,7 +586,7 @@ class TopologyMgr(Component):
             return CONTINUE
 
         except Exception, err:
-            log.error("Got errors in host_bind_ev handler ('%s')" % str(err))
+            log.error("Got errors in host_auth_ev handler ('%s')" % str(err))
             return CONTINUE
 
     def node_get_frompidport(self, dpid, port):
@@ -618,8 +610,8 @@ class TopologyMgr(Component):
 	self.register_for_packet_in(self.packet_in_handler)
         self.register_handler(Link_event.static_get_name(),
                               self.link_event_handler)
-        self.register_handler(Host_bind_event.static_get_name(),
-                              self.host_bind_event_handler)
+        self.register_handler(Host_auth_event.static_get_name(),
+                              self.host_auth_event_handler)
 
         self.mysql_enable()
         self.pce_topology_enable()
