@@ -36,3 +36,15 @@ For our purpose, the option "--switch user" MUST BE USED (1)
     openflow source code:
     1) git clone git://openflow.org/openflow.git
     2) boot-configure-make-make install
+
+
+Some useful procedures and/or commands for testing:
+
+To force an "host_leave event":
+* In netapps/authenticator/authenticator_util.cc decrease the value for
+  DEFAULT_IDLE_TIMEOUT
+* In Mininet launch the following command:
+  link s1 h1 down
+
+*
+

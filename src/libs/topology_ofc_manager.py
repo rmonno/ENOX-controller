@@ -404,6 +404,15 @@ class TopologyOFCManager(TopologyOFCBase):
 
         return ret["in_port"]
 
+    def host_get_ipaddr(self, mac_addr):
+        table = "hosts"
+
+        statement = "SELECT ip_addr FROM %s WHERE mac_addr='%s'" % \
+                    (str(table), str(mac_addr))
+        ret = self.__execute_dict(statement, one=True)
+
+        return ret["ip_addr"]
+
     def host_get_mac_addr(self, ip_addr):
         table = "hosts"
 
