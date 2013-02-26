@@ -299,40 +299,11 @@ class TopologyMgr(Component):
         if not self.ior_topo and not self.pce_topology_enable():
             log.error("Unable to contact ior-dispatcher on PCE node!")
         else:
-            # get datapath and ports index from topology-db
-            nodes = []
-            links = []
-            try:
-                # connect and open transaction
-                self.db_conn.open_transaction()
-
-                d_idx  = self.db_conn.datapath_get_index(d_id=dpid)
-                p_idxs = self.db_conn.port_get_indexes(d_id=dpid)
-                for p_idx in p_idxs:
-                    node = "0." + str(d_idx) + ".0." + str(p_idx)
-                    nodes.append(node)
-
-                l_idxs = self.db_conn.link_get_indexes(src_dpid=dpid)
-                for src_pno, dst_dpid, dst_pno in l_idxs:
-                    src_port = self.db_conn.port_get_index(d_id=dpid,
-                                                           port_no=src_pno)
-                    src_node = "0." + str(d_idx) + ".0." + str(src_port)
-
-                    dst_d_idx = self.db_conn.datapath_get_index(d_id=dst_dpid)
-                    dst_port = self.db_conn.port_get_index(d_id=dst_dpid,
-                                                           port_no=dst_pno)
-                    dst_node = "0." + str(dst_d_idx) + ".0." + str(dst_port)
-
-                    links.append((src_node, dst_node))
-
-            except nxw_utils.DBException as e:
-                log.error(str(e))
-
-            finally:
-                self.db_conn.close()
+            # get nodes and links from topology-db
+            (nodes, links) = self.__datapath_leave_db_actions(dpid)
 
             # update flow-pce topology (delete links)
-            log.debug("DataPath_leave nodes=%s", nodes)
+            log.info("DataPath_leave nodes=%s", nodes)
             for node in nodes:
                 others = [n for n in nodes if n != node]
 
@@ -340,7 +311,7 @@ class TopologyMgr(Component):
                     self.fpce.del_link_from_strings(node, o)
 
             # update flow-pce topology (delete interswitch links)
-            log.debug("DataPath_leave links=%s", links)
+            log.info("DataPath_leave links=%s", links)
             for src, dst in links:
                 self.fpce.del_link_from_strings(src, dst)
                 self.fpce.del_link_from_strings(dst, src)
@@ -351,20 +322,17 @@ class TopologyMgr(Component):
 
         # delete values into topology-db
         try:
-            # connect and open transaction
             self.db_conn.open_transaction()
 
             # datapath_delete
-            # (automatically delete all ports associated with it)
+            # (automatically delete all ports and hosts associated with it)
             self.db_conn.datapath_delete(d_id=dpid)
 
-            # commit transaction
             self.db_conn.commit()
             log.debug("Successfull committed information!")
 
         except nxw_utils.DBException as e:
             log.error(str(e))
-            # rollback transaction
             self.db_conn.rollback()
 
         finally:
@@ -790,6 +758,55 @@ class TopologyMgr(Component):
 
         except Exception:
             raise
+
+    def __datapath_leave_db_actions(self, dpid):
+        nodes = []
+        links = []
+        try:
+            self.db_conn.open_transaction()
+
+            d_idx  = self.db_conn.datapath_get_index(d_id=dpid)
+            p_idxs = self.db_conn.port_get_indexes(d_id=dpid)
+            for p_idx in p_idxs:
+                node = "0." + str(d_idx) + ".0." + str(p_idx)
+                nodes.append(node)
+
+            try: # optional
+                h_idxs = self.db_conn.host_get_indexes(d_id=dpid)
+                for in_port, ip_addr in h_idxs:
+                    port = self.db_conn.port_get_index(d_id=dpid,
+                                                       port_no=in_port)
+                    node = "0." + str(d_idx) + ".0." + str(port)
+
+                    links.append((ip_addr, node))
+
+            except nxw_utils.DBException as e:
+                log.error("host_get_indexes: " + str(e))
+
+            try: # optional
+                l_idxs = self.db_conn.link_get_indexes(src_dpid=dpid)
+                for src_pno, dst_dpid, dst_pno in l_idxs:
+                    src_port = self.db_conn.port_get_index(d_id=dpid,
+                                                           port_no=src_pno)
+                    src_node = "0." + str(d_idx) + ".0." + str(src_port)
+
+                    dst_id = self.db_conn.datapath_get_index(d_id=dst_dpid)
+                    dst_port = self.db_conn.port_get_index(d_id=dst_dpid,
+                                                           port_no=dst_pno)
+                    dst_node = "0." + str(dst_id) + ".0." + str(dst_port)
+
+                    links.append((src_node, dst_node))
+
+            except nxw_utils.DBException as e:
+                log.error("link_get_indexes: " + str(e))
+
+        except nxw_utils.DBException as e:
+            log.error("dp_leave_db_actions: " + str(e))
+
+        finally:
+            self.db_conn.close()
+
+        return (nodes, links)
 
 def getFactory():
     class Factory:
