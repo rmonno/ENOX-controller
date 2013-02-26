@@ -488,18 +488,71 @@ class TopologyMgr(Component):
         finally:
             self.db_conn.close()
 
+    def __host_leave(self, dladdr):
+        log.debug("Received host_leave_ev for host with MAC %s" % str(dladdr))
+        try:
+            self.db_conn.open_transaction()
+            try:
+                mac_addresses = self.db_conn.port_get_macs()
+                if dladdr in mac_addresses:
+                    log.debug("Ignoring received leave_ev for OF switch...")
+                    return False
+            except Exception:
+                log.debug("Received leave_ev for a MAC not present in DB")
+                return False
+
+            # XXX FIXME: Insert code here..
+            try:
+                nodes   = [self.db_conn.host_get_ipaddr(dladdr)]
+                dpid = self.db_conn.host_get_dpid(dladdr)
+                port = self.db_conn.host_get_inport(dladdr)
+                didx = self.db_conn.datapath_get_index(dpid)
+                pidx = self.db_conn.port_get_index(dpid, port)
+                node = "0." + str(didx) + ".0." + str(pidx)
+                nodes.append(node)
+            except nxw_utils.DBException as e:
+                log.error(str(e))
+            except Exception, e:
+                log.error(str(e))
+
+            # update flow-pce topology (remove links)
+            for node in nodes:
+                others = [n for n in nodes if n != node]
+                for o in others:
+                    self.fpce.del_link_from_strings(node, o)
+
+            # XXX FIXME: Insert code to remove hosts
+            return
+
+        except nxw_utils.DBException:
+            self.db_conn.rollback()
+        finally:
+            self.db_conn.close()
+
     def host_bind_event_handler(self, data):
         assert(data is not None)
         try:
             bind_data = data.__dict__
-            if bind_data['nwaddr'] == 0:
-                log.debug("Ignoring host_bind_ev not containing IP addr info")
-                return CONTINUE
-
-            log.info("Received host_bind_ev with the following data: %s" %
-                      str(bind_data))
             dladdr      = pkt_utils.mac_to_str(bind_data['dladdr'])
             host_ipaddr = nxw_utils.convert_ipv4_to_str(bind_data['nwaddr'])
+
+            # Check reason value
+            reason = int(bind_data['reason'])
+            # XXX FIXME: Insert mapping for values <--> reason
+            if reason > 7:
+                ret = self.__host_leave(dladdr)
+                if not ret:
+                    return CONTINUE
+            elif (reason < 3) and (bind_data['nwaddr'] == 0):
+                log.debug("Ignoring host_bind_ev without IPaddr info")
+                return CONTINUE
+            elif (reason > 2) and (reason != 5):
+                log.error("Received host_bind_ev with reason '%s'..." % \
+                           str(bind_data['reason']))
+                return CONTINUE
+
+            log.info("Received host_bind_ev with the following data: %s" % \
+                      str(bind_data))
 
             try:
                 self.db_conn.open_transaction()
