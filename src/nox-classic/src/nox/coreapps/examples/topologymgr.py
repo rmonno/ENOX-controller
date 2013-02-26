@@ -21,7 +21,7 @@ from nox.lib.packet.ethernet                          import ethernet
 from nox.lib.packet.ipv4                              import ipv4
 from nox.netapps.discovery.pylinkevent                import Link_event
 from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
-from nox.netapps.authenticator.pyauth                 import Host_auth_event
+from nox.netapps.authenticator.pyauth                 import Host_auth_event, Host_bind_event
 from nox.lib.netinet.netinet                          import *
 
 import nox.lib.packet.packet_utils                    as     pkt_utils
@@ -495,8 +495,6 @@ class TopologyMgr(Component):
 
     def __host_insert_db(self, mac_addr, dpid, port, ip_addr = None):
         try:
-            # connect and open transaction
-            self.db_conn.open_transaction()
             # Host_insert
             self.db_conn.host_insert(mac_addr, dpid, port, ip_addr)
 
@@ -507,8 +505,6 @@ class TopologyMgr(Component):
         except nxw_utils.DBException:
             self.db_conn.rollback()
             raise
-        finally:
-            self.db_conn.close()
 
     def __host_update_db(self, mac_addr, ip_addr):
         try:
@@ -525,104 +521,121 @@ class TopologyMgr(Component):
         finally:
             self.db_conn.close()
 
+    def host_bind_event_handler(self, data):
+        assert(data is not None)
+        try:
+            auth_data = data.__dict__
+            log.info("Received host_bind_ev with the following data: %s" %
+                      str(auth_data))
+
+        except Exception, e:
+            log.error("Got error in host_bind_event handler ('%s')" % str(e))
+
     def host_auth_event_handler(self, data):
         assert(data is not None)
         try:
             auth_data = data.__dict__
-
-            if auth_data['nwaddr'] == 0:
-                log.debug(auth_data)
-                log.debug("Received auth_event for a switch...")
-                return CONTINUE
-
             log.info("Received host_auth_ev with the following data: %s" %
                       str(auth_data))
-
-            dladdr      = pkt_utils.mac_to_str(auth_data['dladdr'])
+            dladdr    = pkt_utils.mac_to_str(auth_data['dladdr'])
             host_ipaddr = nxw_utils.convert_ipv4_to_str(auth_data['nwaddr'])
-            if dladdr in self.auth_hosts:
-                log.debug("Ignoring auth_event (multiple notifications for" + \
-                          " multiple inter-switch links")
-                return CONTINUE
-            self.auth_hosts.append(dladdr)
-
-            host_idx = None
             try:
                 # connect and open transaction
                 self.db_conn.open_transaction()
-                host_idx = self.db_conn.host_get_index(dladdr)
+                if auth_data['nwaddr'] == 0:
+                    log.debug("Received auth_event without IP address...")
+                    mac_addresses = self.db_conn.port_get_macs()
+                    if dladdr in mac_addresses:
+                        log.debug("Ignoring received auth_ev for OF switch...")
+                        return CONTINUE
+
+                if dladdr in self.auth_hosts:
+                    log.debug("Ignoring auth_event (more notifications for" + \
+                              " multiple inter-switch links")
+                    return CONTINUE
+                self.auth_hosts.append(dladdr)
+
+                host_idx = None
+                try:
+                    host_idx = self.db_conn.host_get_index(dladdr)
+                except Exception, e:
+                    log.debug("Any host with mac='%s' in DB" % str(dladdr))
+
+                if host_idx is None:
+                    log.debug("Adding new host with MAC addr '%s'" % \
+                              str(dladdr))
+                    try:
+                        # Insert Host info into DB
+                        self.__host_insert_db(dladdr,
+                                              auth_data['datapath_id'],
+                                              auth_data['port'],
+                                              host_ipaddr)
+                        log.info("Added host '%s' into DB" % str(dladdr))
+                        self.auth_hosts.pop(self.auth_hosts.index(dladdr))
+                    except nxw_utils.DBException as e:
+                        log.error(str(e))
+                    except Exception, e:
+                        log.error("Cannot insert host info into DB ('%s')")
+                else:
+                    log.debug("Found entry for an host with mac_addr '%s'" %
+                               str(dladdr))
+                    try:
+                        # XXX FIXME: Add proper checks for host info updating
+                        self.__host_update_db(dladdr, host_ipaddr)
+                        log.debug("Updated host '%s'" % str(dladdr))
+                    except nxw_utils.DBException as e:
+                        log.error(str(e))
+                    except Exception, e:
+                        log.error("Cannot insert host info into DB ('%s')")
+
+
             except nxw_utils.DBException as e:
                 self.db_conn.rollback()
-            finally:
-                self.db_conn.close()
-
-            if host_idx is None:
-                log.debug("Adding new host with MAC addr '%s'" % str(dladdr))
-                try:
-                    # Insert Host info into DB
-                    self.__host_insert_db(dladdr,
-                                          auth_data['datapath_id'],
-                                          auth_data['port'],
-                                          host_ipaddr)
-                    log.info("Added host '%s' into DB" % str(dladdr))
-                    self.auth_hosts.pop(self.auth_hosts.index(dladdr))
-                except nxw_utils.DBException as e:
-                    log.error(str(e))
-                except Exception, e:
-                    log.error("Cannot insert host info into DB ('%s')")
-            else:
-                log.debug("Found entry for an host with mac_addr '%s'" %
-                           str(dladdr))
-                try:
-                    # XXX FIXME: Add proper checks to allow host info update
-                    self.__host_update_db(dladdr, host_ipaddr)
-                    log.debug("Updated host '%s'" % str(dladdr))
-                except nxw_utils.DBException as e:
-                    log.error(str(e))
-                except Exception, e:
-                    log.error("Cannot insert host info into DB ('%s')")
-
-            # check ior-dispatcher on pce node
-            if not self.ior_topo and not self.pce_topology_enable():
-                log.error("Unable to contact ior-dispatcher on PCE node!")
                 return CONTINUE
-
-            nodes = [host_ipaddr]
-
-            # Update flow-pce topology (hosts)
-            log.debug("Hosts=%s", nodes)
-            self.fpce.add_node_from_string(host_ipaddr)
-
-            # update flow-pce topology (links between DPID and host)
-            try:
-                # connect and open transaction
-                self.db_conn.open_transaction()
-                # Host_insert
-                dpid    = self.db_conn.host_get_dpid(dladdr)
-                in_port = self.db_conn.host_get_inport(dladdr)
-                # commit transaction
-                self.db_conn.commit()
-                log.debug("Successfully committed information!")
-            except nxw_utils.DBException as e:
-                self.db_conn.rollback()
-                raise
             finally:
                 self.db_conn.close()
 
-            try:
-                node = self.node_get_frompidport(dpid, in_port)
-                nodes.append(node)
-            except nxw_utils.DBException as e:
-                log.error(str(e))
-            except Exception, e:
-                log.error(str(e))
+            if auth_data['nwaddr'] != 0:
+                # check ior-dispatcher on pce node
+                if not self.ior_topo and not self.pce_topology_enable():
+                    log.error("Unable to contact ior-dispatcher on PCE node!")
+                    return CONTINUE
 
-            # update flow-pce topology (links)
-            for node in nodes:
-                others = [n for n in nodes if n != node]
+                nodes = [host_ipaddr]
 
-                for o in others:
-                    self.fpce.add_link_from_strings(node, o)
+                # Update flow-pce topology (hosts)
+                log.debug("Hosts=%s", nodes)
+                self.fpce.add_node_from_string(host_ipaddr)
+
+                # update flow-pce topology (links between DPID and host)
+                try:
+                    # connect and open transaction
+                    self.db_conn.open_transaction()
+                    # Host_insert
+                    dpid    = self.db_conn.host_get_dpid(dladdr)
+                    in_port = self.db_conn.host_get_inport(dladdr)
+                    # commit transaction
+                    self.db_conn.commit()
+                    log.debug("Successfully committed information!")
+                except nxw_utils.DBException as e:
+                    self.db_conn.rollback()
+                finally:
+                    self.db_conn.close()
+
+                try:
+                    node = self.node_get_frompidport(dpid, in_port)
+                    nodes.append(node)
+                except nxw_utils.DBException as e:
+                    log.error(str(e))
+                except Exception, e:
+                    log.error(str(e))
+
+                # update flow-pce topology (links)
+                for node in nodes:
+                    others = [n for n in nodes if n != node]
+
+                    for o in others:
+                        self.fpce.add_link_from_strings(node, o)
 
             return CONTINUE
 
@@ -652,6 +665,9 @@ class TopologyMgr(Component):
                               self.link_event_handler)
         self.register_handler(Host_auth_event.static_get_name(),
                               self.host_auth_event_handler)
+        self.register_handler(Host_bind_event.static_get_name(),
+                              self.host_bind_event_handler)
+
 
         self.mysql_enable()
         self.pce_topology_enable()
