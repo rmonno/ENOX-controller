@@ -258,6 +258,36 @@ class TopologyOFCManager(TopologyOFCBase):
 
         return [x["nodeID"] for x in rets]
 
+    def port_get_macs(self):
+        if not self._con:
+            raise DBException("Transaction not opened yet!")
+
+        table = "ports"
+        cursor = None
+        try:
+            cursor = self._con.cursor(sql.cursors.DictCursor)
+
+            statement = "SELECT hw_addr FROM " + table
+            self._debug(statement)
+
+            cursor.execute(statement)
+            numrows = int(cursor.rowcount)
+            if numrows:
+                return [x["hw_addr"] for x in cursor.fetchall()]
+
+        except sql.Error as e:
+            message = "Error %d: %s" % (e.args[0], e.args[1])
+            raise DBException(message)
+
+        except Exception as e:
+            raise DBException(str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+        raise DBException("No hw_addr found!")
+
     def port_get_mac_addr(self, dpid, port_no):
         table = "ports"
 
