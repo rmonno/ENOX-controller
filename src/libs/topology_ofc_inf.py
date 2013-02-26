@@ -198,11 +198,7 @@ class TopologyOFCBase(object):
 
     # XXX FIXME: Check if necessary and then add hosts table
     @abstractmethod
-    def host_insert(self,
-                    ip_addr  = None,
-                    mac_addr = None,
-                    dpid     = None,
-                    in_port  = None):
+    def host_insert(self, mac_addr, dpid=None, in_port=None, ip_addr=None):
         """Insert a new entry at hosts table
 
         :param ip_addr  : Host IP Address
@@ -214,20 +210,43 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
-    def host_delete(self, ip_addr):
+    def host_delete(self, idd):
         """Delete an entry at hosts table
 
-        :param ip_addr  : Host IP Address
         :raises: DBException
         """
         pass
 
     @abstractmethod
-    def host_get_index(self, ip_addr):
+    def host_get_index(self, mac_addr):
         """Get unique index at hosts table
 
-        :param ip_addr  : Host IP Address
         :raises: DBException
         """
         pass
 
+    @abstractmethod
+    def host_update(self, mac_addr, ip_addr):
+        pass
+
+    @abstractmethod
+    def host_get_dpid(self, mac_addr):
+        pass
+
+    @abstractmethod
+    def host_get_inport(self, mac_addr):
+        pass
+
+    @abstractmethod
+    def host_get_mac_addr(self, ip_addr):
+        pass
+
+    @abstractmethod
+    def host_get_indexes(self, d_id):
+        """Get unique indexes at hosts table
+
+        :param d_id: datapath identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
