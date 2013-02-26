@@ -1,92 +1,98 @@
+""" Connection module """
+
 import socket
 import threading
 import struct
 import logging
 
-from color_log import *
+import color_log as cl
 
-log = ColorLog(logging.getLogger('connections'))
+LOG = cl.ColorLog(logging.getLogger('connections'))
 
 
 class Client(object):
-    def __init__(self, name, host, port, timeout = 5):
+    """ Client object """
+
+    def __init__(self, name, host, port, timeout=5):
         assert(name is not None)
         assert(host is not None)
         assert(port is not None)
 
-        log.debug("Socket client initializing '%s' (%s, %s, %s)" %
+        LOG.debug("Socket client initializing '%s' (%s, %s, %s)" %
                   (name, host, port, timeout))
 
-        self.name      = name
-        self.host      = host
-        self.port      = int(port)
-        self.timeout   = int(timeout)
-        self.socket    = None
-        self.connected = False
+        self.name = name
+        self.host = host
+        self.port = int(port)
+        self.timeout = int(timeout)
+        self.sock = None
+        self.conn = False
 
         self.__create()
 
     def connected(self):
-        return self.connected
+        """ connected method """
+        return self.conn
 
     def __create(self):
-        if self.socket is None:
-            log.debug("Socket '%s' is not available" % self.name)
+        """ create method """
+        if self.sock is None:
+            LOG.debug("Socket '%s' is not available" % self.name)
 
-            self.connected = False
-            self.socket    = socket.socket(socket.AF_INET,
-                                           socket.SOCK_STREAM)
-            assert(self.socket is not None)
-            self.socket.settimeout(None)
+            self.conn = False
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            assert(self.sock is not None)
+            self.sock.settimeout(None)
         else:
-            log.debug("Socket '%s' already created" % self.name)
+            LOG.debug("Socket '%s' already created" % self.name)
 
     def destroy(self):
-        self.socket    = None
-        self.connected = False
+        """ destroy method """
+        self.sock = None
+        self.conn = False
 
     def connect(self):
-        if self.socket is None:
-            self.create()
+        """ connect method """
+        if self.sock is None:
+            self.__create()
 
-        if self.connected:
-            log.debug("Socket already connected")
+        if self.conn:
+            LOG.debug("Socket already connected")
             return
 
-        log.debug("Socket '%s' connecting to %s:%d" %
+        LOG.debug("Socket '%s' connecting to %s:%d" %
                   (self.name, self.host, self.port))
-        self.socket.connect((self.host, self.port))
-        log.debug("Socket '%s' is now connected" % self.name)
-        self.connected = True
+        self.sock.connect((self.host, self.port))
+        LOG.debug("Socket '%s' is now connected" % self.name)
+        self.conn = True
 
-    def socket(self):
-        return self.socket
+    def socket_get(self):
+        """ get socket member """
+        return self.sock
+
 
 class Server(threading.Thread):
-    def __init__(self,
-                 name,
-                 address,
-                 port,
-                 conns,
-                 handler):
-        self.__name    = name
+    """ Server object """
+
+    def __init__(self, name, address, port, conns, handler):
+        self.__name = name
         self.__address = address
-        self.__port    = int(port)
-        self.__conns   = int(conns)
-        self.__sock    = None
+        self.__port = int(port)
+        self.__conns = int(conns)
+        self.__sock = None
         self.__handler = handler
 
-        assert(self.__name    is not None)
+        assert(self.__name is not None)
         assert(self.__address is not None)
-        assert(self.__port    >= 0)
-        assert(self.__conns   >= 0)
+        assert(self.__port >= 0)
+        assert(self.__conns >= 0)
 
-        log.debug("Socket server '%s' initializing ..." % self.__name)
+        LOG.debug("Socket server '%s' initializing ..." % self.__name)
 
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         assert(self.__sock is not None)
         self.__sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        log.debug("Socket server '%s' binding to %s:%d" % (self.__name,
+        LOG.debug("Socket server '%s' binding to %s:%d" % (self.__name,
                                                            self.__address,
                                                            self.__port))
         self.__sock.bind((self.__address, self.__port))
@@ -96,58 +102,65 @@ class Server(threading.Thread):
         super(Server, self).start()
 
     def address_get(self):
+        """ get address member """
         return self.__address
 
     def port_get(self):
+        """ get port member """
         return self.__port
 
     def socket_get(self):
+        """ get socket member """
         return self.__sock
 
     def run(self):
+        """ run thread cycle """
         while True:
-            log.debug("Running body for socket server '%s'" % self.__name)
+            LOG.debug("Running body for socket server '%s'" % self.__name)
             self.__sock.listen(self.__conns)
 
             while True:
-                log.debug("Socket server '%s' is waiting for connection" %
+                LOG.debug("Socket server '%s' is waiting for connection" %
                           self.__name)
 
-                (sock, addr)   = self.__sock.accept()
+                (sock, addr) = self.__sock.accept()
                 client_address = addr[0]
-                client_port    = int(addr[1])
-                endpoint       = "%s:%d" % (client_address, client_port)
-                log.debug("Socket server got connection from '%s'" %
+                client_port = int(addr[1])
+                endpoint = "%s:%d" % (client_address, client_port)
+                LOG.debug("Socket server got connection from '%s'" %
                           endpoint)
-                # XXX FIXME: Fill with proper handler name
-                self.__handler.create("test", sock)
-        log.debug("Socket server '%s' execution completed" % self.__name)
+                self.__handler.create(self.__name, sock)
+        LOG.debug("Socket server '%s' execution completed" % self.__name)
+
 
 def msg_receive(sock):
+    """ message receive """
     assert(sock is not None)
-    msg  = ''
+    msg = ''
     buff = sock.recv(len(struct.pack("@I", 0)))
     if buff:
         if len(buff) == 0:
             return msg
 
     msg_length = int(struct.unpack("@I", buff)[0])
-    log.debug("Received a message whose length is: %d" % msg_length)
+    LOG.debug("Received a message whose length is: %d" % msg_length)
     while len(msg) < msg_length:
         temp = sock.recv(msg_length - len(msg))
         msg += temp
 
-    log.debug("Received the following message(%d bytes): %s" % (len(msg),
+    LOG.debug("Received the following message(%d bytes): %s" % (len(msg),
                                                                 str(msg)))
     return msg
 
+
 def message_send(sock, msg):
+    """ message send """
     assert(sock is not None)
     assert(msg  is not None)
 
-    log.debug("Sending the following message: '%s'" % str(msg))
-    buff     = struct.pack("@I", len(msg))
-    log.debug("Sending message length ('%s') as message header" % buff)
+    LOG.debug("Sending the following message: '%s'" % str(msg))
+    buff = struct.pack("@I", len(msg))
+    LOG.debug("Sending message length ('%s') as message header" % buff)
     header_sent = 0
     while header_sent < len(buff):
         sent = sock.send(buff[header_sent:])
@@ -159,5 +172,5 @@ def message_send(sock, msg):
         body_sent += sent
 
     total_sent = header_sent + body_sent
-    log.debug("Sent the following message (%d bytes): '%s'" % (total_sent,
+    LOG.debug("Sent the following message (%d bytes): '%s'" % (total_sent,
                                                                str(msg)))
