@@ -485,16 +485,70 @@ class TopologyMgr(Component):
             log.debug("Successfully committed information!")
         except nxw_utils.DBException:
             self.db_conn.rollback()
-            raise
         finally:
             self.db_conn.close()
 
     def host_bind_event_handler(self, data):
         assert(data is not None)
         try:
-            auth_data = data.__dict__
+            bind_data = data.__dict__
+            if bind_data['nwaddr'] == 0:
+                log.debug("Ignoring host_bind_ev not containing IP addr info")
+                return CONTINUE
+
             log.info("Received host_bind_ev with the following data: %s" %
-                      str(auth_data))
+                      str(bind_data))
+            dladdr      = pkt_utils.mac_to_str(bind_data['dladdr'])
+            host_ipaddr = nxw_utils.convert_ipv4_to_str(bind_data['nwaddr'])
+
+            try:
+                self.db_conn.open_transaction()
+                log.debug("Updating host info in DB...")
+                self.db_conn.host_update(dladdr, host_ipaddr)
+                self.db_conn.commit()
+                log.info("Host info updated successfully")
+            except nxw_utils.DBException:
+                self.db_conn.rollback()
+            finally:
+                self.db_conn.close()
+
+
+            # check ior-dispatcher on pce node
+            if not self.ior_topo and not self.pce_topology_enable():
+                log.error("Unable to contact ior-dispatcher on PCE node!")
+                return CONTINUE
+
+            nodes = [host_ipaddr]
+            # Update flow-pce topology (hosts)
+            log.debug("Hosts=%s", nodes)
+            self.fpce.add_node_from_string(host_ipaddr)
+            # update flow-pce topology (links between DPID and host)
+            try:
+                # connect and open transaction
+                self.db_conn.open_transaction()
+                # Host_insert
+                dpid    = self.db_conn.host_get_dpid(dladdr)
+                in_port = self.db_conn.host_get_inport(dladdr)
+            except nxw_utils.DBException as e:
+                self.db_conn.rollback()
+            finally:
+                self.db_conn.close()
+
+            try:
+                node = self.node_get_frompidport(dpid, in_port)
+                nodes.append(node)
+            except nxw_utils.DBException as e:
+                log.error(str(e))
+            except Exception, e:
+                log.error(str(e))
+
+            # update flow-pce topology (links)
+            for node in nodes:
+                others = [n for n in nodes if n != node]
+                for o in others:
+                    self.fpce.add_link_from_strings(node, o)
+
+            return CONTINUE
 
         except Exception, e:
             log.error("Got error in host_bind_event handler ('%s')" % str(e))
@@ -505,7 +559,7 @@ class TopologyMgr(Component):
             auth_data = data.__dict__
             log.info("Received host_auth_ev with the following data: %s" %
                       str(auth_data))
-            dladdr    = pkt_utils.mac_to_str(auth_data['dladdr'])
+            dladdr      = pkt_utils.mac_to_str(auth_data['dladdr'])
             host_ipaddr = nxw_utils.convert_ipv4_to_str(auth_data['nwaddr'])
             try:
                 # connect and open transaction
@@ -555,7 +609,6 @@ class TopologyMgr(Component):
                         log.error(str(e))
                     except Exception, e:
                         log.error("Cannot insert host info into DB ('%s')")
-
 
             except nxw_utils.DBException as e:
                 self.db_conn.rollback()
