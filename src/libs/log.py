@@ -8,74 +8,93 @@
 #             Francesco Salvestrini <f DOT salvestrini AT nextworks DOT it>
 #
 
+""" Logger module """
+
 import logging
 
+
 class Logger(object):
-  def __init__(self):
-    self.__logger = logging.getLogger("root")
-    self.__logger.setLevel(logging.INFO)
+    """ Logger object """
 
-    self.__handler = logging.StreamHandler()
-    self.__handler.setLevel(logging.DEBUG)
+    def __init__(self):
+        self.__logger = logging.getLogger("root")
+        self.__logger.setLevel(logging.INFO)
 
-    self.format_set("%(asctime)s - %(levelname)s: %(message)s")
+        self.__handler = logging.StreamHandler()
+        self.__handler.setLevel(logging.DEBUG)
 
-  def level_set(self, level):
-    assert(level is not None)
+        self.__level = None
+        self.__format = None
 
-    l = level.upper()
-    try :
-      if l != "VERBOSE" :
-        l = "logging.%s" % l
-        l = eval(l)
-    except Exception, e:
-      self.__logger.error("Cannot set level " + str(l) +
-                          "'" + level + "' (" + str(e) +")")
+        self.format_set("%(asctime)s - %(levelname)s: %(message)s")
 
-    try:
-      self.__handler.setLevel(l)
-    except Exception, e:
-      self.__logger.error("Cannot set log handler level " + str(l) +
-                          "'" + level + "' (" + str(e) +")")
+    def level_set(self, level):
+        """ level set """
+        assert(level is not None)
 
-    try:
-      self.__logger.setLevel(l)
-    except Exception, e:
-      self.__logger.error("Cannot set log level " + str(l) +
-                          "'" + level + "' " + str(e) +")")
+        lup = level.upper()
+        try:
+            if lup != "VERBOSE":
+                lup = "logging.%s" % lup
+                lup = eval(lup)
+        except Exception, exe:
+            self.__logger.error("Cannot set level " + str(lup) +
+                                "'" + level + "' (" + str(exe) + ")")
 
-      self.__level = l
+        try:
+            self.__handler.setLevel(lup)
+        except Exception, exe:
+            self.__logger.error("Cannot set log handler level " + str(lup) +
+                                "'" + level + "' (" + str(exe) + ")")
 
-  def level_get(self):
-    return str(self.__level)
+        try:
+            self.__logger.setLevel(lup)
+        except Exception, exe:
+            self.__logger.error("Cannot set log level " + str(lup) +
+                                "'" + level + "' " + str(exe) + ")")
 
-  def format_set(self, fmt):
-    assert(fmt is not None)
+        self.__level = lup
 
-    formatter = logging.Formatter(fmt)
-    self.__handler.setFormatter(formatter)
-    self.__logger.addHandler(self.__handler)
-    self.__format = fmt
+    def level_get(self):
+        """ get level """
+        return str(self.__level)
 
-  def format_get(self):
-    return str(self.__format)
+    def format_set(self, fmt):
+        """ set formatter """
+        assert(fmt is not None)
 
-  def debug(self, msg, *args):
-    self.__logger.log(logging.DEBUG, msg, *args)
+        formatter = logging.Formatter(fmt)
+        self.__handler.setFormatter(formatter)
+        self.__logger.addHandler(self.__handler)
+        self.__format = fmt
 
-  def info(self, msg, *args):
-    self.__logger.log(logging.INFO, msg, *args)
+    def format_get(self):
+        """ get formatter """
+        return str(self.__format)
 
-  def warning(self, msg, *args):
-    self.__logger.log(logging.WARNING, msg, *args)
+    def debug(self, msg, *args):
+        """ debug """
+        self.__logger.log(logging.DEBUG, msg, *args)
 
-  def error(self, msg, *args):
-    self.__logger.log(logging.ERROR, msg, *args)
+    def info(self, msg, *args):
+        """ info """
+        self.__logger.log(logging.INFO, msg, *args)
 
-  def critical(self, msg, *args):
-    self.__logger.log(logging.CRITICAL, msg, *args)
+    def warning(self, msg, *args):
+        """ warning """
+        self.__logger.log(logging.WARNING, msg, *args)
 
-log = Logger()
+    def error(self, msg, *args):
+        """ error """
+        self.__logger.log(logging.ERROR, msg, *args)
+
+    def critical(self, msg, *args):
+        """ critical """
+        self.__logger.log(logging.CRITICAL, msg, *args)
+
+
+LOG = Logger()
+
 
 if __name__ == '__main__':
-  l = Logger()
+    MY_LOG = Logger()
