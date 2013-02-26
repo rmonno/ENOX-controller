@@ -2,15 +2,24 @@
 #
 # @author: Roberto Monno
 
+""" Config Parser module """
 
-import sys
 import os
 import logging
 import ConfigParser
 
-from color_log import *
+import color_log as cl
 
-log = ColorLog(logging.getLogger('config_parser'))
+LOG = cl.ColorLog(logging.getLogger('config_parser'))
+
+
+def check_file(fname):
+    """ check if file exists"""
+    if not os.path.exists(fname):
+        LOG.error("`" + fname + "' does not exist!")
+        return False
+
+    return True
 
 
 class NoxConfigParser:
@@ -19,26 +28,19 @@ class NoxConfigParser:
 
     def __init__(self, filename):
         self.address = None
-        self.port    = None
-        self.size    = None
+        self.port = None
+        self.size = None
 
-        if self.__check_file(filename):
+        if check_file(filename):
             config = ConfigParser.ConfigParser()
             config.read(filename)
 
-            ss = config.sections()
-            for s in ss:
-                if s == 'fpce':
-                    self.address = config.get(s,'address')
-                    self.port    = config.get(s,'port')
-                    self.size    = config.get(s,'size')
+            sects = config.sections()
+            for sect in sects:
+                if sect == 'fpce':
+                    self.address = config.get(sect, 'address')
+                    self.port = config.get(sect, 'port')
+                    self.size = config.get(sect, 'size')
 
-        log.debug("Fpce address=%s, port=%s, size=%s",
+        LOG.debug("Fpce address=%s, port=%s, size=%s",
                   self.address, self.port, self.size)
-
-    def __check_file(self, fname):
-        if not os.path.exists(fname):
-            log.error("`" + fname + "' does not exist!")
-            return False
-
-        return True
