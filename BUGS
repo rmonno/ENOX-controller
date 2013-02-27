@@ -1,0 +1,5 @@
+Topology Manager
+* A network node with IP addr = 0.0.0.0 is created (probably it is an OF
+  switch). Verify the host_auth and host_bind events handling
+
+* For datapath_event the info about hosts seem not be cancelled in F-PCE
