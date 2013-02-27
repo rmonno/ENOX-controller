@@ -3,3 +3,7 @@ Topology Manager
   switch). Verify the host_auth and host_bind events handling
 
 * Fixed host_leave events hadnling when multiple events are raised
+
+* Delete all DB entries and F-PCE topology when NOX is stopped (necessary?)
+
+* Add ip_addr as promary key for hosts table
