@@ -59,6 +59,19 @@ class TopologyMgr(Component):
         self.fpce       = nxw_utils.FPCE()
         self.ior_topo   = False
         self.ior_rout   = False
+        self.__reasons = { 0:  "AUTHENTICATION_EVENT",
+                           1:  "AUTO_AUTHENTICATION",
+                           2:  "NWADDR_AUTO_ADD",
+                           3:  "DEAUTHENTICATION_EVENT",
+                           4:  "NWADDR_AUTO_REMOVE",
+                           5:  "INTERNAL_LOCATION",
+                           6:  "BINDING_CHANGE",
+                           7:  "HARD_TIMEOUT",
+                           8:  "IDLE_TIMEOUT",
+                           9:  "SWITCH_LEAVE",
+                          10: "LOCATION_LEAVE",
+                          11: "HOST_DELETE",
+                         }
 
         conf = nxw_utils.NoxConfigParser(TopologyMgr.CONFIG_FILE)
         self.pce_client = nxw_utils.PCEClient(conf.address,
@@ -547,18 +560,24 @@ class TopologyMgr(Component):
             host_ipaddr = nxw_utils.convert_ipv4_to_str(bind_data['nwaddr'])
 
             # Check reason value
-            reason = int(bind_data['reason'])
+            reason     = int(bind_data['reason'])
+            if not self.__reasons.has_key(reason):
+                log.error("Got host_leave event with unsupported reason value")
+                return CONTINUE
+            reason_str = self.__reasons[reason]
+            log.info("Received host_bind_ev with reason '%s'" % reason_str)
+
             # XXX FIXME: Insert mapping for values <--> reason
             if reason > 7:
                 ret = self.__host_leave(dladdr)
                 if not ret:
                     return CONTINUE
-            elif (reason < 3) and (bind_data['nwaddr'] == 0):
+            elif (reason < 3 or reason == 5) and (bind_data['nwaddr'] == 0):
                 log.debug("Ignoring host_bind_ev without IPaddr info")
                 return CONTINUE
             elif (reason > 2) and (reason != 5):
-                log.error("Received host_bind_ev with reason '%s'..." % \
-                           str(bind_data['reason']))
+                log.error("Unsupported reason for host_bind_ev: '%s'" % \
+                           reason_str)
                 return CONTINUE
 
             log.info("Received host_bind_ev with the following data: %s" % \
