@@ -61,9 +61,9 @@ class TopologyMgr(Component):
         self.ior_rout   = False
 
         conf = nxw_utils.NoxConfigParser(TopologyMgr.CONFIG_FILE)
-        self.pce_client = nxw_utils.PCE_Client(conf.address,
-                                               conf.port,
-                                               int(conf.size))
+        self.pce_client = nxw_utils.PCEClient(conf.address,
+                                              conf.port,
+                                              int(conf.size))
         self.pce_client.create()
 
     def ior_del(self):

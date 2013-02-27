@@ -1,34 +1,35 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright XXX Fixme XXX
-#
 # @author: Roberto Monno
 
-from topology_ofc_inf import *
+""" topology_ofc DB manager """
 
+import topology_ofc_inf as tofc
 import MySQLdb as sql
 
 
-class TopologyOFCManager(TopologyOFCBase):
+class TopologyOFCManager(tofc.TopologyOFCBase):
     """Topology OpenFlow Controller (OFC) Manager
     """
 
-    def __init__(self, host, user, pswd, db, logger=None):
+    def __init__(self, host, user, pswd, database, logger=None):
         self._host = host
         self._user = user
         self._pswd = pswd
-        self._db   = db
-        self._log  = logger
-        self._con  = None
+        self._db = database
+        self._log = logger
+        self._con = None
 
     # private
     def _debug(self, msg):
+        """ debug """
         if self._log:
             self._log.debug(msg)
 
     def __execute(self, statement, values=None):
+        """ execute """
         if not self._con:
-            raise DBException("Transaction not opened yet!")
+            raise tofc.DBException("Transaction not opened yet!")
 
         cursor = None
         try:
@@ -41,20 +42,21 @@ class TopologyOFCManager(TopologyOFCBase):
                 self._debug(statement)
                 cursor.execute(statement)
 
-        except sql.Error as e:
-            message = "Error %d: %s" % (e.args[0], e.args[1])
-            raise DBException(message)
+        except sql.Error as exe:
+            message = "Error %d: %s" % (exe.args[0], exe.args[1])
+            raise tofc.DBException(message)
 
-        except Exception as e:
-            raise DBException(str(e))
+        except Exception as exe:
+            raise tofc.DBException(str(exe))
 
         finally:
             if cursor:
                 cursor.close()
 
     def __execute_dict(self, statement, values=None, one=True):
+        """ execute using dictionary """
         if not self._con:
-            raise DBException("Transaction not opened yet!")
+            raise tofc.DBException("Transaction not opened yet!")
 
         cursor = None
         try:
@@ -74,23 +76,24 @@ class TopologyOFCManager(TopologyOFCBase):
                 else:
                     return cursor.fetchall()
 
-        except sql.Error as e:
-            message = "Error %d: %s" % (e.args[0], e.args[1])
-            raise DBException(message)
+        except sql.Error as exe:
+            message = "Error %d: %s" % (exe.args[0], exe.args[1])
+            raise tofc.DBException(message)
 
-        except Exception as e:
-            raise DBException(str(e))
+        except Exception as exe:
+            raise tofc.DBException(str(exe))
 
         finally:
             if cursor:
                 cursor.close()
 
-        raise DBException("Index not found!")
+        raise tofc.DBException("Index not found!")
 
     # public
     def open_transaction(self):
+        """ open transaction """
         if self._con:
-            raise DBException("Transaction already opened!")
+            raise tofc.DBException("Transaction already opened!")
 
         try:
             self._con = sql.connect(host=self._host,
@@ -99,11 +102,12 @@ class TopologyOFCManager(TopologyOFCBase):
                                     db=self._db)
             self._debug("Connected to %s (%s)" % (self._host,
                                                   self._db))
-        except sql.Error as e:
-            message = "Error %d: %s" % (e.args[0], e.args[1])
-            raise DBException(message)
+        except sql.Error as exe:
+            message = "Error %d: %s" % (exe.args[0], exe.args[1])
+            raise tofc.DBException(message)
 
     def close(self):
+        """ close transation """
         if self._con:
             self._con.close()
             self._debug("Closed connection to %s" % self._host)
@@ -111,6 +115,7 @@ class TopologyOFCManager(TopologyOFCBase):
         self._con = None
 
     def commit(self):
+        """ commit transaction """
         if self._con:
             self._con.commit()
             self._debug("Committed!")
@@ -120,6 +125,7 @@ class TopologyOFCManager(TopologyOFCBase):
             return False
 
     def rollback(self):
+        """ rollback transaction """
         if self._con:
             self._con.rollback()
             self._debug("RollBacked!")
@@ -130,47 +136,50 @@ class TopologyOFCManager(TopologyOFCBase):
 
     def datapath_insert(self, d_id, d_name=None, caps=None,
                         actions=None, buffers=None, tables=None):
+        """ datapath insert """
         table = "datapaths"
 
         stat_header = "INSERT INTO " + table + "(id"
-        stat_body   = "VALUES (%s"
-        values      = (str(d_id),)
+        stat_body = "VALUES (%s"
+        values = (str(d_id),)
 
         if d_name is not None:
             stat_header += ", name"
-            stat_body   += ", %s"
-            values      = values + (str(d_name),)
+            stat_body += ", %s"
+            values = values + (str(d_name),)
 
         if caps is not None:
             stat_header += ", ofp_capabilities"
-            stat_body   += ", %s"
-            values      = values + (str(caps),)
+            stat_body += ", %s"
+            values = values + (str(caps),)
 
         if actions is not None:
             stat_header += ", ofp_actions"
-            stat_body   += ", %s"
-            values      = values + (str(actions),)
+            stat_body += ", %s"
+            values = values + (str(actions),)
 
         if buffers is not None:
             stat_header += ", buffers"
-            stat_body   += ", %s"
-            values      = values + (str(buffers),)
+            stat_body += ", %s"
+            values = values + (str(buffers),)
 
         if tables is not None:
             stat_header += ", tables"
-            stat_body   += ", %s"
-            values      = values + (str(tables),)
+            stat_body += ", %s"
+            values = values + (str(tables),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
     def datapath_delete(self, d_id):
+        """ datapath delete """
         table = "datapaths"
 
         statement = "DELETE FROM " + table + " WHERE id=" + str(d_id)
         self.__execute(statement)
 
     def datapath_get_index(self, d_id):
+        """ get datapath index """
         table = "datapaths"
 
         statement = "SELECT dID FROM " + table + " WHERE id=" + str(d_id)
@@ -181,56 +190,58 @@ class TopologyOFCManager(TopologyOFCBase):
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
                     supported=None, peer=None):
+        """ port insert """
         table = "ports"
 
         stat_header = "INSERT INTO " + table + "(datapath_id, port_no"
-        stat_body   = "VALUES (%s, %s"
-        values      = (str(d_id), str(port_no))
+        stat_body = "VALUES (%s, %s"
+        values = (str(d_id), str(port_no))
 
         if hw_addr is not None:
             stat_header += ", hw_addr"
-            stat_body   += ", %s"
-            values      = values + (str(hw_addr),)
+            stat_body += ", %s"
+            values = values + (str(hw_addr),)
 
         if name is not None:
             stat_header += ", name"
-            stat_body   += ", %s"
-            values      = values + (str(name),)
+            stat_body += ", %s"
+            values = values + (str(name),)
 
         if config is not None:
             stat_header += ", config"
-            stat_body   += ", %s"
-            values      = values + (str(config),)
+            stat_body += ", %s"
+            values = values + (str(config),)
 
         if state is not None:
             stat_header += ", state"
-            stat_body   += ", %s"
-            values      = values + (str(state),)
+            stat_body += ", %s"
+            values = values + (str(state),)
 
         if curr is not None:
             stat_header += ", curr"
-            stat_body   += ", %s"
-            values      = values + (str(curr),)
+            stat_body += ", %s"
+            values = values + (str(curr),)
 
         if advertised is not None:
             stat_header += ", advertised"
-            stat_body   += ", %s"
-            values      = values + (str(advertised),)
+            stat_body += ", %s"
+            values = values + (str(advertised),)
 
         if supported is not None:
             stat_header += ", supported"
-            stat_body   += ", %s"
-            values      = values + (str(supported),)
+            stat_body += ", %s"
+            values = values + (str(supported),)
 
         if peer is not None:
             stat_header += ", peer"
-            stat_body   += ", %s"
-            values      = values + (str(peer),)
+            stat_body += ", %s"
+            values = values + (str(peer),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
     def port_delete(self, d_id, port_no):
+        """ port delete """
         table = "ports"
 
         statement = "DELETE FROM " + table +\
@@ -239,6 +250,7 @@ class TopologyOFCManager(TopologyOFCBase):
         self.__execute(statement, values)
 
     def port_get_index(self, d_id, port_no):
+        """ get port index """
         table = "ports"
 
         statement = "SELECT nodeID FROM " + table +\
@@ -249,6 +261,7 @@ class TopologyOFCManager(TopologyOFCBase):
         return ret["nodeID"]
 
     def port_get_indexes(self, d_id):
+        """ get port indexes """
         table = "ports"
 
         statement = "SELECT nodeID FROM " + table +\
@@ -259,36 +272,16 @@ class TopologyOFCManager(TopologyOFCBase):
         return [x["nodeID"] for x in rets]
 
     def port_get_macs(self):
-        if not self._con:
-            raise DBException("Transaction not opened yet!")
-
+        """ get port macs """
         table = "ports"
-        cursor = None
-        try:
-            cursor = self._con.cursor(sql.cursors.DictCursor)
 
-            statement = "SELECT hw_addr FROM " + table
-            self._debug(statement)
+        statement = "SELECT hw_addr FROM " + table
+        rets = self.__execute_dict(statement, one=False)
 
-            cursor.execute(statement)
-            numrows = int(cursor.rowcount)
-            if numrows:
-                return [x["hw_addr"] for x in cursor.fetchall()]
-
-        except sql.Error as e:
-            message = "Error %d: %s" % (e.args[0], e.args[1])
-            raise DBException(message)
-
-        except Exception as e:
-            raise DBException(str(e))
-
-        finally:
-            if cursor:
-                cursor.close()
-
-        raise DBException("No hw_addr found!")
+        return [x["hw_addr"] for x in rets]
 
     def port_get_mac_addr(self, dpid, port_no):
+        """ get port mac address """
         table = "ports"
 
         statement = "SELECT hw_addr FROM " + table + \
@@ -299,6 +292,7 @@ class TopologyOFCManager(TopologyOFCBase):
         return ret["hw_addr"]
 
     def port_get_did_pno(self, node_index):
+        """ port get datapath ID and port number """
         table = "ports"
 
         statement = "SELECT datapath_id, port_no FROM " + table +\
@@ -309,18 +303,20 @@ class TopologyOFCManager(TopologyOFCBase):
         return (ret["datapath_id"], ret["port_no"])
 
     def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno):
+        """ link insert """
         table = "links"
 
         stat_header = "INSERT INTO " + table +\
                       "(src_dpid, src_pno, dst_dpid, dst_pno"
-        stat_body   = "VALUES (%s, %s, %s, %s"
-        values      = (str(src_dpid), str(src_pno),
-                       str(dst_dpid), str(dst_pno))
+        stat_body = "VALUES (%s, %s, %s, %s"
+        values = (str(src_dpid), str(src_pno),
+                  str(dst_dpid), str(dst_pno))
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
     def link_delete(self, src_dpid, src_pno):
+        """ link delete """
         table = "links"
 
         statement = "DELETE FROM " + table +\
@@ -329,6 +325,7 @@ class TopologyOFCManager(TopologyOFCBase):
         self.__execute(statement, values)
 
     def link_get_indexes(self, src_dpid):
+        """ get link indexes """
         table = "links"
 
         statement = "SELECT src_pno, dst_dpid, dst_pno FROM " + table +\
@@ -339,37 +336,40 @@ class TopologyOFCManager(TopologyOFCBase):
         return [(x["src_pno"], x["dst_dpid"], x["dst_pno"]) for x in rets]
 
     def host_insert(self, mac_addr, dpid=None, in_port=None, ip_addr=None):
+        """ host insert """
         table = "hosts"
 
         stat_header = "INSERT INTO " + table + "(mac_addr"
-        stat_body   = "VALUES (%s"
-        values      = (str(mac_addr),)
+        stat_body = "VALUES (%s"
+        values = (str(mac_addr),)
 
         if ip_addr is not None:
             stat_header += ", ip_addr"
-            stat_body   += ", %s"
-            values      = values + (str(ip_addr),)
+            stat_body += ", %s"
+            values = values + (str(ip_addr),)
 
         if dpid is not None:
             stat_header += ", dpid"
-            stat_body   += ", %s"
-            values      = values + (str(dpid),)
+            stat_body += ", %s"
+            values = values + (str(dpid),)
 
         if in_port is not None:
             stat_header += ", in_port"
-            stat_body   += ", %s"
-            values      = values + (str(in_port),)
+            stat_body += ", %s"
+            values = values + (str(in_port),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
     def host_delete(self, idd):
+        """ host delete """
         table = "hosts"
 
         statement = "DELETE FROM " + table + " WHERE hostID=" + str(idd)
         self.__execute(statement)
 
     def host_update(self, mac_addr, ip_addr):
+        """ host update """
         table = "hosts"
 
         statement = "UPDATE " + table + \
@@ -378,6 +378,7 @@ class TopologyOFCManager(TopologyOFCBase):
         self.__execute(statement)
 
     def host_get_index(self, mac_addr):
+        """ get host index """
         table = "hosts"
 
         statement = "SELECT hostID FROM %s WHERE mac_addr='%s'" % \
@@ -387,6 +388,7 @@ class TopologyOFCManager(TopologyOFCBase):
         return ret["hostID"]
 
     def host_get_dpid(self, mac_addr):
+        """ get host datapath ID """
         table = "hosts"
 
         statement = "SELECT dpid FROM %s WHERE mac_addr='%s'" % \
@@ -396,6 +398,7 @@ class TopologyOFCManager(TopologyOFCBase):
         return ret["dpid"]
 
     def host_get_inport(self, mac_addr):
+        """ get host inport """
         table = "hosts"
 
         statement = "SELECT in_port FROM %s WHERE mac_addr='%s'" % \
@@ -405,6 +408,7 @@ class TopologyOFCManager(TopologyOFCBase):
         return ret["in_port"]
 
     def host_get_ipaddr(self, mac_addr):
+        """ get host ip address """
         table = "hosts"
 
         statement = "SELECT ip_addr FROM %s WHERE mac_addr='%s'" % \
@@ -414,6 +418,7 @@ class TopologyOFCManager(TopologyOFCBase):
         return ret["ip_addr"]
 
     def host_get_mac_addr(self, ip_addr):
+        """ get host mac address """
         table = "hosts"
 
         statement = "SELECT mac_addr FROM %s WHERE ip_addr='%s'" % \
@@ -423,6 +428,7 @@ class TopologyOFCManager(TopologyOFCBase):
         return ret["mac_addr"]
 
     def host_get_indexes(self, d_id):
+        """ get host indexes """
         table = "hosts"
 
         statement = "SELECT in_port, ip_addr FROM " + table +\
