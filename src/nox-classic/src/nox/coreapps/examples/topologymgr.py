@@ -496,24 +496,20 @@ class TopologyMgr(Component):
                 mac_addresses = self.db_conn.port_get_macs()
                 if dladdr in mac_addresses:
                     log.debug("Ignoring received leave_ev for OF switch...")
+                    self.db_conn.close()
                     return False
             except Exception:
                 log.debug("Received leave_ev for a MAC not present in DB")
                 return False
 
-            # XXX FIXME: Insert code here..
-            try:
-                nodes   = [self.db_conn.host_get_ipaddr(dladdr)]
-                dpid = self.db_conn.host_get_dpid(dladdr)
-                port = self.db_conn.host_get_inport(dladdr)
-                didx = self.db_conn.datapath_get_index(dpid)
-                pidx = self.db_conn.port_get_index(dpid, port)
-                node = "0." + str(didx) + ".0." + str(pidx)
-                nodes.append(node)
-            except nxw_utils.DBException as e:
-                log.error(str(e))
-            except Exception, e:
-                log.error(str(e))
+            host  = self.db_conn.host_get_ipaddr(dladdr)
+            nodes = [host]
+            dpid  = self.db_conn.host_get_dpid(dladdr)
+            port  = self.db_conn.host_get_inport(dladdr)
+            didx  = self.db_conn.datapath_get_index(dpid)
+            pidx  = self.db_conn.port_get_index(dpid, port)
+            node  = "0." + str(didx) + ".0." + str(pidx)
+            nodes.append(node)
 
             # update flow-pce topology (remove links)
             for node in nodes:
@@ -521,18 +517,27 @@ class TopologyMgr(Component):
                 for o in others:
                     self.fpce.del_link_from_strings(node, o)
 
-            # XXX FIXME: Insert code to remove hosts
-            return
+            self.fpce.del_node_from_string(host)
 
-        except nxw_utils.DBException:
+            # Delete hosts from DB
+            host_idx = self.db_conn.host_get_index(dladdr)
+            self.db_conn.host_delete(host_idx)
+            self.db_conn.commit()
+            log.debug("Successfully delete host '%s' from DB!" % str(dladdr))
+
+        except nxw_utils.DBException as e:
             self.db_conn.rollback()
+            return False
+        except Exception, e:
+            log.error(str(e))
+            return False
         finally:
             self.db_conn.close()
 
     def host_bind_event_handler(self, data):
         assert(data is not None)
         try:
-            bind_data = data.__dict__
+            bind_data   = data.__dict__
             dladdr      = pkt_utils.mac_to_str(bind_data['dladdr'])
             host_ipaddr = nxw_utils.convert_ipv4_to_str(bind_data['nwaddr'])
 
