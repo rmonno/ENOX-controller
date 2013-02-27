@@ -1,14 +1,17 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright XXX Fixme XXX
-#
 # @author: Roberto Monno
+
+""" topology_ofc DB interface """
 
 from abc import ABCMeta, abstractmethod
 
 
 class DBException(Exception):
+    """ DB Exception """
+
     def __init__(self, message):
+        Exception.__init__(self, message)
         self._error = message
 
     def __str__(self):
@@ -16,20 +19,19 @@ class DBException(Exception):
 
 
 class TopologyOFCBase(object):
-    """Topology OpenFlow Controller (OFC) DB Specification
-    """
+    """ Topology OpenFlow Controller (OFC) DB Specification """
 
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def __init__(self, host, user, pswd, db, logger=None):
+    def __init__(self, host, user, pswd, database, logger=None):
         """Constructor
 
-        :param host  : address of mysql server
-        :param user  : username of mysql user
-        :param pswd  : password of mysql user
-        :param db    : mysql database name
-        :param logger: logging object
+        :param host    : address of mysql server
+        :param user    : username of mysql user
+        :param pswd    : password of mysql user
+        :param database: mysql database name
+        :param logger  : logging object
         """
         pass
 
@@ -196,7 +198,6 @@ class TopologyOFCBase(object):
         """
         pass
 
-    # XXX FIXME: Check if necessary and then add hosts table
     @abstractmethod
     def host_insert(self, mac_addr, dpid=None, in_port=None, ip_addr=None):
         """Insert a new entry at hosts table
@@ -227,18 +228,22 @@ class TopologyOFCBase(object):
 
     @abstractmethod
     def host_update(self, mac_addr, ip_addr):
+        """ host update """
         pass
 
     @abstractmethod
     def host_get_dpid(self, mac_addr):
+        """ get host dpid """
         pass
 
     @abstractmethod
     def host_get_inport(self, mac_addr):
+        """ get host inport """
         pass
 
     @abstractmethod
     def host_get_mac_addr(self, ip_addr):
+        """ get host mac address """
         pass
 
     @abstractmethod
