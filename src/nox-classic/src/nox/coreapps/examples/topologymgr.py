@@ -300,7 +300,7 @@ class TopologyMgr(Component):
             log.error("Unable to contact ior-dispatcher on PCE node!")
         else:
             # get nodes and links from topology-db
-            (nodes, links) = self.__datapath_leave_db_actions(dpid)
+            (nodes, links, hosts) = self.__datapath_leave_db_actions(dpid)
 
             # update flow-pce topology (delete links)
             log.info("DataPath_leave nodes=%s", nodes)
@@ -319,6 +319,11 @@ class TopologyMgr(Component):
             # update flow-pce topology (delete nodes)
             for node in nodes:
                 self.fpce.del_node_from_string(node)
+
+            # update flow-pce topology (delete nodes)
+            log.info("DataPath_leave hosts=%s", hosts)
+            for host in hosts:
+                self.fpce.del_node_from_string(host)
 
         # delete values into topology-db
         try:
@@ -868,6 +873,7 @@ class TopologyMgr(Component):
     def __datapath_leave_db_actions(self, dpid):
         nodes = []
         links = []
+        hosts = []
         try:
             self.db_conn.open_transaction()
 
@@ -885,6 +891,7 @@ class TopologyMgr(Component):
                     node = "0." + str(d_idx) + ".0." + str(port)
 
                     links.append((ip_addr, node))
+                    hosts.append(ip_addr)
 
             except nxw_utils.DBException as e:
                 log.error("host_get_indexes: " + str(e))
@@ -912,7 +919,8 @@ class TopologyMgr(Component):
         finally:
             self.db_conn.close()
 
-        return (nodes, links)
+        return (nodes, links, hosts)
+
 
 def getFactory():
     class Factory:
