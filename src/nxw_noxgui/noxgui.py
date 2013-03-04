@@ -22,6 +22,7 @@ for (root, dirs, names) in os.walk(idl_find_path):
 import libs as nxw_utils
 import noxdbconn as ndbc
 import noxlog as nl
+import topology
 
 CLOG = nxw_utils.ColorLog(nl.NOX_GUI_LOG)
 
@@ -73,6 +74,10 @@ class NoxGUI(QtGui.QMainWindow):
         tb_.addSeparator()
         tb_.addAction(self.__clearAction())
 
+    def __topology(self):
+        topo_ = topology.TopologyWidget(self, log=CLOG)
+        self.setCentralWidget(topo_)
+
     def __initUI(self):
         self.resize(500, 500)
         self.__center()
@@ -80,6 +85,7 @@ class NoxGUI(QtGui.QMainWindow):
 
         self.__menuBar()
         self.__toolBar()
+        self.__topology()
 
         self.statusBar().showMessage('Ready')
         self.show()
@@ -96,8 +102,23 @@ class NoxGUI(QtGui.QMainWindow):
 
     def createTopology(self):
         CLOG.debug("createTopology event")
-        switches = self.__db.retry_switch()
+
+        switches = self.__db.retry_switches()
         CLOG.debug("Switches=%s" % switches)
+
+        hosts = self.__db.retry_hosts()
+        CLOG.debug("Hosts=%s" % hosts)
+
+        # open-flow switches
+        for s in switches:
+            self.centralWidget().addOFSwitch(s)
+
+        # hosts
+        for h in hosts:
+            self.centralWidget().addHost(h)
+
+        # open-flow controller
+        self.centralWidget().addOFController()
 
     def clear(self):
         CLOG.debug("clear event")
