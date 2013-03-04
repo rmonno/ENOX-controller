@@ -175,7 +175,7 @@ class TopologyMgr(Component):
         if packet.type == ethernet.IP_TYPE:
             ip = packet.find('ipv4')
             log.info("IPv4 packet: " + str(ip))
-            # XXXX FIXME: Remove the following check in order to be generic...
+            # XXX FIXME: Remove the following check in order to be generic...
             if ip.protocol == ipv4.ICMP_PROTOCOL:
                 self.__resolve_path(pkt_utils.ip_to_str(ip.srcip),
                                     pkt_utils.ip_to_str(ip.dstip),
@@ -584,11 +584,36 @@ class TopologyMgr(Component):
                       str(bind_data))
 
             try:
-                self.db_conn.open_transaction()
-                log.debug("Updating host info in DB...")
-                self.db_conn.host_update(dladdr, host_ipaddr)
-                self.db_conn.commit()
-                log.info("Host info updated successfully")
+                try:
+                    host_idx = None
+                    host_idx = self.db_conn.host_get_index(dladdr)
+                    log.debug("Host with mac_addr '%s' has index '%s'" % \
+                               (str(dladdr), str(host_idx)))
+                except Exception, e:
+                    log.debug("Any host with mac='%s' in DB" % str(dladdr))
+
+                if self.hosts.has_key(dladdr):
+                    log.debug("Got host_bind_ev for an host not present " + \
+                              "in DB yet")
+
+                    # Insert Host info into DB
+                    self.__host_insert_db(dladdr,
+                                          self.hosts[dladdr].rem_dpid,
+                                          self.hosts[dladdr].rem_port,
+                                          host_ipaddr)
+                    log.info("Added host '%s' into DB" % str(dladdr))
+                    self.hosts.pop(dladdr)
+                    # XXX FIXME Remove auth_hosts (maintain only self.hosts)
+                    self.auth_hosts.pop(self.auth_hosts.index(dladdr))
+
+                else:
+                    log.debug("Got host_bind_ev for an host already " + \
+                              "present in DB")
+                    self.db_conn.open_transaction()
+                    log.debug("Updating host info in DB...")
+                    self.db_conn.host_update(dladdr, host_ipaddr)
+                    self.db_conn.commit()
+                    log.info("Host info updated successfully")
             except nxw_utils.DBException:
                 self.db_conn.rollback()
             finally:
@@ -653,9 +678,17 @@ class TopologyMgr(Component):
                         log.debug("Ignoring received auth_ev for OF switch...")
                         return CONTINUE
 
+                    else:
+                        # Since Datapath_join event for an OF switch with
+                        # dladdr could be caught later, we need to store info
+                        self.hosts[dladdr]          = nwx_utils.Host(dl_addr)
+                        self.hosts[dladdr].rem_dpid = auth_data['datapath_id']
+                        self.hosts[dladdr].rem_port = auth_data['port']
+                        return CONTINUE
+
                 if dladdr in self.auth_hosts:
                     log.debug("Ignoring auth_event (more notifications for" + \
-                              " multiple inter-switch links")
+                              " multiple inter-switch links)")
                     return CONTINUE
                 self.auth_hosts.append(dladdr)
 

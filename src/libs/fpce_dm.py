@@ -226,6 +226,18 @@ class Link(object):
                  str(self.ports_bind.items()))
         return ret
 
+class Host(object):
+    def __init__(self, mac_addr, ip_addr = None):
+        self.mac_addr = mac_addr
+        self.ip_addr  = ip_addr
+        self.rem_dpid = None
+        self.rem_port = None
+
+    def __str__():
+        ret = "Host(mac_addr='%s', ip_addr='%s', r_dpid='%s', r_port='%s')" % \
+               (str(self.mac_addr), str(self.ip_addr),
+                str(self.rem_dpid), str(self.rem_port))
+        return ret
 
 class FPCE(object):
     """ Flow PCE object """
