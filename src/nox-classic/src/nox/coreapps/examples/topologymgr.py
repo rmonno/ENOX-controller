@@ -17,18 +17,19 @@
 # ----------------------------------------------------------------------
 """ Topology Manager NOX application """
 
-from nox.lib.core                       import send_openflow, \
-                                               install_datapath_flow, \
-                                               IN_PORT, NW_SRC, NW_DST
-from nox.lib.packet.ethernet            import ethernet
-from nox.lib.packet.ipv4                import ipv4
-from nox.lib.util                       import extract_flow
-from nox.netapps.discovery.pylinkevent  import Link_event
-from nox.netapps.authenticator.pyauth   import Host_auth_event, Host_bind_event
-from nox.coreapps.pyrt.pycomponent      import Component, CONTINUE
-
-from nox.coreapps.pyrt.pycomponent      import *
-from nox.lib.netinet.netinet            import *
+from nox.lib.core                                     import Component, \
+                                                             IN_PORT, \
+                                                             NW_SRC, \
+                                                             NW_DST
+from nox.lib.packet.ethernet                          import ethernet
+from nox.lib.packet.ipv4                              import ipv4
+from nox.lib.util                                     import extract_flow
+from nox.netapps.discovery.pylinkevent                import Link_event
+from nox.netapps.authenticator.pyauth                 import Host_auth_event, \
+                                                             Host_bind_event
+from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
+from nox.coreapps.pyrt.pycomponent                    import CONTINUE
+from nox.lib.netinet.netinet                          import *
 
 import nox.lib.openflow                 as     openflow
 import nox.lib.packet.packet_utils      as     pkt_utils
@@ -162,8 +163,9 @@ class TopologyMgr(Component):
 
         return self.ior_rout
 
-    def packet_in_handler(self, dpid, inport, reason, length , bufid, packet):
+    def packet_in_handler(self, dpid, inport, reason, length, bufid, packet):
         """ Handler for packet_in event """
+        assert length is not None
         assert packet is not None
         # checks packet consistency
         if not packet.parsed:
@@ -231,24 +233,24 @@ class TopologyMgr(Component):
             prt = self.switches[dpid][dstaddr]
             if prt[0] == inport:
                 LOG.err("**WARNING** Learned port = inport")
-                send_openflow(dpid, bufid, buf,
-                              openflow.OFPP_FLOOD,
-                              inport)
+                self.send_openflow(dpid, bufid, buf,
+                                   openflow.OFPP_FLOOD,
+                                   inport)
             else:
                 # We know the outport, set up a flow
                 LOG.debug("Installing flow for %s" % str(packet))
                 flow = extract_flow(packet)
                 actions = [[openflow.OFPAT_OUTPUT, [0, prt[0]]]]
-                install_datapath_flow(dpid, flow, 5,
-                                      openflow.OFP_FLOW_PERMANENT,
-                                      actions, bufid,
-                                      openflow.OFP_DEFAULT_PRIORITY,
-                                      inport, buf)
+                self.install_datapath_flow(dpid, flow, 5,
+                                           openflow.OFP_FLOW_PERMANENT,
+                                           actions, bufid,
+                                           openflow.OFP_DEFAULT_PRIORITY,
+                                           inport, buf)
                 LOG.info("New installed flow entry for dpid '%s': %s" % \
                           (str(dpid), str(flow)))
         else:
             # haven't learned destination MAC. Flood
-            send_openflow(dpid, bufid, buf, openflow.OFPP_FLOOD, inport)
+            self.send_openflow(dpid, bufid, buf, openflow.OFPP_FLOOD, inport)
             LOG.debug("Flooding received packet...")
 
     def datapath_join_handler(self, dpid, stats):
@@ -840,10 +842,10 @@ class TopologyMgr(Component):
         self.mysql_enable()
         self.pce_topology_enable()
         self.pce_routing_enable()
-        #self.bindings = self.resolve(pybindings_storage)
+        self.bindings = self.resolve(pybindings_storage)
         LOG.debug("%s started..." % str(self.__class__.__name__))
 
-    def get_interface(self):
+    def getInterface(self):
         """ Get interface """
         return str(TopologyMgr)
 
@@ -934,15 +936,15 @@ class TopologyMgr(Component):
             buffer_id    = None
             pkt          = None
 
-            install_datapath_flow(dpid_in,
-                                  attrs,
-                                  idle_timeout,
-                                  openflow.OFP_FLOW_PERMANENT,
-                                  actions,
-                                  buffer_id,
-                                  openflow.OFP_DEFAULT_PRIORITY,
-                                  port_in,
-                                  pkt)
+            self.install_datapath_flow(dpid_in,
+                                       attrs,
+                                       idle_timeout,
+                                       openflow.OFP_FLOW_PERMANENT,
+                                       actions,
+                                       buffer_id,
+                                       openflow.OFP_DEFAULT_PRIORITY,
+                                       port_in,
+                                       pkt)
             LOG.info("Sent FLOW_MOD to dpid %s: Flowentry=%s, actions=%s" % \
                       (str(dpid), str(attrs), str(actions)))
 
@@ -1019,13 +1021,10 @@ class TopologyMgr(Component):
         return (nodes, links, hosts)
 
 
-def get_factory():
+def getFactory():
     """ Get factory """
     class Factory:
         """ Class Factory """
-        def __init__(self):
-            pass
-
         def instance(self, ctxt):
             """ Return Topology Manager object """
             return TopologyMgr(ctxt)
