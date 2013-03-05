@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS `datapaths` (
   `ofp_capabilities` int(11) unsigned DEFAULT NULL,
   `ofp_actions` int(11) unsigned DEFAULT NULL,
   `buffers` int(11) unsigned DEFAULT NULL COMMENT 'Max packets buffered at once',
-  `tables` int(11) unsigned DEFAULT NULL COMMENT 'Number of tables supported by datapath',
+  `tables` tinyint(3) unsigned DEFAULT NULL COMMENT 'Number of tables supported by datapath',
+  `cports` tinyint(3) unsigned DEFAULT NULL COMMENT 'Number of circuit ports',
   `dID` tinyint(3) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique datapath ID',
   PRIMARY KEY (`id`),
   UNIQUE KEY `dID` (`dID`)
@@ -63,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `hosts` (
 
 CREATE TABLE IF NOT EXISTS `ports` (
   `datapath_id` bigint(20) unsigned NOT NULL COMMENT 'datapath identifier',
-  `port_no` mediumint(8) unsigned NOT NULL COMMENT 'port number',
+  `port_no` smallint(8) unsigned NOT NULL COMMENT 'port number',
   `hw_addr` varchar(18) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'mac address (typically)',
   `name` varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'port human name',
   `config` int(11) unsigned DEFAULT NULL COMMENT 'spanning tree and administrative settings',
@@ -72,6 +73,10 @@ CREATE TABLE IF NOT EXISTS `ports` (
   `advertised` int(11) unsigned DEFAULT NULL COMMENT 'Features being advertised by the port',
   `supported` int(11) unsigned DEFAULT NULL COMMENT 'Features supported by the port',
   `peer` int(11) unsigned DEFAULT NULL COMMENT 'Features advertised by peer',
+  `sw_tdm_gran` int(11) unsigned DEFAULT NULL COMMENT 'TDM switching granularity flags',
+  `sw_type` smallint(8) unsigned DEFAULT NULL COMMENT 'bitmap of switching type flags',
+  `peer_port_no` smallint(8) unsigned DEFAULT NULL COMMENT 'discovered peer switching port number',
+  `peer_dpath_id` bigint(20) unsigned DEFAULT NULL COMMENT 'discovered peer switching datapath identifier',
   `nodeID` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique node identifier',
   PRIMARY KEY (`datapath_id`,`port_no`),
   UNIQUE KEY `nodeID` (`nodeID`)
@@ -83,11 +88,23 @@ CREATE TABLE IF NOT EXISTS `ports` (
 
 CREATE TABLE IF NOT EXISTS `links` (
   `src_dpid` bigint(20) unsigned NOT NULL COMMENT 'source datapath identifier',
-  `src_pno` mediumint(8) unsigned NOT NULL COMMENT 'source port number',
+  `src_pno` smallint(8) unsigned NOT NULL COMMENT 'source port number',
   `dst_dpid` bigint(20) unsigned NOT NULL COMMENT 'destination datapath identifier',
-  `dst_pno` mediumint(8) unsigned NOT NULL COMMENT 'destination port number',
+  `dst_pno` smallint(8) unsigned NOT NULL COMMENT 'destination port number',
   PRIMARY KEY (`src_dpid`,`src_pno`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='links info' ;
+
+--
+-- Table structure for table `cports_bandwidth`
+--
+
+CREATE TABLE IF NOT EXISTS `cports_bandwidth` (
+  `dpid` bigint(20) unsigned NOT NULL COMMENT 'datapath identifier',
+  `port_no` smallint(8) unsigned NOT NULL COMMENT 'circuit switch port number',
+  `num_bandwidth` smallint(8) unsigned NOT NULL COMMENT 'identifies number of bandwidth array elements',
+  `bandwidth` bigint(20) unsigned DEFAULT NULL COMMENT 'bandwidth value',
+  PRIMARY KEY (`dpid`,`port_no`,`num_bandwidth`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='circuit ports bandwidth info' ;
 
 -- --------------------------------------------------------
 
@@ -115,3 +132,9 @@ ALTER TABLE `links`
 
 ALTER TABLE `links`
   ADD CONSTRAINT `links_ibfk_2` FOREIGN KEY (`dst_dpid`,`dst_pno`) REFERENCES `ports` (`datapath_id`,`port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `cports_bandwidth`
+--
+ALTER TABLE `cports_bandwidth`
+  ADD CONSTRAINT `cports_bandwidth_ibfk_1` FOREIGN KEY (`dpid`,`port_no`) REFERENCES `ports` (`datapath_id`,`port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
