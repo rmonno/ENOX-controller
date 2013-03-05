@@ -16,10 +16,21 @@ class NoxDBConnector(nxw_utils.TopologyOFCManager):
                                               pswd, db, logger)
         self.__log = logger
 
-    def retry_switch(self):
+    def retry_switches(self):
         try:
             self.open_transaction()
             return [1, 2, 3, 4, 5]
+
+        except DBException as exe:
+            self.__log(str(exe))
+
+        finally:
+            self.close()
+
+    def retry_hosts(self):
+        try:
+            self.open_transaction()
+            return [1, 3, 5]
 
         except DBException as exe:
             self.__log(str(exe))
