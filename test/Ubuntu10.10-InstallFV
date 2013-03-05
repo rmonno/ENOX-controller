@@ -1,0 +1,15 @@
+REF: https://github.com/OPENNETWORKINGLAB/flowvisor/wiki/Installation-from-Source
+
+
+sudo apt-get install build-essential ant
+sudo aptitude install openjdk-6-jdk
+
+git clone git://github.com/OPENNETWORKINGLAB/flowvisor.git
+(Please use branch 0.8-MAINT)
+
+Create user 'flowvisor' and related group 'flowvisor' and then launch the
+following command:
+sudo make fvuser=flowvisor fvgroup=flowvisor install
+
+
+
