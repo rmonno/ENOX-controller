@@ -106,19 +106,24 @@ class TopologyOFCBase(object):
     @abstractmethod
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
-                    supported=None, peer=None):
+                    supported=None, peer=None, sw_tdm_gran=None,
+                    sw_type=None, peer_port_no=None, peer_dpath_id=None):
         """Insert a new entry at ports table
 
-        :param d_id      : datapath identifier (primary key)
-        :param port_no   : port number (primary key)
-        :param hw_addr   : mac address (typically)
-        :param name      : port human name
-        :param config    : spanning tree and administrative settings
-        :param state     : spanning tree state
-        :param curr      : current features
-        :param advertised: features being advertised by the port
-        :param supported : features supported by the port
-        :param peer      : features advertised by peer
+        :param d_id         : datapath identifier (primary key)
+        :param port_no      : port number (primary key)
+        :param hw_addr      : mac address (typically)
+        :param name         : port human name
+        :param config       : spanning tree and administrative settings
+        :param state        : spanning tree state
+        :param curr         : current features
+        :param advertised   : features being advertised by the port
+        :param supported    : features supported by the port
+        :param peer         : features advertised by peer
+        :param sw_tdm_gran  : TDM switching granularity flags
+        :param sw_type      : bitmap of switching type flags
+        :param peer_port_no : discovered peer switching port number
+        :param peer_dpath_id: discovered peer switching datapath identifier
 
         :raises: DBException
         """

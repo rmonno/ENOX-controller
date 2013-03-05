@@ -195,7 +195,8 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
-                    supported=None, peer=None):
+                    supported=None, peer=None, sw_tdm_gran=None,
+                    sw_type=None, peer_port_no=None, peer_dpath_id=None):
         """ port insert """
         table = "ports"
 
@@ -242,6 +243,26 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             stat_header += ", peer"
             stat_body += ", %s"
             values = values + (str(peer),)
+
+        if sw_tdm_gran is not None:
+            stat_header += ", sw_tdm_gran"
+            stat_body += ", %s"
+            values = values + (str(sw_tdm_gran),)
+
+        if sw_type is not None:
+            stat_header += ", sw_type"
+            stat_body += ", %s"
+            values = values + (str(sw_type),)
+
+        if peer_port_no is not None:
+            stat_header += ", peer_port_no"
+            stat_body += ", %s"
+            values = values + (str(peer_port_no),)
+
+        if peer_dpath_id is not None:
+            stat_header += ", peer_dpath_id"
+            stat_body += ", %s"
+            values = values + (str(peer_dpath_id),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
