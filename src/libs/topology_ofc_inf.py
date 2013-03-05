@@ -67,7 +67,8 @@ class TopologyOFCBase(object):
 
     @abstractmethod
     def datapath_insert(self, d_id, d_name=None, caps=None,
-                        actions=None, buffers=None, tables=None):
+                        actions=None, buffers=None, tables=None,
+                        cports=None):
         """Insert a new entry at datapaths table
 
         :param d_id   : datapath identifier (primary key)
@@ -76,6 +77,7 @@ class TopologyOFCBase(object):
         :param actions: bitmap of actions supported by the switch
         :param buffers: max packets buffered at once
         :param tables : number of tables supported by datapath
+        :param cports : number of circuit ports
 
         :raises: DBException
         """
@@ -104,19 +106,24 @@ class TopologyOFCBase(object):
     @abstractmethod
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
-                    supported=None, peer=None):
+                    supported=None, peer=None, sw_tdm_gran=None,
+                    sw_type=None, peer_port_no=None, peer_dpath_id=None):
         """Insert a new entry at ports table
 
-        :param d_id      : datapath identifier (primary key)
-        :param port_no   : port number (primary key)
-        :param hw_addr   : mac address (typically)
-        :param name      : port human name
-        :param config    : spanning tree and administrative settings
-        :param state     : spanning tree state
-        :param curr      : current features
-        :param advertised: features being advertised by the port
-        :param supported : features supported by the port
-        :param peer      : features advertised by peer
+        :param d_id         : datapath identifier (primary key)
+        :param port_no      : port number (primary key)
+        :param hw_addr      : mac address (typically)
+        :param name         : port human name
+        :param config       : spanning tree and administrative settings
+        :param state        : spanning tree state
+        :param curr         : current features
+        :param advertised   : features being advertised by the port
+        :param supported    : features supported by the port
+        :param peer         : features advertised by peer
+        :param sw_tdm_gran  : TDM switching granularity flags
+        :param sw_type      : bitmap of switching type flags
+        :param peer_port_no : discovered peer switching port number
+        :param peer_dpath_id: discovered peer switching datapath identifier
 
         :raises: DBException
         """
@@ -252,6 +259,33 @@ class TopologyOFCBase(object):
 
         :param d_id: datapath identifier (primary key)
 
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def cport_bandwidth_insert(self, dpid, port_no, num_bandwidth,
+                               bandwidth=None):
+        """Insert a new entry at cports_bandwidth table
+
+        :param dpid: datapath identifier (primary key)
+        :param port_no: circuit switch port number (primary key)
+        :param num_bandwidth: identifies number of bandwidth
+                              array elements (primary key)
+        :param bandwidth: bandwidth value
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def cport_bandwidth_delete(self, dpid, port_no, num_bandwidth):
+        """Delete an entry at cports_bandwidth table
+
+        :param dpid: datapath identifier (primary key)
+        :param port_no: circuit switch port number (primary key)
+        :param num_bandwidth: identifies number of bandwidth
+                              array elements (primary key)
         :raises: DBException
         """
         pass

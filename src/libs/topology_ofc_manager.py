@@ -135,7 +135,8 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             return False
 
     def datapath_insert(self, d_id, d_name=None, caps=None,
-                        actions=None, buffers=None, tables=None):
+                        actions=None, buffers=None, tables=None,
+                        cports=None):
         """ datapath insert """
         table = "datapaths"
 
@@ -168,6 +169,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             stat_body += ", %s"
             values = values + (str(tables),)
 
+        if cports is not None:
+            stat_header += ", cports"
+            stat_body += ", %s"
+            values = values + (str(cports),)
+
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
@@ -189,7 +195,8 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
-                    supported=None, peer=None):
+                    supported=None, peer=None, sw_tdm_gran=None,
+                    sw_type=None, peer_port_no=None, peer_dpath_id=None):
         """ port insert """
         table = "ports"
 
@@ -236,6 +243,26 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             stat_header += ", peer"
             stat_body += ", %s"
             values = values + (str(peer),)
+
+        if sw_tdm_gran is not None:
+            stat_header += ", sw_tdm_gran"
+            stat_body += ", %s"
+            values = values + (str(sw_tdm_gran),)
+
+        if sw_type is not None:
+            stat_header += ", sw_type"
+            stat_body += ", %s"
+            values = values + (str(sw_type),)
+
+        if peer_port_no is not None:
+            stat_header += ", peer_port_no"
+            stat_body += ", %s"
+            values = values + (str(peer_port_no),)
+
+        if peer_dpath_id is not None:
+            stat_header += ", peer_dpath_id"
+            stat_body += ", %s"
+            values = values + (str(peer_dpath_id),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
@@ -437,3 +464,29 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         rets = self.__execute_dict(statement, values, one=False)
 
         return [(x["in_port"], x["ip_addr"]) for x in rets]
+
+    def cport_bandwidth_insert(self, dpid, port_no, num_bandwidth,
+                               bandwidth=None):
+        """ cports_bandwidth insert """
+        table = "cports_bandwidth"
+
+        stat_header = "INSERT INTO " + table + "(dpid, port_no, num_bandwidth"
+        stat_body = "VALUES (%s, %s, %s"
+        values = (str(d_id), str(port_no), str(num_bandwidth))
+
+        if bandwidth is not None:
+            stat_header += ", bandwidth"
+            stat_body += ", %s"
+            values = values + (str(bandwidth),)
+
+        statement = stat_header + ") " + stat_body + ")"
+        self.__execute(statement, values)
+
+    def cport_bandwidth_delete(self, dpid, port_no, num_bandwidth):
+        """ cports_bandwidth delete """
+        table = "cports_bandwidth"
+
+        statement = "DELETE FROM " + table +\
+                    " WHERE dpid=%s AND port_no=%s AND num_bandwidth=%s"
+        values = (d_id, port_no, num_bandwidth)
+        self.__execute(statement, values)
