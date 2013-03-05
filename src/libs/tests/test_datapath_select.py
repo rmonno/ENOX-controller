@@ -15,6 +15,15 @@ from topology_ofc_manager import *
 from topology_ofc_inf import *
 
 
+def dump_dp_raws(raws):
+    for r in raws:
+        msg = "id=%s, name=%s, ofp_capabilities=%s, ofp_actions=%s,"
+        msg += "buffers=%s, tables=%s, cports=%s, dID=%s"
+        LOG.debug(msg % (r["id"], r["name"], r["ofp_capabilities"],
+                         r["ofp_actions"], r["buffers"], r["tables"],
+                         r["cports"], r["dID"]))
+
+
 def main (argv=None):
     LOG.level_set("DEBUG")
     conn = TopologyOFCManager("127.0.0.1", "root", "root",
@@ -23,23 +32,14 @@ def main (argv=None):
         # connect and open transaction
         conn.open_transaction()
 
-        # make an action
-        # datapath_delete: d_id
-        conn.datapath_delete(1)
-        conn.datapath_delete(2)
-        conn.datapath_delete(3)
-        conn.datapath_delete(4)
-        conn.datapath_delete(5)
-        conn.datapath_delete(6)
-        conn.datapath_delete(7)
+        raws = conn.datapath_select()
+        dump_dp_raws(raws)
 
-        # commit transaction
-        conn.commit()
+        raws = conn.datapath_select(1)
+        dump_dp_raws(raws)
 
     except DBException as e:
         LOG.error(str(e))
-        # rollback transaction
-        conn.rollback()
 
     conn.close()
 
