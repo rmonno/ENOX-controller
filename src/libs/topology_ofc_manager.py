@@ -135,7 +135,8 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             return False
 
     def datapath_insert(self, d_id, d_name=None, caps=None,
-                        actions=None, buffers=None, tables=None):
+                        actions=None, buffers=None, tables=None,
+                        cports=None):
         """ datapath insert """
         table = "datapaths"
 
@@ -167,6 +168,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             stat_header += ", tables"
             stat_body += ", %s"
             values = values + (str(tables),)
+
+        if cports is not None:
+            stat_header += ", cports"
+            stat_body += ", %s"
+            values = values + (str(cports),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)

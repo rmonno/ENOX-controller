@@ -67,7 +67,8 @@ class TopologyOFCBase(object):
 
     @abstractmethod
     def datapath_insert(self, d_id, d_name=None, caps=None,
-                        actions=None, buffers=None, tables=None):
+                        actions=None, buffers=None, tables=None,
+                        cports=None):
         """Insert a new entry at datapaths table
 
         :param d_id   : datapath identifier (primary key)
@@ -76,6 +77,7 @@ class TopologyOFCBase(object):
         :param actions: bitmap of actions supported by the switch
         :param buffers: max packets buffered at once
         :param tables : number of tables supported by datapath
+        :param cports : number of circuit ports
 
         :raises: DBException
         """
