@@ -193,6 +193,18 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return ret["dID"]
 
+    def datapath_select(self, d_id=None):
+        """ select * from datapath """
+        table = "datapaths"
+
+        statement = "SELECT * FROM " + table
+        values = ()
+        if d_id is not None:
+            statement += " WHERE id=%s"
+            values = (str(d_id),)
+
+        return self.__execute_dict(statement, values, one=False)
+
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
                     supported=None, peer=None, sw_tdm_gran=None,
@@ -275,6 +287,26 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
                     " WHERE datapath_id=%s AND port_no=%s"
         values = (d_id, port_no)
         self.__execute(statement, values)
+
+    def port_select(self, d_id=None, port_no=None):
+        """ port select """
+        table = "ports"
+
+        statement = "SELECT * FROM " + table
+        values = ()
+        if d_id is not None and port_no is not None:
+            statement += " WHERE datapath_id=%s AND port_no=%s"
+            values = values + (str(d_id), str(port_no),)
+
+        elif d_id is not None:
+            statement += " WHERE datapath_id=%s"
+            values = values + (str(d_id),)
+
+        elif port_no is not None:
+            statement += " WHERE port_no=%s"
+            values = values + (str(port_no),)
+
+        return self.__execute_dict(statement, values, one=False)
 
     def port_get_index(self, d_id, port_no):
         """ get port index """

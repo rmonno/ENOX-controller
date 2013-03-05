@@ -104,6 +104,16 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def datapath_select(self, d_id=None):
+        """Select * from datapaths table
+
+        :param d_id: datapath identifier (optional)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
                     supported=None, peer=None, sw_tdm_gran=None,
@@ -135,6 +145,17 @@ class TopologyOFCBase(object):
 
         :param d_id   : datapath identifier (primary key)
         :param port_no: port number (primary key)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def port_select(self, d_id=None, port_no=None):
+        """Select * from ports table
+
+        :param d_id: datapath identifier (optional)
+        :param port_no: port number (optional)
 
         :raises: DBException
         """
