@@ -1,0 +1,56 @@
+1) Configure FlowVisor:
+    * sudo fvconfig generate config.json
+    * Edit /etc/flowvisor/config.json by changing the default listening port:
+        "listen_port": 7733
+    * sudo fvconfig load /etc/flowvisor/config.json (to load conf into DB)
+    * sudo make install (in order to apply the configuration changes)
+
+    * Useful command to dump current config: fvctl dumpConfig conf.json
+
+2) Start mininet with the following command:
+
+   sudo mn --topo linear --switch user --controller remote,port=7733
+
+or
+   sudo mn --custom <path>/mininet_2h-2s.py --topo=mytopo --switch user --controller=remote,port=7733
+
+WARNING: Mininet MUST be run without option --mac in order to avoid that OF
+switches use SAME MAC address used by hosts!!
+
+IMPORTANT NOTE: The Open vSwitch seems not support the LLDP protocol. In fact,
+if we launch the mininet with the options --switch ovsk the NOX controller will
+not receive any Packet-IN with the encapsulted LLDP packets. In that case the
+discovery application cannot discover any links.
+For our purpose, the option "--switch user" MUST BE USED (1)
+
+   This command will create the following simple topology:
+
+        s1===========s2
+        ||           ||
+        ||           ||
+        ||           ||
+        h3           h4
+    (10.0.0.3)    (10.0.0.4)
+
+3) Start NOX (from the folder nox-classic/build/src) with the following
+   command:
+
+    ./nox_core -v -i ptcp:6633 topologymgr
+
+4) Verify the correct behaviuor of the discovery application. In particular,
+   the port_status_change() function must be called whenever a port status
+   change is detected.
+
+(1) In order to use user reference switch, it is required to get
+    openflow source code:
+    1) git clone git://openflow.org/openflow.git
+    2) boot-configure-make-make install
+
+
+Some useful procedures and/or commands for testing:
+
+To force an "host_leave event":
+* In netapps/authenticator/authenticator_util.cc decrease the value for
+  DEFAULT_IDLE_TIMEOUT
+* In Mininet launch the following command:
+  link s1 h1 down
