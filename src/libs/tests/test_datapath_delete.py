@@ -2,8 +2,6 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright XXX Fixme XXX
-#
 # @author: Roberto Monno
 
 import sys, os
@@ -14,11 +12,13 @@ if basepath not in [ os.path.abspath(x) for x in sys.path ]:
 
 from log import *
 from topology_ofc_manager import *
+from topology_ofc_inf import *
 
 
 def main (argv=None):
-    log.level_set("DEBUG")
-    conn = TopologyOFCManager("127.0.0.1", "root", "root", "topology_ofc_db", log)
+    LOG.level_set("DEBUG")
+    conn = TopologyOFCManager("127.0.0.1", "root", "root",
+                              "topology_ofc_db", LOG)
     try:
         # connect and open transaction
         conn.open_transaction()
@@ -31,12 +31,13 @@ def main (argv=None):
         conn.datapath_delete(4)
         conn.datapath_delete(5)
         conn.datapath_delete(6)
+        conn.datapath_delete(7)
 
         # commit transaction
         conn.commit()
 
     except DBException as e:
-        log.error(str(e))
+        LOG.error(str(e))
         # rollback transaction
         conn.rollback()
 
