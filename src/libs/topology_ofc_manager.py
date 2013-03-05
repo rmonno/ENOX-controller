@@ -472,7 +472,7 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         stat_header = "INSERT INTO " + table + "(dpid, port_no, num_bandwidth"
         stat_body = "VALUES (%s, %s, %s"
-        values = (str(d_id), str(port_no), str(num_bandwidth))
+        values = (str(dpid), str(port_no), str(num_bandwidth))
 
         if bandwidth is not None:
             stat_header += ", bandwidth"
@@ -488,5 +488,5 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         statement = "DELETE FROM " + table +\
                     " WHERE dpid=%s AND port_no=%s AND num_bandwidth=%s"
-        values = (d_id, port_no, num_bandwidth)
+        values = (dpid, port_no, num_bandwidth)
         self.__execute(statement, values)

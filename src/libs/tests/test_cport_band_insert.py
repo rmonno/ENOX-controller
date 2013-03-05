@@ -24,14 +24,15 @@ def main (argv=None):
         conn.open_transaction()
 
         # make an action
-        # datapath_delete: d_id
-        conn.datapath_delete(1)
-        conn.datapath_delete(2)
-        conn.datapath_delete(3)
-        conn.datapath_delete(4)
-        conn.datapath_delete(5)
-        conn.datapath_delete(6)
-        conn.datapath_delete(7)
+        # cport_bandwidth_insert: dpid, port_no, num_bandwidth, bandwidth=None
+        conn.datapath_insert(1)
+        conn.port_insert(1,1)
+
+        conn.cport_bandwidth_insert(1,1,0,1000)
+        conn.cport_bandwidth_insert(1,1,1,1001)
+        conn.cport_bandwidth_insert(1,1,2,1002)
+        conn.cport_bandwidth_insert(1,1,3,1003)
+        conn.cport_bandwidth_insert(1,1,4,1004)
 
         # commit transaction
         conn.commit()
