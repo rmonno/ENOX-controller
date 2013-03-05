@@ -262,3 +262,30 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def cport_bandwidth_insert(self, dpid, port_no, num_bandwidth,
+                               bandwidth=None):
+        """Insert a new entry at cports_bandwidth table
+
+        :param dpid: datapath identifier (primary key)
+        :param port_no: circuit switch port number (primary key)
+        :param num_bandwidth: identifies number of bandwidth
+                              array elements (primary key)
+        :param bandwidth: bandwidth value
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def cport_bandwidth_delete(self, dpid, port_no, num_bandwidth):
+        """Delete an entry at cports_bandwidth table
+
+        :param dpid: datapath identifier (primary key)
+        :param port_no: circuit switch port number (primary key)
+        :param num_bandwidth: identifies number of bandwidth
+                              array elements (primary key)
+        :raises: DBException
+        """
+        pass

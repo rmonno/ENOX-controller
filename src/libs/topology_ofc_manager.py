@@ -464,3 +464,29 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         rets = self.__execute_dict(statement, values, one=False)
 
         return [(x["in_port"], x["ip_addr"]) for x in rets]
+
+    def cport_bandwidth_insert(self, dpid, port_no, num_bandwidth,
+                               bandwidth=None):
+        """ cports_bandwidth insert """
+        table = "cports_bandwidth"
+
+        stat_header = "INSERT INTO " + table + "(dpid, port_no, num_bandwidth"
+        stat_body = "VALUES (%s, %s, %s"
+        values = (str(d_id), str(port_no), str(num_bandwidth))
+
+        if bandwidth is not None:
+            stat_header += ", bandwidth"
+            stat_body += ", %s"
+            values = values + (str(bandwidth),)
+
+        statement = stat_header + ") " + stat_body + ")"
+        self.__execute(statement, values)
+
+    def cport_bandwidth_delete(self, dpid, port_no, num_bandwidth):
+        """ cports_bandwidth delete """
+        table = "cports_bandwidth"
+
+        statement = "DELETE FROM " + table +\
+                    " WHERE dpid=%s AND port_no=%s AND num_bandwidth=%s"
+        values = (d_id, port_no, num_bandwidth)
+        self.__execute(statement, values)
