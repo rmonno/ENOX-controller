@@ -7,3 +7,4 @@ from fpce_dm import FPCE, Link, convert_ipv4_to_str, Host
 from pce_conn import PCEClient
 from config_parser import NoxConfigParser
 from color_log import ColorLog
+from conversion import nodeIDtoUpperLower
