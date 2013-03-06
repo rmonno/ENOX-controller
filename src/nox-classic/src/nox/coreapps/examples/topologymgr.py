@@ -556,7 +556,7 @@ class TopologyMgr(Component):
             port  = self.db_conn.host_get_inport(dladdr)
             didx  = self.db_conn.datapath_get_index(dpid)
             pidx  = self.db_conn.port_get_index(dpid, port)
-            node  = "0." + str(didx) + ".0." + str(pidx)
+            node  = nxw_utils.createNodeIPv4(didx, pidx)
             nodes.append(node)
 
             # update flow-pce topology (remove links)
@@ -819,9 +819,7 @@ class TopologyMgr(Component):
 
             didx = self.db_conn.datapath_get_index(dpid)
             pidx = self.db_conn.port_get_index(dpid, port)
-            node = "0." + str(didx) + ".0." + str(pidx)
-
-            return node
+            return nxw_utils.createNodeIPv4(didx, pidx)
 
         finally:
             self.db_conn.close()
@@ -979,15 +977,14 @@ class TopologyMgr(Component):
             d_idx  = self.db_conn.datapath_get_index(d_id=dpid)
             p_idxs = self.db_conn.port_get_indexes(d_id=dpid)
             for p_idx in p_idxs:
-                node = "0." + str(d_idx) + ".0." + str(p_idx)
-                nodes.append(node)
+                nodes.append(nxw_utils.createNodeIPv4(d_idx, p_idx))
 
             try: # optional
                 h_idxs = self.db_conn.host_get_indexes(d_id=dpid)
                 for in_port, ip_addr in h_idxs:
                     port = self.db_conn.port_get_index(d_id=dpid,
                                                        port_no=in_port)
-                    node = "0." + str(d_idx) + ".0." + str(port)
+                    node = nxw_utils.createNodeIPv4(d_idx, port)
 
                     links.append((ip_addr, node))
                     hosts.append(ip_addr)
@@ -1000,12 +997,12 @@ class TopologyMgr(Component):
                 for src_pno, dst_dpid, dst_pno in l_idxs:
                     src_port = self.db_conn.port_get_index(d_id=dpid,
                                                            port_no=src_pno)
-                    src_node = "0." + str(d_idx) + ".0." + str(src_port)
+                    src_node = nxw_utils.createNodeIPv4(d_idx, src_port)
 
                     dst_id = self.db_conn.datapath_get_index(d_id=dst_dpid)
                     dst_port = self.db_conn.port_get_index(d_id=dst_dpid,
                                                            port_no=dst_pno)
-                    dst_node = "0." + str(dst_id) + ".0." + str(dst_port)
+                    dst_node = nxw_utils.createNodeIPv4(dst_id, dst_port)
 
                     links.append((src_node, dst_node))
 

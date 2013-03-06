@@ -1,0 +1,61 @@
+{
+   "flowvisor": [
+      {
+         "api_webserver_port": 8080,
+         "api_jetty_webserver_port": -1,
+         "checkpointing": false,
+         "listen_port": 7733,
+         "track_flows": false,
+         "stats_desc_hack": false,
+         "run_topology_server": false,
+         "logging": "NOTE",
+         "log_ident": "flowvisor",
+         "log_facility": "LOG_LOCAL7",
+         "version": "flowvisor-0.8.17",
+         "host": "localhost",
+         "default_flood_perm": "fvadmin",
+         "config_name": "default"
+      }
+   ],
+   "Slice": [
+      {
+         "config_name": "default",
+         "flowmap_type": "federated",
+         "name": "fvadmin",
+         "creator": "fvadmin",
+         "passwd_crypt": "66bce8fd07852f40a2bc92440f36fe87",
+         "passwd_salt": "sillysalt",
+         "controller_hostname": "none",
+         "controller_port": 0,
+         "contact_email": "fvadmin@localhost",
+         "drop_policy": "exact",
+         "lldp_spam": true
+      },
+      {
+         "config_name": "default",
+         "flowmap_type": "federated",
+         "name": "nxwtest",
+         "creator": "fvadmin",
+         "passwd_crypt": "76ae4f6292a8f46aface7821aed3cdf0",
+         "passwd_salt": "-1434480951",
+         "controller_hostname": "192.168.56.101",
+         "controller_port": 6633,
+         "contact_email": "a.canessa@nextworks.it",
+         "drop_policy": "exact",
+         "lldp_spam": true
+      }
+   ],
+   "FlowSpaceRule": [
+      {
+         "dpid": "-8000000000000000",
+         "priority": 10,
+         "in_port": 0,
+         "wildcards": 4194303,
+         "slice_action": [
+            {
+               "nxwtest": 7
+            }
+         ]
+      }
+   ]
+}
