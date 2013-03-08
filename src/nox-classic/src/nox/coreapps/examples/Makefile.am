@@ -2,25 +2,28 @@ include ../../../Make.vars
 
 SUBDIRS = t
 
-EXTRA_DIST =\
+EXTRA_DIST =		\
 	meta.json		\
 	__init__.py		\
-	packetdump.py		\
+	packetdump.py	\
 	pyswitch.py		\
 	pyloop.py		\
 	monitor.py		\
-	countdown.py		\
+	countdown.py	\
 	dnsspy.py		\
+	webserv.py		\
 	topologymgr.py
 
-NOX_RUNTIMEFILES = meta.json	\
+NOX_RUNTIMEFILES =	\
+	meta.json		\
 	__init__.py		\
-	packetdump.py		\
+	packetdump.py	\
 	pyswitch.py		\
 	pyloop.py		\
 	monitor.py		\
-	countdown.py		\
+	countdown.py	\
 	dnsspy.py		\
+	webserv.py		\
 	topologymgr.py
 
 all-local: nox-all-local

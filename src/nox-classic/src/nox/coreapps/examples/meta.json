@@ -50,6 +50,14 @@
                 "discovery"
             ],
             "python": "nox.coreapps.examples.topologymgr"
+        },
+        {
+            "name": "webserv" ,
+            "dependencies": [
+                "python",
+                "topologymgr"
+            ],
+            "python": "nox.coreapps.examples.webserv"
         }
 
     ]
