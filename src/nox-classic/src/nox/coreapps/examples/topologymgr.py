@@ -56,6 +56,10 @@ import libs as nxw_utils
 
 LOG = nxw_utils.ColorLog(logging.getLogger('topologymgr'))
 
+# XXX FIXME: Insert proper params (in conf file) to change the following values
+DEFAULT_TABLE_POLL_TIME = 10
+DEFAULT_PORT_POLL_TIME  = 10
+DEFAULT_STATS_POLL_TIME = 10
 
 class TopologyMgr(Component):
     """ Topology Manager Class """
@@ -304,6 +308,9 @@ class TopologyMgr(Component):
 
         finally:
             self.db_conn.close()
+
+        self.post_callback(5, lambda : self.table_timer(dpid))
+        self.post_callback(5, lambda : self.port_timer(dpid))
 
         # check ior-dispatcher on pce node
         if not self.ior_topo and not self.pce_topology_enable():
@@ -821,6 +828,30 @@ class TopologyMgr(Component):
             LOG.error("Got errors in host_auth_ev handler ('%s')" % str(err))
             return CONTINUE
 
+    def table_timer(self, dpid):
+        assert(dpid is not None)
+        self.ctxt.send_table_stats_request(dpid)
+        self.post_callback(DEFAULT_TABLE_POLL_TIME,
+                           lambda : self.table_timer(dpid))
+
+    def port_timer(self, dpid):
+        assert(dpid is not None)
+        self.ctxt.send_port_stats_request(dpid, openflow.OFPP_NONE)
+        self.post_callback(DEFAULT_PORT_POLL_TIME,
+                           lambda : self.port_timer(dpid))
+
+    def table_stats_handler(self, dpid, tables):
+        """ Handler for table_stats_in event """
+        LOG.info("Received table_stats_in event...")
+
+    def port_stats_handler(self, dpid, ports):
+        """ Handler for ports_stats_in event """
+        LOG.info("Received port_stats_in event...")
+
+    def aggr_stats_handler(self, dpid, stats):
+        """ Handler for aggregate_stats_in event """
+        LOG.info("Received aggregate_stats_in event...")
+
     def node_get_frompidport(self, dpid, port):
         """ Get node from dpid and port """
         try:
@@ -845,7 +876,9 @@ class TopologyMgr(Component):
                               self.host_auth_handler)
         self.register_handler(Host_bind_event.static_get_name(),
                               self.host_bind_handler)
-
+        self.register_for_table_stats_in(self.table_stats_handler)
+        self.register_for_port_stats_in(self.port_stats_handler)
+        self.register_for_aggregate_stats_in(self.aggr_stats_handler)
 
         self.mysql_enable()
         self.pce_topology_enable()
