@@ -70,3 +70,28 @@ class WebServConfigParser:
 
         LOG.debug("WebServ host=%s, port=%s, timeout=%s, debug=%s",
                   self.host, self.port, self.timeout, self.debug)
+
+class DBConfigParser:
+    """Configuration File Parser Manager for DB controller
+    """
+
+    def __init__(self, filename):
+        self.name = None
+        self.host = None
+        self.user = None
+        self.pswd = None
+
+        if check_file(filename):
+            config = ConfigParser.ConfigParser()
+            config.read(filename)
+
+            sects = config.sections()
+            for sect in sects:
+                if sect == 'dbinfo':
+                    self.name = config.get(sect, 'name')
+                    self.host = config.get(sect, 'host')
+                    self.user = config.get(sect, 'user')
+                    self.pswd = config.get(sect, 'pswd')
+
+        LOG.debug("DB name=%s, host=%s, user=%s, pswd=%s",
+                  self.name, self.host, self.user, self.pswd)

@@ -44,9 +44,10 @@ import libs as nxw_utils
 
 WLOG = nxw_utils.ColorLog(logging.getLogger('web-log'))
 PROXY_POST = None
+PROXY_DB = None
+
 
 # API
-
 methods = ["hello", "help", "get_dpids", "get_links", "get_hosts", \
            "get_dpid_info/dpid", "get_dpid_stats/dpid",
            "get_dpid_flowentries/dpid", "get_dpid_links/dpid"]
@@ -57,13 +58,47 @@ def hello():
     PROXY_POST(evt_.describe())
     return "Hello World!"
 
+
 @bottle.route('/help')
 def get_methods():
     return "Supported methods: %s" % str(methods)
 
-@bottle.route('/get_dpids')
-def get_dpids():
-    pass
+
+@bottle.get('/dpids')
+def dpids():
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.datapath_select()
+        ids_ = [str(r['id']) for r in rows_]
+
+        return {'ids': ids_}
+
+    except nxw_utils.DBException as err:
+        WLOG.error("dpids: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
+@bottle.get('/dpids/<dpid:int>')
+def dpids_dpid(dpid):
+    try:
+        PROXY_DB.open_transaction()
+        row_ = PROXY_DB.datapath_select(d_id=dpid)
+
+        if len(row_) > 1:
+            bottle.abort(500, 'Duplicated key!')
+
+        return row_[0]
+
+    except nxw_utils.DBException as err:
+        WLOG.error("dpids_dpid: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
 
 @bottle.route('/get_links')
 def get_links():
@@ -111,16 +146,23 @@ class WebServMgr(Component):
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
         self._conf = nxw_utils.WebServConfigParser(WebServMgr.CONFIG_FILE)
+        self._conf_db = nxw_utils.DBConfigParser(WebServMgr.CONFIG_FILE)
         self._server = None
 
     def install(self):
         """ Install """
         global PROXY_POST
+        global PROXY_DB
         self._server = Service('web-server', self._conf.host,
                                self._conf.port, self._conf.debug)
         self.post_callback(int(self._conf.timeout), self.timer_handler)
 
         PROXY_POST = self.post
+        PROXY_DB = nxw_utils.TopologyOFCManager(host=self._conf_db.host,
+                                                user=self._conf_db.user,
+                                                pswd=self._conf_db.pswd,
+                                                database=self._conf_db.name,
+                                                logger=WLOG)
 
     def getInterface(self):
         """ Get interface """
