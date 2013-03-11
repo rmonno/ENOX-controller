@@ -43,6 +43,7 @@ for (root, dirs, names) in os.walk(IDL_FIND_PATH):
 import libs as nxw_utils
 
 WLOG = nxw_utils.ColorLog(logging.getLogger('web-log'))
+PROXY_POST = None
 
 # API
 
@@ -52,6 +53,8 @@ methods = ["hello", "help", "get_dpids", "get_links", "get_hosts", \
 
 @bottle.route('/hello')
 def hello():
+    evt_ = nxw_utils.Pck_setFlowEntryEvent('192.168.1.1', '192.168.1.2')
+    PROXY_POST(evt_.describe())
     return "Hello World!"
 
 @bottle.route('/help')
@@ -86,6 +89,7 @@ def get_dpid_flowentries(dpid):
 def get_dpid_links(dpid):
     return "dpid '%s' links = xxx" % str(dpid)
 
+
 class Service(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)
@@ -111,9 +115,12 @@ class WebServMgr(Component):
 
     def install(self):
         """ Install """
+        global PROXY_POST
         self._server = Service('web-server', self._conf.host,
                                self._conf.port, self._conf.debug)
         self.post_callback(int(self._conf.timeout), self.timer_handler)
+
+        PROXY_POST = self.post
 
     def getInterface(self):
         """ Get interface """

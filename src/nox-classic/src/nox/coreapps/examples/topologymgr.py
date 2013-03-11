@@ -92,6 +92,16 @@ class TopologyMgr(Component):
                                               int(conf.size))
         self.pce_client.create()
 
+    def configure(self, configuration):
+        self.register_python_event(nxw_utils.Pck_setFlowEntryEvent.NAME)
+
+        self.register_handler(nxw_utils.Pck_setFlowEntryEvent.NAME,
+                              self.pck_setFlowEntry)
+
+    def pck_setFlowEntry(self, event):
+        LOG.info("SRC=%s, DST=%s", event.pyevent.ip_src, event.pyevent.ip_dst)
+        return CONTINUE
+
     def ior_del(self):
         """ Delete stored IOR """
         if self.ior is None:
