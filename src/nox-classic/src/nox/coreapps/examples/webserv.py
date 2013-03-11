@@ -44,12 +44,42 @@ import libs as nxw_utils
 
 WLOG = nxw_utils.ColorLog(logging.getLogger('web-log'))
 
-
+# API
 @bottle.route('/hello')
 def hello():
     return "Hello World!"
 
+@bottle.route('/get_methods')
+def get_methods():
+    pass
 
+@bottle.route('/get_dpids')
+def get_dpids():
+    pass
+
+@bottle.route('/get_links')
+def get_links():
+    pass
+
+@bottle.route('/get_hosts')
+def get_hosts():
+    pass
+
+@bottle.route('/get_dpid_info/:dpid')
+def get_dpid_info(dpid):
+    return "DPID '%s' INFO = xxx" % str(dpid)
+
+@bottle.route('/get_dpid_stats/:dpid')
+def get_dpid_stats(dpid):
+    return "DPID '%s' STATS = xxx" % str(dpid)
+
+@bottle.route('/get_dpid_flowentries/:dpid')
+def get_dpid_flowentries(dpid):
+    return "dpid '%s' flowentries = xxx" % str(dpid)
+
+@bottle.route('/get_dpid_links/:dpid')
+def get_dpid_links(dpid):
+    return "dpid '%s' links = xxx" % str(dpid)
 
 class Service(threading.Thread):
     def __init__(self, name, host, port, debug):
