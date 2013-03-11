@@ -45,13 +45,18 @@ import libs as nxw_utils
 WLOG = nxw_utils.ColorLog(logging.getLogger('web-log'))
 
 # API
+
+methods = ["hello", "help", "get_dpids", "get_links", "get_hosts", \
+           "get_dpid_info/dpid", "get_dpid_stats/dpid",
+           "get_dpid_flowentries/dpid", "get_dpid_links/dpid"]
+
 @bottle.route('/hello')
 def hello():
     return "Hello World!"
 
-@bottle.route('/get_methods')
+@bottle.route('/help')
 def get_methods():
-    pass
+    return "Supported methods: %s" % str(methods)
 
 @bottle.route('/get_dpids')
 def get_dpids():
