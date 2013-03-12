@@ -26,10 +26,31 @@ def main (argv=None):
 
         # make an action
         # port_delete: flow_id,
-        conn.flow_delete(1)
-        conn.flow_delete(2)
-        conn.flow_delete(3)
-        conn.flow_delete(4)
+        index = conn.flow_get_index(1,1)
+        LOG.debug("INDEX=%s", index)
+        conn.flow_delete(index)
+
+        index = conn.flow_get_index(1,1, nw_src="192.168.1.1")
+        LOG.debug("INDEX=%s", index)
+        conn.flow_delete(index)
+
+        index = conn.flow_get_index(1,1, nw_src="192.168.1.1",
+                                    dl_src="00:00:00:00:00:01")
+        LOG.debug("INDEX=%s", index)
+        conn.flow_delete(index)
+
+        index = conn.flow_get_index(1,1, nw_src="192.168.1.1",
+                                    dl_src="00:00:00:00:00:01",
+                                    dl_dst="00:00:00:00:00:02")
+        LOG.debug("INDEX=%s", index)
+        conn.flow_delete(index)
+
+        index = conn.flow_get_index(1,1, nw_src="192.168.1.1",
+                                    dl_src="00:00:00:00:00:01",
+                                    dl_dst="00:00:00:00:00:02",
+                                    in_port=10)
+        LOG.debug("INDEX=%s", index)
+        conn.flow_delete(index)
 
         conn.datapath_delete(1)
 

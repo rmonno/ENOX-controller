@@ -31,12 +31,18 @@ def main (argv=None):
         LOG.debug("INDEX=%s", index)
 
         index = conn.flow_get_index(1,1, nw_src="192.168.1.1")
+        LOG.debug("INDEX=%s", index)
         index = conn.flow_get_index(1,1, nw_src="192.168.1.1",
                                     dl_src="00:00:00:00:00:01")
+        LOG.debug("INDEX=%s", index)
         index = conn.flow_get_index(1,1, nw_src="192.168.1.1",
                                     dl_src="00:00:00:00:00:01",
                                     dl_dst="00:00:00:00:00:02")
         LOG.debug("INDEX=%s", index)
+        index = conn.flow_get_index(1,1, nw_src="192.168.1.1",
+                                    dl_src="00:00:00:00:00:01",
+                                    dl_dst="00:00:00:00:00:02",
+                                    in_port=10)
 
     except DBException as e:
         LOG.error(str(e))

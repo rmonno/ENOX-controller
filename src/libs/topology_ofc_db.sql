@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS `flow_entries` (
   `flow_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `dpid` bigint(20) unsigned NOT NULL,
   `table_id` int(8) unsigned NOT NULL,
+  `in_port` int(16) unsigned NOT NULL,
   `idle_timeout` int(16) unsigned NOT NULL,
   `hard_timeout` int(16) unsigned NOT NULL,
   `priority` int(16) unsigned NOT NULL,

@@ -528,7 +528,7 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
                     dl_type=None, dl_vlan=None, dl_vlan_pcp=None, dl_src=None,
                     dl_dst=None, nw_src=None, nw_dst=None, nw_src_n_wild=None,
                     nw_dst_n_wild=None, nw_proto=None, tp_src=None,
-                    tp_dst=None):
+                    tp_dst=None, in_port=None):
         """ Flow entry insert """
         table = "flow_entries"
 
@@ -626,6 +626,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             stat_body += ", %s"
             values = values + (str(tp_dst),)
 
+        if in_port is not None:
+            stat_header += ", in_port"
+            stat_body += ", %s"
+            values = values + (str(in_port),)
+
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
@@ -639,7 +644,7 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
     def flow_get_index(self, dpid, table_id, dl_src=None, dl_dst=None,
                        nw_src=None, nw_dst=None, tp_src=None, tp_dst=None,
                        dl_vlan=None, dl_vlan_pcp=None, dl_type=None,
-                       nw_proto=None):
+                       nw_proto=None, in_port=None):
         """ Get flow_entries index """
         table = "flow_entries"
 
@@ -691,9 +696,10 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             stat_body += " AND tp_dst=%s"
             values = values + (str(tp_dst),)
 
+        if in_port is not None:
+            stat_body += " AND in_port=%s"
+            values = values + (str(in_port),)
 
-        #ret = self.__execute_dict(statement, values, one=True)
-        #statement = stat_header + ") " + stat_body + ")"
         statement = stat_header + stat_body
         ret = self.__execute_dict(statement, values, one=True)
 

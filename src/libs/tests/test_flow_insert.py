@@ -48,6 +48,11 @@ def main (argv=None):
                          dl_src="00:00:00:00:00:01",
                          dl_dst="00:00:00:00:00:02",
                          nw_src="192.168.1.1")
+        conn.flow_insert(1,1,"OUTPUT", 30, 60, 0, "cookie",
+                         dl_src="00:00:00:00:00:01",
+                         dl_dst="00:00:00:00:00:02",
+                         nw_src="192.168.1.1",
+                         in_port=10)
 
         # commit transaction
         conn.commit()
