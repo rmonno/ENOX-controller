@@ -172,6 +172,23 @@ def hosts():
         PROXY_DB.close()
 
 
+@bottle.get('/pckt_flows/<dpid:int>')
+def pckt_flows(dpid):
+    WLOG.info("Enter http pckt_flows: dpid=%d", dpid)
+    try:
+        PROXY_DB.open_transaction()
+        ids_ = PROXY_DB.flow_select(dpid=dpid)
+        resp_ = nxw_utils.HTTPResponseGetPCKTFLOWS(ids_)
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("pckt_flows: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
 class Service(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)

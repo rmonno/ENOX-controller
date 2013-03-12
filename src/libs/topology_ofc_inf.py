@@ -359,7 +359,6 @@ class TopologyOFCBase(object):
         :param tp_src:        transport source port value
         :param tp_dst:        transport destination port value
         :param in_port:       ingress port identifier
-
         :raises: DBException
         """
         pass
@@ -395,4 +394,3 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
-
