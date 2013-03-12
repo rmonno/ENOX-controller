@@ -329,3 +329,70 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def flow_insert(self, dpid, table_id=None, action=None, idle_timeout=None,
+                    hard_timeout=None, priority=None, cookie=None,
+                    dl_type=None, dl_vlan=None, dl_vlan_pcp=None, dl_src=None,
+                    dl_dst=None, nw_src=None, nw_dst=None, nw_src_n_wild=None,
+                    nw_dst_n_wild=None, nw_proto=None, tp_src=None,
+                    tp_dst=None, in_port=None):
+        """ Flow entry insert
+
+        :param dpid:          datapath identifier
+        :param table:         table identifier
+        :param action:        action
+        :param idle_timeout:  idle_timeout value
+        :param hard_timeout:  hard_timeout value
+        :param priority:      priority value
+        :param cookie:        cookie value
+        :param dl_type:       datalink type value
+        :param dl_vlan:       datalink vlan value
+        :param dl_vlan_pcp:   datalink vlan priority value
+        :param dl_src:        datalink source address
+        :param dl_dst:        datalink destination address
+        :param nw_src:        network source address
+        :param nw_dst:        network destination address
+        :param nw_src_n_wild: wildcard for network source address
+        :param nw_dst_n_wild: wildcard for network destination address
+        :param nw_proto:      network proto value
+        :param tp_src:        transport source port value
+        :param tp_dst:        transport destination port value
+        :param in_port:       ingress port identifier
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def flow_delete(self, idd):
+        """ Flow entry deletion
+        :param idd  flow identifier
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def flow_get_index(self, dpid, table_id, dl_src=None, dl_dst=None,
+                       nw_src=None, nw_dst=None, tp_src=None, tp_dst=None,
+                       dl_vlan=None, dl_vlan_pcp=None, dl_type=None,
+                       nw_proto=None, in_port=None):
+        """ Get flow_entries index
+        :param dpid:          datapath identifier
+        :param table:         table identifier
+        :param dl_src:        datalink source address
+        :param dl_dst:        datalink destination address
+        :param nw_src:        network source address
+        :param nw_dst:        network destination address
+        :param tp_src:        transport source port value
+        :param tp_dst:        transport destination port value
+        :param dl_vlan:       datalink vlan value
+        :param dl_vlan_pcp:   datalink vlan priority value
+        :param dl_type:       datalink type value
+        :param nw_proto:      network proto value
+        :param in_port:       ingress port identifier
+
+        :raises: DBException
+        """
+        pass
+
