@@ -383,6 +383,26 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         values = (src_dpid, src_pno)
         self.__execute(statement, values)
 
+    def link_select(self, src_dpid=None, src_pno=None):
+        """ link select """
+        table = "links"
+
+        statement = "SELECT * FROM " + table
+        values = ()
+        if src_dpid is not None and src_pno is not None:
+            statement += " WHERE src_dpid=%s AND src_pno=%s"
+            values = values + (str(src_dpid), str(src_pno),)
+
+        elif src_dpid is not None:
+            statement += " WHERE src_dpid=%s"
+            values = values + (str(src_dpid),)
+
+        elif src_pno is not None:
+            statement += " WHERE src_pno=%s"
+            values = values + (str(src_pno),)
+
+        return self.__execute_dict(statement, values, one=False)
+
     def link_get_indexes(self, src_dpid):
         """ get link indexes """
         table = "links"

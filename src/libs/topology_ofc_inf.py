@@ -217,6 +217,17 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def link_select(self, src_dpid=None, src_pno=None):
+        """Select * from links table
+
+        :param src_dpid : source datapath identifier (optional)
+        :param src_pno  : source port number (optional)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def link_get_indexes(self, src_dpid):
         """Get unique indexes at links table
 

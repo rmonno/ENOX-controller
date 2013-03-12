@@ -145,3 +145,19 @@ class HTTPResponseGetPORTInfo(object):
     def peer_dpath_id(self):
         val_ = self._row['peer_dpath_id']
         return "" if val_ in NULL_VALUE else val_
+
+
+class HTTPResponseGetLINKS(object):
+    def __init__(self, ids):
+        self._ids = ids
+
+    def body(self):
+        links_ = {'links':[]}
+        for src_dpid_, src_port_no_, dst_dpid_, dst_port_no_ in self._ids:
+            links_['links'].append({'source dpid': src_dpid_,
+                                    'source port_no': src_port_no_,
+                                    'destination dpid': dst_dpid_,
+                                    'destination port_no': dst_port_no_})
+
+        return json.dumps(links_, sort_keys=True, indent=4,
+                          separators=(',', ': '))

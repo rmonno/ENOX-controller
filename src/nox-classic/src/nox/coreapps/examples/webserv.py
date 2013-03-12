@@ -47,21 +47,11 @@ PROXY_POST = None
 PROXY_DB = None
 
 
-# API
-methods = ["hello", "help", "get_dpids", "get_links", "get_hosts", \
-           "get_dpid_info/dpid", "get_dpid_stats/dpid",
-           "get_dpid_flowentries/dpid", "get_dpid_links/dpid"]
-
 @bottle.route('/hello')
 def hello():
     evt_ = nxw_utils.Pck_setFlowEntryEvent('192.168.1.1', '192.168.1.2')
     PROXY_POST(evt_.describe())
     return "Hello World!"
-
-
-@bottle.route('/help')
-def get_methods():
-    return "Supported methods: %s" % str(methods)
 
 
 @bottle.get('/dpids')
@@ -144,29 +134,23 @@ def port_info():
         PROXY_DB.close()
 
 
-@bottle.route('/get_links')
-def get_links():
-    pass
+@bottle.get('/links')
+def links():
+    WLOG.info("Enter http links")
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.link_select()
+        ids_ = [(r['src_dpid'], r['src_pno'],
+                 r['dst_dpid'], r['dst_pno']) for r in rows_]
+        resp_ = nxw_utils.HTTPResponseGetLINKS(ids_)
+        return resp_.body()
 
-@bottle.route('/get_hosts')
-def get_hosts():
-    pass
+    except nxw_utils.DBException as err:
+        WLOG.error("links: " + str(err))
+        bottle.abort(500, str(err))
 
-@bottle.route('/get_dpid_info/:dpid')
-def get_dpid_info(dpid):
-    return "DPID '%s' INFO = xxx" % str(dpid)
-
-@bottle.route('/get_dpid_stats/:dpid')
-def get_dpid_stats(dpid):
-    return "DPID '%s' STATS = xxx" % str(dpid)
-
-@bottle.route('/get_dpid_flowentries/:dpid')
-def get_dpid_flowentries(dpid):
-    return "dpid '%s' flowentries = xxx" % str(dpid)
-
-@bottle.route('/get_dpid_links/:dpid')
-def get_dpid_links(dpid):
-    return "dpid '%s' links = xxx" % str(dpid)
+    finally:
+        PROXY_DB.close()
 
 
 class Service(threading.Thread):
