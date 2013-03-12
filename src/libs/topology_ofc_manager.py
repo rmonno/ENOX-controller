@@ -522,3 +522,153 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
                     " WHERE dpid=%s AND port_no=%s AND num_bandwidth=%s"
         values = (dpid, port_no, num_bandwidth)
         self.__execute(statement, values)
+
+    def flow_insert(self, dpid, table_id, action, idle_timeout=None,
+                    hard_timeout=None, priority=None, cookie=None,
+                    dl_type=None, dl_vlan=None, dl_vlan_pcp=None, dl_src=None,
+                    dl_dst=None, nw_src=None, nw_dst=None, nw_src_n_wild=None,
+                    nw_dst_n_wild=None, nw_proto=None, tp_src=None,
+                    tp_dst=None):
+        """ Flow entry insert """
+        table = "flow_entries"
+
+        stat_header = "INSERT INTO " + table + "(dpid"
+        stat_body = "VALUES (%s"
+        values = (str(dpid),)
+
+        if table_id is not None:
+            stat_header += ", table_id"
+            stat_body += ", %s"
+            values = values + (str(table_id),)
+
+        if action is not None:
+            stat_header += ", action"
+            stat_body += ", %s"
+            values = values + (str(action),)
+
+        if idle_timeout is not None:
+            stat_header += ", idle_timeout"
+            stat_body += ", %s"
+            values = values + (str(idle_timeout),)
+
+        if hard_timeout is not None:
+            stat_header += ", hard_timeout"
+            stat_body += ", %s"
+            values = values + (str(hard_timeout),)
+
+        if priority is not None:
+            stat_header += ", priority"
+            stat_body += ", %s"
+            values = values + (str(priority),)
+
+        if cookie is not None:
+            stat_header += ", cookie"
+            stat_body += ", %s"
+            values = values + (str(cookie),)
+
+        if dl_type is not None:
+            stat_header += ", dl_type"
+            stat_body += ", %s"
+            values = values + (str(dl_type),)
+
+        if dl_vlan is not None:
+            stat_header += ", dl_vlan"
+            stat_body += ", %s"
+            values = values + (str(dl_vlan),)
+
+        if dl_vlan_pcp is not None:
+            stat_header += ", dl_vlan_pcp"
+            stat_body += ", %s"
+            values = values + (str(dl_vlan_pcp),)
+
+        if dl_src is not None:
+            stat_header += ", dl_src"
+            stat_body += ", %s"
+            values = values + (str(dl_src),)
+
+        if dl_dst is not None:
+            stat_header += ", dl_dst"
+            stat_body += ", %s"
+            values = values + (str(dl_dst),)
+
+        if nw_src is not None:
+            stat_header += ", nw_src"
+            stat_body += ", %s"
+            values = values + (str(nw_src),)
+
+        if nw_src_n_wild is not None:
+            stat_header += ", nw_src_n_wild"
+            stat_body += ", %s"
+            values = values + (str(nw_src_n_wild),)
+
+        if nw_dst is not None:
+            stat_header += ", nw_dst"
+            stat_body += ", %s"
+            values = values + (str(nw_dst),)
+
+        if nw_proto is not None:
+            stat_header += ", nw_proto"
+            stat_body += ", %s"
+            values = values + (str(nw_proto),)
+
+        if nw_dst_n_wild is not None:
+            stat_header += ", nw_dst_n_wild"
+            stat_body += ", %s"
+            values = values + (str(nw_dst_n_wild),)
+
+        if tp_src is not None:
+            stat_header += ", tp_src"
+            stat_body += ", %s"
+            values = values + (str(tp_src),)
+
+        if tp_dst is not None:
+            stat_header += ", tp_dst"
+            stat_body += ", %s"
+            values = values + (str(tp_dst),)
+
+        statement = stat_header + ") " + stat_body + ")"
+        self.__execute(statement, values)
+
+    def flow_delete(self, idd):
+        """ Flow entry delete """
+        table = "flow_entries"
+
+        statement = "DELETE FROM " + table + " WHERE flow_id=" + str(idd)
+        self.__execute(statement)
+
+    def flow_get_index(self, dpid, table_id, dl_src=None, dl_dst=None,
+                       nw_src=None, nw_dst=None, tp_src=None, tp_dst=None):
+        """ Get flow_entries index """
+        table = "flow_entries"
+
+       # statement = "SELECT flow_id FROM " + table +\
+       #             " WHERE datapath_id=%s AND port_no=%s"
+
+        stat_header = "SELECT flow_id FROM " + table
+        stat_body   = " WHERE dpid=%s AND table_id=%s"
+
+        values = (str(dpid),str(table_id),)
+
+        if nw_src is not None:
+            stat_body += " AND nw_src=%s"
+            values = values + (str(nw_src),)
+
+        if nw_dst is not None:
+            stat_body += ", %s"
+            values = values + (str(nw_dst),)
+
+        if tp_src is not None:
+            stat_body += ", %s"
+            values = values + (str(tp_src),)
+
+        if tp_dst is not None:
+            stat_body += ", %s"
+            values = values + (str(tp_dst),)
+
+
+        #ret = self.__execute_dict(statement, values, one=True)
+        #statement = stat_header + ") " + stat_body + ")"
+        statement = stat_header + stat_body
+        ret = self.__execute_dict(statement, values, one=True)
+
+        return ret["flow_id"]
