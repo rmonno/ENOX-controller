@@ -637,7 +637,9 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         self.__execute(statement)
 
     def flow_get_index(self, dpid, table_id, dl_src=None, dl_dst=None,
-                       nw_src=None, nw_dst=None, tp_src=None, tp_dst=None):
+                       nw_src=None, nw_dst=None, tp_src=None, tp_dst=None,
+                       dl_vlan=None, dl_vlan_pcp=None, dl_type=None,
+                       nw_proto=None):
         """ Get flow_entries index """
         table = "flow_entries"
 
@@ -649,20 +651,44 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         values = (str(dpid),str(table_id),)
 
+        if dl_src is not None:
+            stat_body += " AND dl_src=%s"
+            values = values + (str(dl_src),)
+
+        if dl_dst is not None:
+            stat_body += " AND dl_dst=%s"
+            values = values + (str(dl_dst),)
+
+        if dl_type is not None:
+            stat_body += " AND dl_type=%s"
+            values = values + (str(dl_type),)
+
+        if dl_vlan is not None:
+            stat_body += " AND dl_vlan=%s"
+            values = values + (str(dl_vlan),)
+
+        if dl_vlan_pcp is not None:
+            stat_body += " AND dl_vlan_pcp=%s"
+            values = values + (str(dl_vlan_pcp),)
+
         if nw_src is not None:
             stat_body += " AND nw_src=%s"
             values = values + (str(nw_src),)
 
         if nw_dst is not None:
-            stat_body += ", %s"
+            stat_body += " AND nw_dst=%s"
             values = values + (str(nw_dst),)
 
+        if nw_proto is not None:
+            stat_body += " AND nw_proto=%s"
+            values = values + (str(nw_proto),)
+
         if tp_src is not None:
-            stat_body += ", %s"
+            stat_body += " AND tp_src=%s"
             values = values + (str(tp_src),)
 
         if tp_dst is not None:
-            stat_body += ", %s"
+            stat_body += " AND tp_dst=%s"
             values = values + (str(tp_dst),)
 
 
