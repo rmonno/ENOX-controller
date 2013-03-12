@@ -867,8 +867,15 @@ class TopologyMgr(Component):
                 "tp_src"        : None,
                 "tp_dst"        : None,
                 }
+        # update flow with not null received values
         for key in ingress:
-            flow[key] = ingress[key]
+            # conversions for mac_addr and nw_addr
+            if (key == "dl_src") or (key == "dl_dst"):
+                flow[key] = pkt_utils.mac_to_str(ingress[key])
+            elif (key == "nw_src") or (key == "nw_dst"):
+                flow[key] = pkt_utils.ip_to_str(ingress[key])
+            else:
+                flow[key] = ingress[key]
 
         return flow
 
