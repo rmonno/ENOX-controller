@@ -668,6 +668,18 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         statement = "DELETE FROM " + table + " WHERE flow_id=" + str(idd)
         self.__execute(statement)
 
+    def flow_select(self, dpid=None):
+        """ flow_entries select """
+        table = "flow_entries"
+
+        statement = "SELECT * FROM " + table
+        values = ()
+        if dpid is not None:
+            statement += " WHERE dpid=%s"
+            values = values + (str(dpid),)
+
+        return self.__execute_dict(statement, values, one=False)
+
     def flow_get_index(self, dpid, table_id, dl_src=None, dl_dst=None,
                        nw_src=None, nw_dst=None, tp_src=None, tp_dst=None,
                        dl_vlan=None, dl_vlan_pcp=None, dl_type=None,
