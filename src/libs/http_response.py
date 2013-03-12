@@ -8,6 +8,9 @@ import json
 
 NULL_VALUE = ['null', 'NULL', None]
 
+def check_value(value):
+    return "" if value in NULL_VALUE else value
+
 
 class HTTPResponseGetDPIDS(object):
     def __init__(self, ids):
@@ -30,34 +33,14 @@ class HTTPResponseGetDPIDInfo(object):
         dpid_ = {'dpid':{}}
 
         dpid_['dpid']['id'] = self._row['id']
-        dpid_['dpid']['tables'] = self.tables()
-        dpid_['dpid']['ofp_capabilities'] = self.ofp_capabilities()
-        dpid_['dpid']['ofp_actions'] = self.ofp_actions()
-        dpid_['dpid']['buffers'] = self.buffers()
-        dpid_['dpid']['cports'] = self.cports()
+        dpid_['dpid']['tables'] = check_value(self._row['tables'])
+        dpid_['dpid']['ofp_capabilities'] = check_value(self._row['ofp_capabilities'])
+        dpid_['dpid']['ofp_actions'] = check_value(self._row['ofp_actions'])
+        dpid_['dpid']['buffers'] = check_value(self._row['buffers'])
+        dpid_['dpid']['cports'] = check_value(self._row['cports'])
 
         return json.dumps(dpid_, sort_keys=True, indent=4,
                           separators=(',', ': '))
-
-    def tables(self):
-        val_ = self._row['tables']
-        return "" if val_ in NULL_VALUE else val_
-
-    def ofp_capabilities(self):
-        val_ = self._row['ofp_capabilities']
-        return "" if val_ in NULL_VALUE else val_
-
-    def ofp_actions(self):
-        val_ = self._row['ofp_actions']
-        return "" if val_ in NULL_VALUE else val_
-
-    def buffers(self):
-        val_ = self._row['buffers']
-        return "" if val_ in NULL_VALUE else val_
-
-    def cports(self):
-        val_ = self._row['cports']
-        return "" if val_ in NULL_VALUE else val_
 
 
 class HTTPResponseGetPORTS(object):
@@ -82,69 +65,21 @@ class HTTPResponseGetPORTInfo(object):
 
         port_['port']['dpid'] = self._row['datapath_id']
         port_['port']['port_no'] = self._row['port_no']
-        port_['port']['hw_addr'] = self.hw_addr()
-        port_['port']['name'] = self.name()
-        port_['port']['config'] = self.config()
-        port_['port']['state'] = self.state()
-        port_['port']['curr'] = self.curr()
-        port_['port']['advertised'] = self.advertised()
-        port_['port']['supported'] = self.supported()
-        port_['port']['peer'] = self.peer()
-        port_['port']['sw_tdm_gran'] = self.sw_tdm_gran()
-        port_['port']['sw_type'] = self.sw_type()
-        port_['port']['peer_port_no'] = self.peer_port_no()
-        port_['port']['peer_dpath_id'] = self.peer_dpath_id()
+        port_['port']['hw_addr'] = check_value(self._row['hw_addr'])
+        port_['port']['name'] = check_value(self._row['name'])
+        port_['port']['config'] = check_value(self._row['config'])
+        port_['port']['state'] = check_value(self._row['state'])
+        port_['port']['curr'] = check_value(self._row['curr'])
+        port_['port']['advertised'] = check_value(self._row['advertised'])
+        port_['port']['supported'] = check_value(self._row['supported'])
+        port_['port']['peer'] = check_value(self._row['peer'])
+        port_['port']['sw_tdm_gran'] = check_value(self._row['sw_tdm_gran'])
+        port_['port']['sw_type'] = check_value(self._row['sw_type'])
+        port_['port']['peer_port_no'] = check_value(self._row['peer_port_no'])
+        port_['port']['peer_dpath_id'] = check_value(self._row['peer_dpath_id'])
 
         return json.dumps(port_, sort_keys=True, indent=4,
                           separators=(',', ': '))
-
-    def hw_addr(self):
-        val_ = self._row['hw_addr']
-        return "" if val_ in NULL_VALUE else val_
-
-    def name(self):
-        val_ = self._row['name']
-        return "" if val_ in NULL_VALUE else val_
-
-    def config(self):
-        val_ = self._row['config']
-        return "" if val_ in NULL_VALUE else val_
-
-    def state(self):
-        val_ = self._row['state']
-        return "" if val_ in NULL_VALUE else val_
-
-    def curr(self):
-        val_ = self._row['curr']
-        return "" if val_ in NULL_VALUE else val_
-
-    def advertised(self):
-        val_ = self._row['advertised']
-        return "" if val_ in NULL_VALUE else val_
-
-    def supported(self):
-        val_ = self._row['supported']
-        return "" if val_ in NULL_VALUE else val_
-
-    def peer(self):
-        val_ = self._row['peer']
-        return "" if val_ in NULL_VALUE else val_
-
-    def sw_tdm_gran(self):
-        val_ = self._row['sw_tdm_gran']
-        return "" if val_ in NULL_VALUE else val_
-
-    def sw_type(self):
-        val_ = self._row['sw_type']
-        return "" if val_ in NULL_VALUE else val_
-
-    def peer_port_no(self):
-        val_ = self._row['peer_port_no']
-        return "" if val_ in NULL_VALUE else val_
-
-    def peer_dpath_id(self):
-        val_ = self._row['peer_dpath_id']
-        return "" if val_ in NULL_VALUE else val_
 
 
 class HTTPResponseGetLINKS(object):
@@ -174,4 +109,36 @@ class HTTPResponseGetHOSTS(object):
                                     'port_no': port_, 'mac address': mac_})
 
         return json.dumps(hosts_, sort_keys=True, indent=4,
+                          separators=(',', ': '))
+
+
+class HTTPResponseGetPCKTFLOWS(object):
+    def __init__(self, db_rows):
+        self._rows = db_rows
+
+    def body(self):
+        p_flows_ = {'packet flows':[]}
+        for row_ in self._rows:
+            p_flows_['packet flows'].append({'dpid': row_['dpid'],
+                    'table id': check_value(row_['table_id']),
+                    'input port': check_value(row_['in_port']),
+                    'idle timeout': check_value(row_['idle_timeout']),
+                    'hard timeout': check_value(row_['hard_timeout']),
+                    'priority': check_value(row_['priority']),
+                    'action': check_value(row_['action']),
+                    'cookie': check_value(row_['cookie']),
+                    'datalink type': check_value(row_['dl_type']),
+                    'datalink vlan': check_value(row_['dl_vlan']),
+                    'datalink vlan priority': check_value(row_['dl_vlan_pcp']),
+                    'datalink source': check_value(row_['dl_src']),
+                    'datalink destination': check_value(row_['dl_dst']),
+                    'network source': check_value(row_['nw_src']),
+                    'network destination': check_value(row_['nw_dst']),
+                    'network source num wild': check_value(row_['nw_src_n_wild']),
+                    'network destination num wild': check_value(row_['nw_dst_n_wild']),
+                    'network protocol': check_value(row_['nw_proto']),
+                    'transport source': check_value(row_['tp_src']),
+                    'transport destination': check_value(row_['tp_dst'])})
+
+        return json.dumps(p_flows_, sort_keys=True, indent=4,
                           separators=(',', ': '))

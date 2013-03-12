@@ -329,3 +329,11 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def flow_select(self, dpid=None):
+        """Select * from flow_entries table
+
+        :raises: DBException
+        """
+        pass
