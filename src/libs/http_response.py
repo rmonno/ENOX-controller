@@ -161,3 +161,17 @@ class HTTPResponseGetLINKS(object):
 
         return json.dumps(links_, sort_keys=True, indent=4,
                           separators=(',', ': '))
+
+
+class HTTPResponseGetHOSTS(object):
+    def __init__(self, ids):
+        self._ids = ids
+
+    def body(self):
+        hosts_ = {'hosts':[]}
+        for dpid_, ip_, port_, mac_ in self._ids:
+            hosts_['hosts'].append({'dpid': dpid_, 'ip address': ip_,
+                                    'port_no': port_, 'mac address': mac_})
+
+        return json.dumps(hosts_, sort_keys=True, indent=4,
+                          separators=(',', ': '))

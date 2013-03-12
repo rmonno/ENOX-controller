@@ -447,6 +447,13 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         statement = "DELETE FROM " + table + " WHERE hostID=" + str(idd)
         self.__execute(statement)
 
+    def host_select(self):
+        """ host select """
+        table = "hosts"
+
+        statement = "SELECT * FROM " + table
+        return self.__execute_dict(statement, one=False)
+
     def host_update(self, mac_addr, ip_addr):
         """ host update """
         table = "hosts"

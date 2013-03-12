@@ -153,6 +153,25 @@ def links():
         PROXY_DB.close()
 
 
+@bottle.get('/hosts')
+def hosts():
+    WLOG.info("Enter http hosts")
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.host_select()
+        ids_ = [(r['dpid'], r['ip_addr'],
+                 r['in_port'], r['mac_addr']) for r in rows_]
+        resp_ = nxw_utils.HTTPResponseGetHOSTS(ids_)
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("hosts: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
 class Service(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)

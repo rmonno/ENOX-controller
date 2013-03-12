@@ -258,6 +258,14 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def host_select(self):
+        """Select * from hosts table
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def host_get_index(self, mac_addr):
         """Get unique index at hosts table
 
