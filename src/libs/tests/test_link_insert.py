@@ -17,8 +17,9 @@ from topology_ofc_manager import *
 
 
 def main (argv=None):
-    log.level_set("DEBUG")
-    conn = TopologyOFCManager("127.0.0.1", "root", "root", "topology_ofc_db", log)
+    LOG.level_set("DEBUG")
+    conn = TopologyOFCManager("127.0.0.1", "root", "root",
+                              "topology_ofc_db", LOG)
     try:
         # connect and open transaction
         conn.open_transaction()
@@ -36,7 +37,7 @@ def main (argv=None):
         conn.commit()
 
     except DBException as e:
-        log.error(str(e))
+        LOG.error(str(e))
         # rollback transaction
         conn.rollback()
 
