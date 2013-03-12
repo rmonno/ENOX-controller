@@ -66,6 +66,7 @@ def get_methods():
 
 @bottle.get('/dpids')
 def dpids():
+    WLOG.info("Enter http dpids")
     try:
         PROXY_DB.open_transaction()
         rows_ = PROXY_DB.datapath_select()
@@ -81,7 +82,8 @@ def dpids():
 
 
 @bottle.get('/dpids/<dpid:int>')
-def dpids_dpid(dpid):
+def dpid_info(dpid):
+    WLOG.info("Enter http dpid_info: dpid=%d", dpid)
     try:
         PROXY_DB.open_transaction()
         rows_ = PROXY_DB.datapath_select(d_id=dpid)
@@ -89,16 +91,53 @@ def dpids_dpid(dpid):
         if len(rows_) > 1:
             bottle.abort(500, 'Duplicated key!')
 
-        resp_ = nxw_utils.HTTPResponseGetDPIDInfo(id=rows_[0]['id'],
-                                tables=rows_[0]['tables'],
-                                ofp_capabilities=rows_[0]['ofp_capabilities'],
-                                ofp_actions=rows_[0]['ofp_actions'],
-                                buffers=rows_[0]['buffers'],
-                                cports=rows_[0]['cports'])
+        resp_ = nxw_utils.HTTPResponseGetDPIDInfo(db_row=rows_[0])
         return resp_.body()
 
     except nxw_utils.DBException as err:
-        WLOG.error("dpids_dpid: " + str(err))
+        WLOG.error("dpid_info: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
+@bottle.get('/ports')
+def ports():
+    WLOG.info("Enter http ports")
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.port_select()
+        ids_ = [(r['datapath_id'], r['port_no']) for r in rows_]
+        resp_ = nxw_utils.HTTPResponseGetPORTS(ids_)
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("ports: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
+@bottle.get('/ports/')
+def port_info():
+    dpid_ = int(bottle.request.query.dpid)
+    portno_ = int(bottle.request.query.portno)
+
+    WLOG.info("Enter http port_info: dpid=%d, portno=%d", dpid_, portno_)
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.port_select(d_id=dpid_, port_no=portno_)
+
+        if len(rows_) > 1:
+            bottle.abort(500, 'Duplicated key!')
+
+        resp_ = nxw_utils.HTTPResponseGetPORTInfo(db_row=rows_[0])
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("port_info: " + str(err))
         bottle.abort(500, str(err))
 
     finally:
