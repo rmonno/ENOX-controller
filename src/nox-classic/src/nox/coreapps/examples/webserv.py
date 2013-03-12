@@ -69,9 +69,8 @@ def dpids():
     try:
         PROXY_DB.open_transaction()
         rows_ = PROXY_DB.datapath_select()
-        ids_ = [str(r['id']) for r in rows_]
-
-        return {'ids': ids_}
+        resp_ = nxw_utils.HTTPResponseGetDPIDS([str(r['id']) for r in rows_])
+        return resp_.body()
 
     except nxw_utils.DBException as err:
         WLOG.error("dpids: " + str(err))
@@ -85,12 +84,18 @@ def dpids():
 def dpids_dpid(dpid):
     try:
         PROXY_DB.open_transaction()
-        row_ = PROXY_DB.datapath_select(d_id=dpid)
+        rows_ = PROXY_DB.datapath_select(d_id=dpid)
 
-        if len(row_) > 1:
+        if len(rows_) > 1:
             bottle.abort(500, 'Duplicated key!')
 
-        return row_[0]
+        resp_ = nxw_utils.HTTPResponseGetDPIDInfo(id=rows_[0]['id'],
+                                tables=rows_[0]['tables'],
+                                ofp_capabilities=rows_[0]['ofp_capabilities'],
+                                ofp_actions=rows_[0]['ofp_actions'],
+                                buffers=rows_[0]['buffers'],
+                                cports=rows_[0]['cports'])
+        return resp_.body()
 
     except nxw_utils.DBException as err:
         WLOG.error("dpids_dpid: " + str(err))
