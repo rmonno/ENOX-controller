@@ -852,19 +852,81 @@ class TopologyMgr(Component):
         """ Handler for aggregate_stats_in event """
         LOG.info("Received aggregate_stats_in event...")
 
+    def __build_flowentry_db(self, ingress):
+        flow = {"dl_type"       : None,
+                "dl_src"        : None,
+                "dl_dst"        : None,
+                "dl_vlan"       : None,
+                "dl_vlan_pcp"   : None,
+                "nw_src"        : None,
+                "nw_dst"        : None,
+                "nw_proto"      : None,
+                "in_port"       : None,
+                "nw_src_n_wild" : None,
+                "nw_dst_n_wild" : None,
+                "tp_src"        : None,
+                "tp_dst"        : None,
+                }
+        for key in ingress:
+            flow[key] = ingress[key]
+
+        return flow
+
     def flow_mod_handler(self, ingress):
         """ Handler for Flow_mod event """
         assert(ingress is not None)
         try:
             data = ingress.__dict__
-            LOG.debug("Received flow_ev with the following data: %s" % \
+            LOG.debug("Received flow_mod_ev with the following data: %s" % \
+                       str(data))
+            try:
+                self.db_conn.open_transaction()
+                flow_mod    = data['flow_mod']
+                flow_match  = self.__build_flowentry_db(data['flow_mod']['match'])
+
+                # XXX FIXME: Fill flow_entrie table also with table_id and
+                #            action
+                self.db_conn.flow_insert(dpid=data['datapath_id'],
+                                         idle_timeout=flow_mod['idle_timeout'],
+                                         hard_timeout=flow_mod['hard_timeout'],
+                                         priority=flow_mod['priority'],
+                                         cookie=flow_mod['cookie'],
+                                         dl_type=flow_match['dl_type'],
+                                         dl_src=flow_match['dl_src'],
+                                         dl_dst=flow_match['dl_dst'],
+                                         dl_vlan=flow_match['dl_vlan'],
+                                         dl_vlan_pcp=flow_match['dl_vlan_pcp'],
+                                         nw_src=flow_match['nw_src'],
+                                         nw_dst=flow_match['nw_dst'],
+                                         nw_proto=flow_match['nw_proto'],
+                                         tp_src=flow_match['tp_dst'],
+                                         tp_dst=flow_match['tp_dst'],
+                                         in_port=flow_match['in_port'],
+                                         nw_src_n_wild=flow_match['nw_src_n_wild'],
+                                         nw_dst_n_wild=flow_match['nw_dst_n_wild'])
+                self.db_conn.commit()
+                LOG.debug("Flow entry successfully committed")
+
+            except nxw_utils.DBException as err:
+                LOG.error(str(err))
+                # rollback transaction
+                self.db_conn.rollback()
+
+            finally:
+                self.db_conn.close()
+
+        except Exception, e:
+            LOG.error(e)
+
+    def flow_removed_handler(self, ingress):
+        """ Handler for Flow_removed event """
+        assert(ingress is not None)
+        try:
+            data = ingress.__dict__
+            LOG.debug("Received flow_rem_ev with the following data: %s" % \
                        str(data))
         except Exception, e:
-            log.error(e)
-
-    def flow_removed_handler(self, dpid, attrs):
-        """ Handler for Flow_removed event """
-        LOG.info("Received Flow_removed event...")
+            LOG.error(e)
 
     def node_get_frompidport(self, dpid, port):
         """ Get node from dpid and port """

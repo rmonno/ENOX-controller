@@ -550,7 +550,7 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         values = (dpid, port_no, num_bandwidth)
         self.__execute(statement, values)
 
-    def flow_insert(self, dpid, table_id, action, idle_timeout=None,
+    def flow_insert(self, dpid, table_id=None, action=None, idle_timeout=None,
                     hard_timeout=None, priority=None, cookie=None,
                     dl_type=None, dl_vlan=None, dl_vlan_pcp=None, dl_src=None,
                     dl_dst=None, nw_src=None, nw_dst=None, nw_src_n_wild=None,
