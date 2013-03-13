@@ -550,6 +550,7 @@ class TopologyMgr(Component):
             LOG.debug("Successfully committed information!")
         except nxw_utils.DBException:
             self.db_conn.rollback()
+            raise
         finally:
             self.db_conn.close()
 
@@ -592,6 +593,7 @@ class TopologyMgr(Component):
             LOG.debug("Successfully delete host '%s' from DB!" % str(dladdr))
 
         except nxw_utils.DBException as err:
+            LOG.error(str(err))
             self.db_conn.rollback()
             return False
         except Exception, err:
@@ -664,7 +666,8 @@ class TopologyMgr(Component):
                     self.db_conn.host_update(dladdr, host_ipaddr)
                     self.db_conn.commit()
                     LOG.info("Host info updated successfully")
-            except nxw_utils.DBException:
+            except nxw_utils.DBException as err:
+                LOG.error(str(err))
                 self.db_conn.rollback()
             finally:
                 self.db_conn.close()
@@ -687,6 +690,7 @@ class TopologyMgr(Component):
                 dpid    = self.db_conn.host_get_dpid(dladdr)
                 in_port = self.db_conn.host_get_inport(dladdr)
             except nxw_utils.DBException as err:
+                LOG.error(str(err))
                 self.db_conn.rollback()
             finally:
                 self.db_conn.close()
@@ -779,7 +783,8 @@ class TopologyMgr(Component):
                     except Exception:
                         LOG.error("Cannot insert host info into DB ('%s')")
 
-            except nxw_utils.DBException:
+            except nxw_utils.DBException as err:
+                LOG.error(str(err))
                 self.db_conn.rollback()
                 return CONTINUE
             finally:
@@ -807,7 +812,8 @@ class TopologyMgr(Component):
                     # commit transaction
                     self.db_conn.commit()
                     LOG.debug("Successfully committed information!")
-                except nxw_utils.DBException:
+                except nxw_utils.DBException as err:
+                    LOG.error(str(err))
                     self.db_conn.rollback()
                 finally:
                     self.db_conn.close()
