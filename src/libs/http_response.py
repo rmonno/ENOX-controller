@@ -89,10 +89,10 @@ class HTTPResponseGetLINKS(object):
     def body(self):
         links_ = {'links':[]}
         for src_dpid_, src_port_no_, dst_dpid_, dst_port_no_ in self._ids:
-            links_['links'].append({'source dpid': src_dpid_,
-                                    'source port_no': src_port_no_,
-                                    'destination dpid': dst_dpid_,
-                                    'destination port_no': dst_port_no_})
+            links_['links'].append({'source_dpid': src_dpid_,
+                                    'source_port_no': src_port_no_,
+                                    'destination_dpid': dst_dpid_,
+                                    'destination_port_no': dst_port_no_})
 
         return json.dumps(links_, sort_keys=True, indent=4,
                           separators=(',', ': '))
@@ -105,8 +105,8 @@ class HTTPResponseGetHOSTS(object):
     def body(self):
         hosts_ = {'hosts':[]}
         for dpid_, ip_, port_, mac_ in self._ids:
-            hosts_['hosts'].append({'dpid': dpid_, 'ip address': ip_,
-                                    'port_no': port_, 'mac address': mac_})
+            hosts_['hosts'].append({'dpid': dpid_, 'ip_address': ip_,
+                                    'port_no': port_, 'mac_address': mac_})
 
         return json.dumps(hosts_, sort_keys=True, indent=4,
                           separators=(',', ': '))
@@ -117,28 +117,28 @@ class HTTPResponseGetPCKTFLOWS(object):
         self._rows = db_rows
 
     def body(self):
-        p_flows_ = {'packet flows':[]}
+        p_flows_ = {'packet_flows':[]}
         for row_ in self._rows:
-            p_flows_['packet flows'].append({'dpid': row_['dpid'],
-                    'table id': check_value(row_['table_id']),
-                    'input port': check_value(row_['in_port']),
-                    'idle timeout': check_value(row_['idle_timeout']),
-                    'hard timeout': check_value(row_['hard_timeout']),
+            p_flows_['packet_flows'].append({'dpid': row_['dpid'],
+                    'table_id': check_value(row_['table_id']),
+                    'input_port': check_value(row_['in_port']),
+                    'idle_timeout': check_value(row_['idle_timeout']),
+                    'hard_timeout': check_value(row_['hard_timeout']),
                     'priority': check_value(row_['priority']),
                     'action': check_value(row_['action']),
                     'cookie': check_value(row_['cookie']),
-                    'datalink type': check_value(row_['dl_type']),
-                    'datalink vlan': check_value(row_['dl_vlan']),
-                    'datalink vlan priority': check_value(row_['dl_vlan_pcp']),
-                    'datalink source': check_value(row_['dl_src']),
-                    'datalink destination': check_value(row_['dl_dst']),
-                    'network source': check_value(row_['nw_src']),
-                    'network destination': check_value(row_['nw_dst']),
-                    'network source num wild': check_value(row_['nw_src_n_wild']),
-                    'network destination num wild': check_value(row_['nw_dst_n_wild']),
-                    'network protocol': check_value(row_['nw_proto']),
-                    'transport source': check_value(row_['tp_src']),
-                    'transport destination': check_value(row_['tp_dst'])})
+                    'datalink_type': check_value(row_['dl_type']),
+                    'datalink_vlan': check_value(row_['dl_vlan']),
+                    'datalink_vlan_priority': check_value(row_['dl_vlan_pcp']),
+                    'datalink_source': check_value(row_['dl_src']),
+                    'datalink_destination': check_value(row_['dl_dst']),
+                    'network_source': check_value(row_['nw_src']),
+                    'network_destination': check_value(row_['nw_dst']),
+                    'network_source_num_wild': check_value(row_['nw_src_n_wild']),
+                    'network_destination_num_wild': check_value(row_['nw_dst_n_wild']),
+                    'network_protocol': check_value(row_['nw_proto']),
+                    'transport_source': check_value(row_['tp_src']),
+                    'transport_destination': check_value(row_['tp_dst'])})
 
         return json.dumps(p_flows_, sort_keys=True, indent=4,
                           separators=(',', ': '))

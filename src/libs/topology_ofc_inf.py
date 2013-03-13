@@ -372,6 +372,14 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def flow_select(self, dpid=None):
+        """Select * from flow_entries table
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def flow_get_index(self, dpid, table_id, dl_src=None, dl_dst=None,
                        nw_src=None, nw_dst=None, tp_src=None, tp_dst=None,
                        dl_vlan=None, dl_vlan_pcp=None, dl_type=None,
