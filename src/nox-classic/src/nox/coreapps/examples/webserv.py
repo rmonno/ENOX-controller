@@ -172,17 +172,73 @@ def hosts():
         PROXY_DB.close()
 
 
-@bottle.get('/pckt_flows/<dpid:int>')
-def pckt_flows(dpid):
-    WLOG.info("Enter http pckt_flows: dpid=%d", dpid)
+@bottle.get('/pckt_flows/<id:int>')
+def pckt_flows(id):
+    WLOG.info("Enter http pckt_flows: dpid=%d", id)
     try:
         PROXY_DB.open_transaction()
-        ids_ = PROXY_DB.flow_select(dpid=dpid)
+        ids_ = PROXY_DB.flow_select(dpid=id)
         resp_ = nxw_utils.HTTPResponseGetPCKTFLOWS(ids_)
         return resp_.body()
 
     except nxw_utils.DBException as err:
         WLOG.error("pckt_flows: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
+@bottle.delete('/pckt_flows/<id:int>')
+def pckt_flow_delete(id):
+    WLOG.info("Enter http pckt_flow_delete: id=%d", id)
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.flow_delete(idd=id)
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed', status=204)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_flow_delete: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
+@bottle.post('/pckt_flows')
+def pckt_flow_create():
+    WLOG.info("Enter http pckt_flow_create")
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.flow_insert(dpid=bottle.request.params.get('dpid'),
+            table_id=bottle.request.params.get('table_id'),
+            action=bottle.request.params.get('action'),
+            idle_timeout=bottle.request.params.get('idle_timeout'),
+            hard_timeout=bottle.request.params.get('hard_timeout'),
+            priority=bottle.request.params.get('priority'),
+            cookie=bottle.request.params.get('cookie'),
+            dl_type=bottle.request.params.get('datalink_type'),
+            dl_vlan=bottle.request.params.get('datalink_vlan'),
+            dl_vlan_pcp=bottle.request.params.get('datalink_vlan_priority'),
+            dl_src=bottle.request.params.get('datalink_source'),
+            dl_dst=bottle.request.params.get('datalink_destination'),
+            nw_src=bottle.request.params.get('network_source'),
+            nw_dst=bottle.request.params.get('network_destination'),
+            nw_src_n_wild=bottle.request.params.get('network_source_num_wild'),
+            nw_dst_n_wild=bottle.request.params.get('network_destination_num_wild'),
+            nw_proto=bottle.request.params.get('network_protocol'),
+            tp_src=bottle.request.params.get('transport_source'),
+            tp_dst=bottle.request.params.get('transport_destination'),
+            in_port=bottle.request.params.get('input_port'))
+
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed', status=201)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_flow_create: " + str(err))
         bottle.abort(500, str(err))
 
     finally:
