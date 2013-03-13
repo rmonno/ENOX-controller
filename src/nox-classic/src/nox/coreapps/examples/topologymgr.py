@@ -843,14 +843,17 @@ class TopologyMgr(Component):
     def table_stats_handler(self, dpid, tables):
         """ Handler for table_stats_in event """
         LOG.info("Received table_stats_in event...")
+        return CONTINUE
 
     def port_stats_handler(self, dpid, ports):
         """ Handler for ports_stats_in event """
         LOG.info("Received port_stats_in event...")
+        return CONTINUE
 
     def aggr_stats_handler(self, dpid, stats):
         """ Handler for aggregate_stats_in event """
         LOG.info("Received aggregate_stats_in event...")
+        return CONTINUE
 
     def __build_flowentry_db(self, ingress):
         flow = {"dl_type"       : None,
@@ -913,17 +916,20 @@ class TopologyMgr(Component):
                                          nw_dst_n_wild=flow_match['nw_dst_n_wild'])
                 self.db_conn.commit()
                 LOG.debug("Flow entry successfully committed")
+                return CONTINUE
 
             except nxw_utils.DBException as err:
                 LOG.error(str(err))
                 # rollback transaction
                 self.db_conn.rollback()
+                return CONTINUE
 
             finally:
                 self.db_conn.close()
 
         except Exception, e:
             LOG.error(e)
+            return CONTINUE
 
     def flow_removed_handler(self, ingress):
         """ Handler for Flow_removed event """
@@ -932,8 +938,10 @@ class TopologyMgr(Component):
             data = ingress.__dict__
             LOG.debug("Received flow_rem_ev with the following data: %s" % \
                        str(data))
+            return CONTINUE
         except Exception, e:
             LOG.error(e)
+            return CONTINUE
 
     def node_get_frompidport(self, dpid, port):
         """ Get node from dpid and port """
