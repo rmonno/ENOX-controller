@@ -120,6 +120,7 @@ class HTTPResponseGetPCKTFLOWS(object):
         p_flows_ = {'packet_flows':[]}
         for row_ in self._rows:
             p_flows_['packet_flows'].append({'dpid': row_['dpid'],
+                                             'flow_id': row_['flow_id'],
                     'table_id': check_value(row_['table_id']),
                     'input_port': check_value(row_['in_port']),
                     'idle_timeout': check_value(row_['idle_timeout']),

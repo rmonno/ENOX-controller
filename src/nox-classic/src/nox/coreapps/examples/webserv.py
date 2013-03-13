@@ -172,17 +172,35 @@ def hosts():
         PROXY_DB.close()
 
 
-@bottle.get('/pckt_flows/<dpid:int>')
-def pckt_flows(dpid):
-    WLOG.info("Enter http pckt_flows: dpid=%d", dpid)
+@bottle.get('/pckt_flows/<id:int>')
+def pckt_flows(id):
+    WLOG.info("Enter http pckt_flows: dpid=%d", id)
     try:
         PROXY_DB.open_transaction()
-        ids_ = PROXY_DB.flow_select(dpid=dpid)
+        ids_ = PROXY_DB.flow_select(dpid=id)
         resp_ = nxw_utils.HTTPResponseGetPCKTFLOWS(ids_)
         return resp_.body()
 
     except nxw_utils.DBException as err:
         WLOG.error("pckt_flows: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
+@bottle.delete('/pckt_flows/<id:int>')
+def pckt_flow_delete(id):
+    WLOG.info("Enter http pckt_flow_delete: id=%d", id)
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.flow_delete(idd=id)
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed', status=204)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_flow_delete: " + str(err))
         bottle.abort(500, str(err))
 
     finally:
@@ -216,11 +234,11 @@ def pckt_flow_create():
             in_port=bottle.request.params.get('input_port'))
 
         PROXY_DB.commit()
-        return bottle.HTTPResponse(body='Operation completed', status=200)
+        return bottle.HTTPResponse(body='Operation completed', status=201)
 
     except nxw_utils.DBException as err:
         PROXY_DB.rollback()
-        WLOG.error("pckt_flows: " + str(err))
+        WLOG.error("pckt_flow_create: " + str(err))
         bottle.abort(500, str(err))
 
     finally:
