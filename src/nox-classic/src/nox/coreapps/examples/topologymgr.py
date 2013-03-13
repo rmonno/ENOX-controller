@@ -527,6 +527,7 @@ class TopologyMgr(Component):
         """ Insert host DB entries """
         try:
             # Host_insert
+            self.db_conn.open_transaction()
             self.db_conn.host_insert(mac_addr, dpid, port, ip_addr)
 
             # commit transaction
@@ -652,7 +653,8 @@ class TopologyMgr(Component):
                     LOG.info("Added host '%s' into DB" % str(dladdr))
                     self.hosts.pop(dladdr)
                     # XXX FIXME Remove auth_hosts (maintain only self.hosts)
-                    self.auth_hosts.pop(self.auth_hosts.index(dladdr))
+                    if dladdr in self.auth_hosts:
+                        self.auth_hosts.remove(dladdr)
 
                 else:
                     LOG.debug("Got host_bind_ev for an host already " + \
@@ -757,7 +759,10 @@ class TopologyMgr(Component):
                                               auth_data['port'],
                                               host_ipaddr)
                         LOG.info("Added host '%s' into DB" % str(dladdr))
-                        self.auth_hosts.pop(self.auth_hosts.index(dladdr))
+                        if dladdr in self.auth_hosts:
+                            self.auth_hosts.remove(dladdr)
+                            log.debug("Removed '%s' from (local) auth hosts" %
+                                      str(dladdr))
                     except nxw_utils.DBException as err:
                         LOG.error(str(err))
                     except Exception, err:
@@ -833,12 +838,14 @@ class TopologyMgr(Component):
         self.ctxt.send_table_stats_request(dpid)
         self.post_callback(DEFAULT_TABLE_POLL_TIME,
                            lambda : self.table_timer(dpid))
+        return CONTINUE
 
     def port_timer(self, dpid):
         assert(dpid is not None)
         self.ctxt.send_port_stats_request(dpid, openflow.OFPP_NONE)
         self.post_callback(DEFAULT_PORT_POLL_TIME,
                            lambda : self.port_timer(dpid))
+        return CONTINUE
 
     def table_stats_handler(self, dpid, tables):
         """ Handler for table_stats_in event """
