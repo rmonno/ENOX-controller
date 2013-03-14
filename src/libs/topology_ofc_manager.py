@@ -680,64 +680,89 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return self.__execute_dict(statement, values, one=False)
 
-    def flow_get_index(self, dpid, table_id, dl_src=None, dl_dst=None,
+    def flow_get_index(self, dpid, table_id=None, dl_src=None, dl_dst=None,
                        nw_src=None, nw_dst=None, tp_src=None, tp_dst=None,
                        dl_vlan=None, dl_vlan_pcp=None, dl_type=None,
                        nw_proto=None, in_port=None):
         """ Get flow_entries index """
         table = "flow_entries"
 
-       # statement = "SELECT flow_id FROM " + table +\
-       #             " WHERE datapath_id=%s AND port_no=%s"
-
         stat_header = "SELECT flow_id FROM " + table
-        stat_body   = " WHERE dpid=%s AND table_id=%s"
+        stat_body   = " WHERE dpid=%s"
 
-        values = (str(dpid),str(table_id),)
+        values = (str(dpid),)
+
+        if table_id is not None:
+            stat_body += " AND table_id=%s"
+            values = values + (str(table_id),)
+        else:
+            stat_body += " AND table_id is NULL"
 
         if dl_src is not None:
             stat_body += " AND dl_src=%s"
             values = values + (str(dl_src),)
+        else:
+            stat_body += " AND dl_src is NULL"
 
         if dl_dst is not None:
             stat_body += " AND dl_dst=%s"
             values = values + (str(dl_dst),)
+        else:
+            stat_body += " AND dl_dst is NULL"
 
         if dl_type is not None:
             stat_body += " AND dl_type=%s"
             values = values + (str(dl_type),)
+        else:
+            stat_body += " AND dl_type is NULL"
 
         if dl_vlan is not None:
             stat_body += " AND dl_vlan=%s"
             values = values + (str(dl_vlan),)
+        else:
+            stat_body += " AND dl_vlan is NULL"
 
         if dl_vlan_pcp is not None:
             stat_body += " AND dl_vlan_pcp=%s"
             values = values + (str(dl_vlan_pcp),)
+        else:
+            stat_body += " AND dl_vlan_pcp is NULL"
 
         if nw_src is not None:
             stat_body += " AND nw_src=%s"
             values = values + (str(nw_src),)
+        else:
+            stat_body += " AND nw_src is NULL"
 
         if nw_dst is not None:
             stat_body += " AND nw_dst=%s"
             values = values + (str(nw_dst),)
+        else:
+            stat_body += " AND nw_dst is NULL"
 
         if nw_proto is not None:
             stat_body += " AND nw_proto=%s"
             values = values + (str(nw_proto),)
+        else:
+            stat_body += " AND nw_proto is NULL"
 
         if tp_src is not None:
             stat_body += " AND tp_src=%s"
             values = values + (str(tp_src),)
+        else:
+            stat_body += " AND tp_src is NULL"
 
         if tp_dst is not None:
             stat_body += " AND tp_dst=%s"
             values = values + (str(tp_dst),)
+        else:
+            stat_body += " AND tp_dst is NULL"
 
         if in_port is not None:
             stat_body += " AND in_port=%s"
             values = values + (str(in_port),)
+        else:
+            stat_body += " AND in_port is NULL"
 
         statement = stat_header + stat_body
         ret = self.__execute_dict(statement, values, one=True)

@@ -868,7 +868,7 @@ class TopologyMgr(Component):
         LOG.info("Received aggregate_stats_in event...")
         return CONTINUE
 
-    def __build_flowentry_db(self, ingress):
+    def __build_fentry_db(self, ingress):
         flow = {"dl_type"       : None,
                 "dl_src"        : None,
                 "dl_dst"        : None,
@@ -902,47 +902,61 @@ class TopologyMgr(Component):
             data = ingress.__dict__
             LOG.debug("Received flow_mod_ev with the following data: %s" % \
                        str(data))
+            self.db_conn.open_transaction()
+            flow_mod    = data['flow_mod']
+            flow_match  = self.__build_fentry_db(data['flow_mod']['match'])
             try:
-                self.db_conn.open_transaction()
-                flow_mod    = data['flow_mod']
-                flow_match  = self.__build_flowentry_db(data['flow_mod']['match'])
-
-                # XXX FIXME: Fill flow_entrie table also with table_id and
-                #            action
-                self.db_conn.flow_insert(dpid=data['datapath_id'],
-                                         idle_timeout=flow_mod['idle_timeout'],
-                                         hard_timeout=flow_mod['hard_timeout'],
-                                         priority=flow_mod['priority'],
-                                         cookie=flow_mod['cookie'],
-                                         dl_type=flow_match['dl_type'],
-                                         dl_src=flow_match['dl_src'],
-                                         dl_dst=flow_match['dl_dst'],
-                                         dl_vlan=flow_match['dl_vlan'],
-                                         dl_vlan_pcp=flow_match['dl_vlan_pcp'],
-                                         nw_src=flow_match['nw_src'],
-                                         nw_dst=flow_match['nw_dst'],
-                                         nw_proto=flow_match['nw_proto'],
-                                         tp_src=flow_match['tp_dst'],
-                                         tp_dst=flow_match['tp_dst'],
-                                         in_port=flow_match['in_port'],
-                                         nw_src_n_wild=flow_match['nw_src_n_wild'],
-                                         nw_dst_n_wild=flow_match['nw_dst_n_wild'])
-                self.db_conn.commit()
-                LOG.debug("Flow entry successfully committed")
-                return CONTINUE
-
+                idx = self.db_conn.flow_get_index(dpid=data['datapath_id'],
+                                        dl_type=flow_match['dl_type'],
+                                        dl_src=flow_match['dl_src'],
+                                        dl_dst=flow_match['dl_dst'],
+                                        dl_vlan=flow_match['dl_vlan'],
+                                        dl_vlan_pcp=flow_match['dl_vlan_pcp'],
+                                        nw_src=flow_match['nw_src'],
+                                        nw_dst=flow_match['nw_dst'],
+                                        nw_proto=flow_match['nw_proto'],
+                                        tp_src=flow_match['tp_dst'],
+                                        tp_dst=flow_match['tp_dst'],
+                                        in_port=flow_match['in_port'])
+                LOG.debug("Found flow_id '%s' for the received flow_entry" % \
+                           str(idx))
             except nxw_utils.DBException as err:
+                LOG.debug("Cannot find flow entry in DB ('%s')" % str(err))
+            except Exception, err:
+                LOG.debug("Cannot find flow entry ('%s')" % str(err))
+
+            # XXX FIXME: Fill flow_entry table also with table_id and action
+            self.db_conn.flow_insert(dpid=data['datapath_id'],
+                                     idle_timeout=flow_mod['idle_timeout'],
+                                     hard_timeout=flow_mod['hard_timeout'],
+                                     priority=flow_mod['priority'],
+                                     cookie=flow_mod['cookie'],
+                                     dl_type=flow_match['dl_type'],
+                                     dl_src=flow_match['dl_src'],
+                                     dl_dst=flow_match['dl_dst'],
+                                     dl_vlan=flow_match['dl_vlan'],
+                                     dl_vlan_pcp=flow_match['dl_vlan_pcp'],
+                                     nw_src=flow_match['nw_src'],
+                                     nw_dst=flow_match['nw_dst'],
+                                     nw_proto=flow_match['nw_proto'],
+                                     tp_src=flow_match['tp_dst'],
+                                     tp_dst=flow_match['tp_dst'],
+                                     in_port=flow_match['in_port'],
+                                     nw_src_n_wild=flow_match['nw_src_n_wild'],
+                                     nw_dst_n_wild=flow_match['nw_dst_n_wild'])
+            self.db_conn.commit()
+            LOG.debug("Flow entry successfully committed")
+            return CONTINUE
+
+        except nxw_utils.DBException as err:
                 LOG.error(str(err))
-                # rollback transaction
                 self.db_conn.rollback()
                 return CONTINUE
-
-            finally:
-                self.db_conn.close()
-
-        except Exception, e:
-            LOG.error(e)
+        except Exception, err:
+            LOG.error(str(err))
             return CONTINUE
+        finally:
+            self.db_conn.close()
 
     def flow_removed_handler(self, ingress):
         """ Handler for Flow_removed event """
@@ -951,10 +965,33 @@ class TopologyMgr(Component):
             data = ingress.__dict__
             LOG.debug("Received flow_rem_ev with the following data: %s" % \
                        str(data))
+            flow_match  = self.__build_fentry_db(data['flow'])
+            self.db_conn.open_transaction()
+            idx = self.db_conn.flow_get_index(dpid=data['datapath_id'],
+                                        dl_type=flow_match['dl_type'],
+                                        dl_src=flow_match['dl_src'],
+                                        dl_dst=flow_match['dl_dst'],
+                                        dl_vlan=flow_match['dl_vlan'],
+                                        dl_vlan_pcp=flow_match['dl_vlan_pcp'],
+                                        nw_src=flow_match['nw_src'],
+                                        nw_dst=flow_match['nw_dst'],
+                                        nw_proto=flow_match['nw_proto'],
+                                        tp_src=flow_match['tp_dst'],
+                                        tp_dst=flow_match['tp_dst'],
+                                        in_port=flow_match['in_port'])
+            self.db_conn.flow_delete(idx)
+            LOG.info("Flow entry successfully removed")
             return CONTINUE
-        except Exception, e:
-            LOG.error(e)
+
+        except nxw_utils.DBException as err:
+            LOG.error("Cannot remove flow entry ('%s')" % str(err))
+            self.db_conn.rollback()
             return CONTINUE
+        except Exception, err:
+            LOG.error("Cannot remove flow entry ('%s')" % str(err))
+            return CONTINUE
+        finally:
+            self.db_conn.close()
 
     def node_get_frompidport(self, dpid, port):
         """ Get node from dpid and port """
