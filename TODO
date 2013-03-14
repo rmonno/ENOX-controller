@@ -3,11 +3,10 @@
 * topologymgr
 
     * Call F-PCE functions and test its functionalities
+        * Verify deletion of all hosts from PCERA DB
+    * Verify correct using of the exception (e.g. for host_auth handler)
 
-* of_discovery application:
-    * Verify the correct retrieval of the flow tables for all connected OF
-      switches
-        ** Add response handling to retrieve received stats from switches
-    * Move functions which handle events (e.g. flow_stats_recv) into
-      ReceiverHandler class
-
+* topology_sql.db:
+    * Use ENUM for actions in the flow_entries table
+    * [Opt] Definition of the acceptable values range (e.g. for the fields in
+      the flow_entry table
