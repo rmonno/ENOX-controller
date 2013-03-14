@@ -525,34 +525,15 @@ class TopologyMgr(Component):
 
     def __host_insert_db(self, mac_addr, dpid, port, ip_addr = None):
         """ Insert host DB entries """
-        try:
-            # Host_insert
-            self.db_conn.open_transaction()
-            self.db_conn.host_insert(mac_addr, dpid, port, ip_addr)
-
-            # commit transaction
-            self.db_conn.commit()
-            LOG.debug("Successfully committed information!")
-
-        except nxw_utils.DBException:
-            self.db_conn.rollback()
-            raise
+        self.db_conn.host_insert(mac_addr, dpid, port, ip_addr)
+        self.db_conn.commit()
+        LOG.debug("Successfully committed information!")
 
     def __host_update_db(self, mac_addr, ip_addr):
         """ Update host DB entries """
-        try:
-            # connect and open transaction
-            self.db_conn.open_transaction()
-            # Host_insert
-            self.db_conn.host_update(mac_addr, ip_addr)
-            # commit transaction
-            self.db_conn.commit()
-            LOG.debug("Successfully committed information!")
-        except nxw_utils.DBException:
-            self.db_conn.rollback()
-            raise
-        finally:
-            self.db_conn.close()
+        self.db_conn.host_update(mac_addr, ip_addr)
+        self.db_conn.commit()
+        LOG.debug("Successfully committed information!")
 
     def __host_leave(self, dladdr):
         """ Handler for host_leave event """
@@ -636,6 +617,7 @@ class TopologyMgr(Component):
 
             try:
                 try:
+                    self.db_conn.open_transaction()
                     host_idx = None
                     host_idx = self.db_conn.host_get_index(dladdr)
                     LOG.debug("Host with mac_addr '%s' has index '%s'" % \
@@ -661,7 +643,6 @@ class TopologyMgr(Component):
                 else:
                     LOG.debug("Got host_bind_ev for an host already " + \
                               "present in DB")
-                    self.db_conn.open_transaction()
                     LOG.debug("Updating host info in DB...")
                     self.db_conn.host_update(dladdr, host_ipaddr)
                     self.db_conn.commit()
@@ -769,6 +750,7 @@ class TopologyMgr(Component):
                                       str(dladdr))
                     except nxw_utils.DBException as err:
                         LOG.error(str(err))
+                        self.db_conn.rollback()
                     except Exception, err:
                         LOG.error("Cannot insert host info into DB ('%s')")
                 else:
@@ -780,6 +762,7 @@ class TopologyMgr(Component):
                         LOG.debug("Updated host '%s'" % str(dladdr))
                     except nxw_utils.DBException as err:
                         LOG.error(str(err))
+                        self.db_conn.rollback()
                     except Exception:
                         LOG.error("Cannot insert host info into DB ('%s')")
 
