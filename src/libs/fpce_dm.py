@@ -9,6 +9,7 @@ import PCERA
 import _GlobalIDL as GLOB
 
 import color_log as cl
+from conversion import indexfromUpperLower
 
 LOG = cl.ColorLog(logging.getLogger('fpce-dm'))
 
@@ -285,7 +286,9 @@ class FPCE(object):
             return (None, None)
 
         nid = convert_ipv4_to_str(ero_item.hop.node).split('.')
-        return (nid[1], nid[3])
+        dpid = indexfromUpperLower(nid[0], nid[1])
+        portno = indexfromUpperLower(nid[2], nid[3])
+        return (dpid, portno)
 
     def add_node_from_string(self, node):
         """ add node from string """
