@@ -5,3 +5,8 @@ It is a brief description of the file cointained in this folder:
                           the authenticator application. Problems with the
                           wrong values for the "in_port" field suggest to not
                           adopt this solution
+
+topology_manager_foronlypkt.py: It ia an old version of the topology manager
+                                that supports only packet domain
+                                functionalities. It is aligned with the version
+                                1.0
