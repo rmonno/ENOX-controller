@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with NOX.  If not, see <http://www.gnu.org/licenses/>.
 # ----------------------------------------------------------------------
-""" Web-Server NOX application """
+""" Core-Manager NOX application """
+
+from nox.coreapps.pyrt.pycomponent import CONTINUE
 
 import sys
 import os
@@ -42,7 +44,7 @@ for (root, dirs, names) in os.walk(IDL_FIND_PATH):
 
 import libs as nxw_utils
 
-WLOG = nxw_utils.ColorLog(logging.getLogger('web-log'))
+WLOG = nxw_utils.ColorLog(logging.getLogger('core-manager'))
 PROXY_POST = None
 PROXY_DB = None
 
@@ -245,7 +247,7 @@ def pckt_flow_create():
         PROXY_DB.close()
 
 
-class Service(threading.Thread):
+class CoreService(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)
         self._host = host
@@ -255,27 +257,81 @@ class Service(threading.Thread):
         self.start()
 
     def run(self):
-        WLOG.debug("Starting web-server thread")
+        WLOG.debug("Starting core-service thread")
         bottle.run(host=self._host, port=self._port, debug=self._debug)
 
 
-class WebServMgr(Component):
-    """ Web-Server Manager Class """
+class CoreManager(Component):
+    """ Core-Manager Class """
     CONFIG_FILE = LIBS_PATH + "/libs/" + "nox_topologymgr.cfg"
 
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
-        self._conf = nxw_utils.WebServConfigParser(WebServMgr.CONFIG_FILE)
-        self._conf_db = nxw_utils.DBConfigParser(WebServMgr.CONFIG_FILE)
+        self._conf_ws = nxw_utils.WebServConfigParser(CoreManager.CONFIG_FILE)
+        self._conf_db = nxw_utils.DBConfigParser(CoreManager.CONFIG_FILE)
+        self._conf_pce = nxw_utils.NoxConfigParser(CoreManager.CONFIG_FILE)
+        self._fpce = nxw_utils.FPCE()
         self._server = None
+
+        self._ior_topo = False
+        self._ior_rout = False
+        self._pce_client = nxw_utils.PCEClient(self._conf_pce.address,
+                                               self._conf_pce.port,
+                                               int(self._conf_pce.size))
+        self._pce_client.create()
+
+    def __pce_interface_enable(self, interf):
+        WLOG.debug("Retrieving IOR for %s requests" % interf)
+        try:
+            r_ = self._pce_client.send_msg(interf)
+            if r_ is None:
+                return (False, None)
+
+            WLOG.debug("Received the following response: %s", str(r_))
+            pr_ = self._pce_client.decode_requests(r_)
+            if not pr_:
+                WLOG.error("Got an error in response parsing...")
+                return (False, None)
+
+            WLOG.info("Received the following IOR: '%s'", str(pr_))
+            return (True, pr_)
+
+        except Exception as err:
+            WLOG.error("Pce Interface Failure: %s", str(err))
+            return (False, None)
+
+    def pce_topology_enable(self):
+        """ Enable PCE-topology """
+        (self._ior_topo, ior) = self.__pce_interface_enable("topology")
+        if self._ior_topo:
+            self._fpce.ior_topology_add(ior)
+
+        return self._ior_topo
+
+    def pce_routing_enable(self):
+        """ Enable PCE-routing """
+        (self._ior_rout, ior) = self.__pce_interface_enable("routing")
+        if self._ior_rout:
+            self._fpce.ior_routing_add(ior)
+
+        return self._ior_rout
+
+    def configure(self, configuration):
+        """ Enable communication to flow-pce """
+        self.pce_topology_enable()
+        self.pce_routing_enable()
+
+        """ Register python events """
+        #self.register_python_event(nxw_utils.Pck_setFlowEntryEvent.NAME)
+        return CONTINUE
 
     def install(self):
         """ Install """
         global PROXY_POST
         global PROXY_DB
-        self._server = Service('web-server', self._conf.host,
-                               self._conf.port, self._conf.debug)
-        self.post_callback(int(self._conf.timeout), self.timer_handler)
+        self._server = CoreService('core-service', self._conf_ws.host,
+                                   self._conf_ws.port, self._conf_ws.debug)
+        self.post_callback(int(self._conf_ws.timeout), self.timer_handler)
 
         PROXY_POST = self.post
         PROXY_DB = nxw_utils.TopologyOFCManager(host=self._conf_db.host,
@@ -283,17 +339,18 @@ class WebServMgr(Component):
                                                 pswd=self._conf_db.pswd,
                                                 database=self._conf_db.name,
                                                 logger=WLOG)
+        return CONTINUE
 
     def getInterface(self):
         """ Get interface """
-        return str(WebServMgr)
+        return str(CoreManager)
 
     def timer_handler(self):
-        WLOG.debug("WebServMgr timeout fired")
+        WLOG.debug("CoreManager timeout fired")
         if self._server.isAlive():
-            self.post_callback(int(self._conf.timeout), self.timer_handler)
+            self.post_callback(int(self._conf_ws.timeout), self.timer_handler)
         else:
-            WLOG.error('WebServer is not running!')
+            WLOG.error('CoreManager is not running!')
 
 
 def getFactory():
@@ -301,7 +358,7 @@ def getFactory():
     class Factory:
         """ Class Factory """
         def instance(self, ctxt):
-            """ Return Web-Server Manager object """
-            return WebServMgr(ctxt)
+            """ Return Core-Manager object """
+            return CoreManager(ctxt)
 
     return Factory()
