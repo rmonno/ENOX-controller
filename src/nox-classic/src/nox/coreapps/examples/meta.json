@@ -43,21 +43,21 @@
             "python": "nox.coreapps.examples.dnsspy"
         },
         {
-            "name": "topologymgr" ,
+            "name": "discovery_packet" ,
             "dependencies": [
                 "python",
                 "pyauthenticator",
                 "discovery"
             ],
-            "python": "nox.coreapps.examples.topologymgr"
+            "python": "nox.coreapps.examples.discovery_packet"
         },
         {
-            "name": "webserv" ,
+            "name": "core_manager" ,
             "dependencies": [
                 "python",
-                "topologymgr"
+                "discovery_packet"
             ],
-            "python": "nox.coreapps.examples.webserv"
+            "python": "nox.coreapps.examples.core_manager"
         }
 
     ]
