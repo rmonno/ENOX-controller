@@ -47,8 +47,71 @@ import libs as nxw_utils
 WLOG = nxw_utils.ColorLog(logging.getLogger('core-manager'))
 PROXY_POST = None
 PROXY_DB = None
+PROXY_PCE_CHECK = None
+PROXY_PCE = None
 
 
+# utilities
+def create_node_ipv4(dpid, portno):
+    try:
+        PROXY_DB.open_transaction()
+        didx = PROXY_DB.datapath_get_index(dpid)
+        pidx = PROXY_DB.port_get_index(dpid, portno)
+        return nxw_utils.createNodeIPv4(didx, pidx)
+
+    finally:
+        PROXY_DB.close()
+
+
+def datapath_leave_db_actions(dpid):
+    nodes = []
+    links = []
+    hosts = []
+    try:
+        PROXY_DB.open_transaction()
+
+        d_idx  = PROXY_DB.datapath_get_index(d_id=dpid)
+        p_idxs = PROXY_DB.port_get_indexes(d_id=dpid)
+        for p_idx in p_idxs:
+            nodes.append(nxw_utils.createNodeIPv4(d_idx, p_idx))
+
+        try: # optional
+            h_idxs = PROXY_DB.host_get_indexes(d_id=dpid)
+            for in_port, ip_addr in h_idxs:
+                port = PROXY_DB.port_get_index(d_id=dpid, port_no=in_port)
+                node = nxw_utils.createNodeIPv4(d_idx, port)
+
+                links.append((ip_addr, node))
+                hosts.append(ip_addr)
+
+        except nxw_utils.DBException as err:
+            WLOG.error("host_get_indexes: " + str(err))
+
+        try: # optional
+            l_idxs = PROXY_DB.link_get_indexes(src_dpid=dpid)
+            for src_pno, dst_dpid, dst_pno in l_idxs:
+                src_port = PROXY_DB.port_get_index(d_id=dpid, port_no=src_pno)
+                src_node = nxw_utils.createNodeIPv4(d_idx, src_port)
+
+                dst_id = PROXY_DB.datapath_get_index(d_id=dst_dpid)
+                dst_port = PROXY_DB.port_get_index(d_id=dst_dpid, port_no=dst_pno)
+                dst_node = nxw_utils.createNodeIPv4(dst_id, dst_port)
+
+                links.append((src_node, dst_node))
+
+        except nxw_utils.DBException as err:
+            WLOG.error("link_get_indexes: " + str(err))
+
+    except nxw_utils.DBException as err:
+        WLOG.error("dp_leave_db_actions: " + str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    return (nodes, links, hosts)
+
+
+# HTTP requests
 @bottle.route('/hello')
 def hello():
     evt_ = nxw_utils.Pck_setFlowEntryEvent('192.168.1.1', '192.168.1.2')
@@ -92,6 +155,115 @@ def dpid_info(dpid):
 
     finally:
         PROXY_DB.close()
+
+
+@bottle.post('/pckt_dpid')
+def pckt_dpid_create():
+    WLOG.info("Enter http pckt_dpid_create")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    dpid_ = bottle.request.json['dpid']
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.datapath_insert(d_id=dpid_,
+                                 d_name="ofswitch-" + str(dpid_),
+                                 caps=bottle.request.json['ofp_capabilities'],
+                                 actions=bottle.request.json['ofp_actions'],
+                                 buffers=bottle.request.json['buffers'],
+                                 tables=bottle.request.json['tables'])
+
+        for port in bottle.request.json['ports']:
+            PROXY_DB.port_insert(d_id=dpid_,
+                                 port_no=port['port_no'],
+                                 hw_addr=port['hw_addr'],
+                                 name=port['name'],
+                                 config=port['config'],
+                                 state=port['state'],
+                                 curr=port['curr'],
+                                 advertised=port['advertised'],
+                                 supported=port['supported'],
+                                 peer=port['peer'])
+
+        PROXY_DB.commit()
+        WLOG.debug("Successfull committed information!")
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_dpid_create: " + str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    if not PROXY_PCE_CHECK('topology'):
+        bottle.abort(500, "Unable to contact ior-dispatcher on PCE node!")
+
+    nodes = []
+    try:
+        for port in bottle.request.json['ports']:
+            node = create_node_ipv4(dpid_, port['port_no'])
+            nodes.append(node)
+
+    except Exception as err:
+        WLOG.error("pckt_dpid_create: " + str(err))
+        bottle.abort(500, str(err))
+
+    WLOG.debug("Nodes=%s", nodes)
+    # update flow-pce topology (nodes)
+    for node in nodes:
+        PROXY_PCE.add_node_from_string(node)
+
+    # update flow-pce topology (links)
+    for node in nodes:
+        others = [n for n in nodes if n != node]
+
+        for oth in others:
+            PROXY_PCE.add_link_from_strings(node, oth)
+
+    return bottle.HTTPResponse(body='Operation completed', status=201)
+
+
+@bottle.delete('/pckt_dpid/<id:int>')
+def pckt_dpid_delete(id):
+    WLOG.info("Enter http pckt_dpid_delete: id=%d", id)
+    if PROXY_PCE_CHECK('topology'):
+        (nodes, links, hosts) = datapath_leave_db_actions(id)
+
+        WLOG.info("nodes=%s", nodes)
+        for node in nodes:
+            others = [n for n in nodes if n != node]
+
+            for oth in others:
+                PROXY_PCE.del_link_from_strings(node, oth)
+
+        WLOG.info("links=%s", links)
+        for src, dst in links:
+            PROXY_PCE.del_link_from_strings(src, dst)
+            PROXY_PCE.del_link_from_strings(dst, src)
+
+        for node in nodes:
+            PROXY_PCE.del_node_from_string(node)
+
+        WLOG.info("hosts=%s", hosts)
+        for host in hosts:
+            PROXY_PCE.del_node_from_string(host)
+
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.datapath_delete(d_id=id)
+        PROXY_DB.commit()
+        WLOG.debug("Successfull committed information!")
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_dpid_delete: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    return bottle.HTTPResponse(body='Operation completed', status=204)
 
 
 @bottle.get('/ports')
@@ -316,6 +488,17 @@ class CoreManager(Component):
 
         return self._ior_rout
 
+    def pce_check(self, interf):
+        if interf == 'topology':
+            if not self._ior_topo and not self.pce_topology_enable():
+                return False
+
+        elif interf == 'routing':
+            if not self._ior_rout and not self.pce_routing_enable():
+                return False
+
+        return True
+
     def configure(self, configuration):
         """ Enable communication to flow-pce """
         self.pce_topology_enable()
@@ -329,6 +512,8 @@ class CoreManager(Component):
         """ Install """
         global PROXY_POST
         global PROXY_DB
+        global PROXY_PCE_CHECK
+        global PROXY_PCE
         self._server = CoreService('core-service', self._conf_ws.host,
                                    self._conf_ws.port, self._conf_ws.debug)
         self.post_callback(int(self._conf_ws.timeout), self.timer_handler)
@@ -339,6 +524,8 @@ class CoreManager(Component):
                                                 pswd=self._conf_db.pswd,
                                                 database=self._conf_db.name,
                                                 logger=WLOG)
+        PROXY_PCE_CHECK = self.pce_check
+        PROXY_PCE = self._fpce
         return CONTINUE
 
     def getInterface(self):
