@@ -303,11 +303,6 @@ class DiscoveryPacket(Component):
                     "dst_portno": data['dport'],
                   }
 
-        payload = { "src_dpid": 1,
-                    "src_portno": 1,
-                    "dst_dpid": 2,
-                    "dst_portno": 2
-                  }
         req = requests.delete(url=self.url_ + "pckt_intersw_link",
                              headers=self.hs, data=json.dumps(payload))
         LOG.debug("URL=%s" % req.url)
@@ -331,7 +326,6 @@ class DiscoveryPacket(Component):
             else:
                 LOG.error("Cannot handle the following action: '%s'" % \
                            str(link_data['action']))
-                return CONTINUE
 
             return CONTINUE
 
@@ -339,12 +333,72 @@ class DiscoveryPacket(Component):
             LOG.error("Got errors in link_event handler ('%s')" % str(err))
             return CONTINUE
 
+    def host_auth_handler(self, data):
+        """ Handler for host_auth_event """
+        assert(data is not None)
+        try:
+            auth_data = data.__dict__
+            LOG.info("Received host_auth_ev with the following data: %s" %
+                      str(auth_data))
+            dladdr      = pkt_utils.mac_to_str(auth_data['dladdr'])
+            host_ipaddr = nxw_utils.convert_ipv4_to_str(auth_data['nwaddr'])
+
+            if auth_data['nwaddr'] == 0:
+                LOG.debug("Received auth_event without IP address...")
+                # Since Datapath_join event for an OF switch with
+                # dladdr could be caught later, we need to store info
+                self.hosts[dladdr]          = nxw_utils.Host(dladdr)
+                self.hosts[dladdr].rem_dpid = auth_data['datapath_id']
+                self.hosts[dladdr].rem_port = auth_data['port']
+                return CONTINUE
+
+            if dladdr in self.auth_hosts:
+                LOG.debug("Ignoring auth_event (more notifications for" + \
+                          " multiple inter-switch links)")
+                return CONTINUE
+            self.auth_hosts.append(dladdr)
+
+            try:
+                # get host (for check if it is already present)
+                req = requests.get(url=url_ + "/pckt_host/%s" % str(dladdr))
+                LOG.debug("URL=%s" % req.url)
+                LOG.debug("Response=%s" % req.text)
+                if req.text == "204":
+                    LOG.debug("Found entry for an host with mac_addr '%s'" %
+                               str(dladdr))
+                    # XXX FIXME: Add proper checks for host info updating
+                    #LOG.debug("Updated host '%s'" % str(dladdr))
+                else:
+                    LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
+
+            except Exception, err:
+                LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
+
+            if auth_data['nwaddr'] != 0:
+                # post host
+                payload = { "ip_addr"     : host_ipaddr,
+                            "mac"         : dladdr,
+                            "peer_dpid"   : auth_data['datapath_id'],
+                            "peer_portno" : auth_data['port'],
+                          }
+                req = requests.post(url=self.url + "pckt_host",
+                                    headers=self.hs, data=json.dumps(payload))
+                LOG.debug("URL=%s" % req.url)
+                LOG.debug("Response=%s" % req.text)
+
+            return CONTINUE
+
+        except Exception, err:
+            LOG.error("Got errors in host_auth_ev handler ('%s')" % str(err))
+            return CONTINUE
+
     def host_bind_handler(self, data):
-        """ Handler for host_bind_event """
+        """ Handler for host_binf_event """
         assert(data is not None)
         try:
             bind_data   = data.__dict__
-            #dladdr      = pkt_utils.mac_to_str(bind_data['dladdr'])
+            dladdr      = pkt_utils.mac_to_str(bind_data['dladdr'])
+            host_ipaddr = nxw_utils.convert_ipv4_to_str(bind_data['nwaddr'])
 
             # Check reason value
             reason     = int(bind_data['reason'])
@@ -356,8 +410,7 @@ class DiscoveryPacket(Component):
 
             # XXX FIXME: Insert mapping for values <--> reason
             if reason > 7:
-                LOG.debug("Got host_leave event with reason value %d" % reason)
-                #ret = self.__host_leave(dladdr)
+                ret = self.__host_leave(dladdr)
                 if not ret:
                     return CONTINUE
             elif (reason < 3 or reason == 5) and (bind_data['nwaddr'] == 0):
@@ -367,28 +420,53 @@ class DiscoveryPacket(Component):
                 LOG.error("Unsupported reason for host_bind_ev: '%s'" % \
                            reason_str)
                 return CONTINUE
+
             LOG.info("Received host_bind_ev with the following data: %s" % \
                       str(bind_data))
-            return CONTINUE
+
+            try:
+                # get host (for check if it is already present)
+                req = requests.get(url=url_ + "/pckt_host/%s" % str(dladdr))
+                LOG.debug("URL=%s" % req.url)
+                LOG.debug("Response=%s" % req.text)
+                if req.text == "204":
+                    LOG.debug("Found entry for an host with mac_addr '%s'" %
+                               str(dladdr))
+                    # XXX FIXME: Add proper checks for host info updating
+                    #LOG.debug("Updated host '%s'" % str(dladdr))
+                    return CONTINUE
+                else:
+                    LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
+
+            except Exception, err:
+                LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
+
+            if dladdr in self.hosts:
+                LOG.debug("Got host_bind_ev for an host not present in DB yet")
+
+                #post host
+                payload = { "ip_addr"     : host_ipaddr,
+                            "mac"         : dladdr,
+                            "peer_dpid"   : bind_data['datapath_id'],
+                            "peer_portno" : bind_data['port'],
+                          }
+                req = requests.post(url=self.url + "pckt_host",
+                                    headers=self.hs, data=json.dumps(payload))
+                LOG.debug("URL=%s" % req.url)
+                LOG.debug("Response=%s" % req.text)
+                self.hosts.pop(dladdr)
+                if dladdr in self.auth_hosts:
+                    self.auth_hosts.remove(dladdr)
+
+            else:
+                LOG.debug("Got host_bind_ev for an host already " + \
+                          "present in DB")
+                LOG.debug("Updating host...")
+                # XXX FIXME: Insert code for host update
+                LOG.info("Host info updated successfully")
 
         except Exception, err:
             LOG.error("Got error in host_bind_handler (%s)" % str(err))
-            return CONTINUE
-
-    def host_auth_handler(self, data):
-        """ Handler for host_auth_event """
-        assert(data is not None)
-        try:
-            auth_data = data.__dict__
-            LOG.info("Received host_auth_ev with the following data: %s" %
-                      str(auth_data))
-            #dladdr      = pkt_utils.mac_to_str(auth_data['dladdr'])
-            #host_ipaddr = nxw_utils.convert_ipv4_to_str(auth_data['nwaddr'])
-
-            return CONTINUE
-
-        except Exception, err:
-            LOG.error("Got errors in host_auth_ev handler ('%s')" % str(err))
             return CONTINUE
 
     def flow_mod_handler(self, ingress):
