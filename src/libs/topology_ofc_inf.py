@@ -289,6 +289,11 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def host_get_info(self, mac_addr):
+        """ get host id, ip_addr, dpid, inport """
+        pass
+
+    @abstractmethod
     def host_get_mac_addr(self, ip_addr):
         """ get host mac address """
         pass

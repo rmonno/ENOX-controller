@@ -350,6 +350,43 @@ def pckt_host_create():
     return bottle.HTTPResponse(body='Operation completed', status=201)
 
 
+# DELETE /pckt_host
+@bottle.delete('/pckt_host')
+def pckt_host_delete():
+    WLOG.info("Enter http pckt_host_delete")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    mac_ = bottle.request.json['mac']
+    (dpid_, portno_, ip_) = (None, None, None)
+
+    try:
+        PROXY_DB.open_transaction()
+        (id_, ip_, dpid_, portno_) = PROXY_DB.host_get_info(mac_addr=mac_)
+        PROXY_DB.host_delete(idd=id_)
+        PROXY_DB.commit()
+        WLOG.debug("Successfull committed information!")
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_host_delete: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    if PROXY_PCE_CHECK('topology'):
+        dst_node_ = create_node_ipv4(dpid_, portno_)
+        WLOG.debug("Host=%s, Dst Node=%s", ip_, dst_node_)
+
+        PROXY_PCE.del_link_from_strings(ip_, dst_node_)
+        PROXY_PCE.del_link_from_strings(dst_node_, ip_)
+        PROXY_PCE.del_node_from_string(ip_)
+
+    return bottle.HTTPResponse(body='Operation completed', status=204)
+
+
 # HTTP northbound interface
 #
 @bottle.route('/hello')

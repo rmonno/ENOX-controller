@@ -493,6 +493,17 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return ret["in_port"]
 
+    def host_get_info(self, mac_addr):
+        """ get host id, ip_addr, dpid, inport """
+        table = "hosts"
+
+        statement = "SELECT hostID, ip_addr, dpid, in_port FROM " + table +\
+                    " WHERE mac_addr=%s"
+        values = (mac_addr)
+        ret = self.__execute_dict(statement, values, one=True)
+
+        return (ret["hostID"], ret["ip_addr"], ret["dpid"], ret["in_port"])
+
     def host_get_ipaddr(self, mac_addr):
         """ get host ip address """
         table = "hosts"
