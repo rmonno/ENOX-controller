@@ -111,52 +111,9 @@ def datapath_leave_db_actions(dpid):
     return (nodes, links, hosts)
 
 
-# HTTP requests
-@bottle.route('/hello')
-def hello():
-    evt_ = nxw_utils.Pck_setFlowEntryEvent('192.168.1.1', '192.168.1.2')
-    PROXY_POST(evt_.describe())
-    return "Hello World!"
-
-
-@bottle.get('/dpids')
-def dpids():
-    WLOG.info("Enter http dpids")
-    try:
-        PROXY_DB.open_transaction()
-        rows_ = PROXY_DB.datapath_select()
-        resp_ = nxw_utils.HTTPResponseGetDPIDS([str(r['id']) for r in rows_])
-        return resp_.body()
-
-    except nxw_utils.DBException as err:
-        WLOG.error("dpids: " + str(err))
-        bottle.abort(500, str(err))
-
-    finally:
-        PROXY_DB.close()
-
-
-@bottle.get('/dpids/<dpid:int>')
-def dpid_info(dpid):
-    WLOG.info("Enter http dpid_info: dpid=%d", dpid)
-    try:
-        PROXY_DB.open_transaction()
-        rows_ = PROXY_DB.datapath_select(d_id=dpid)
-
-        if len(rows_) > 1:
-            bottle.abort(500, 'Duplicated key!')
-
-        resp_ = nxw_utils.HTTPResponseGetDPIDInfo(db_row=rows_[0])
-        return resp_.body()
-
-    except nxw_utils.DBException as err:
-        WLOG.error("dpid_info: " + str(err))
-        bottle.abort(500, str(err))
-
-    finally:
-        PROXY_DB.close()
-
-
+# HTTP southbound interface
+#
+# POST /pckt_dpid + json params
 @bottle.post('/pckt_dpid')
 def pckt_dpid_create():
     WLOG.info("Enter http pckt_dpid_create")
@@ -224,6 +181,7 @@ def pckt_dpid_create():
     return bottle.HTTPResponse(body='Operation completed', status=201)
 
 
+# DELETE /pckt_dpid/<id>
 @bottle.delete('/pckt_dpid/<id:int>')
 def pckt_dpid_delete(id):
     WLOG.info("Enter http pckt_dpid_delete: id=%d", id)
@@ -264,6 +222,135 @@ def pckt_dpid_delete(id):
         PROXY_DB.close()
 
     return bottle.HTTPResponse(body='Operation completed', status=204)
+
+
+# POST /pckt_intersw_link + json params
+@bottle.post('/pckt_intersw_link')
+def pckt_intersw_link_create():
+    WLOG.info("Enter http pckt_intersw_link_create")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    src_dpid_ = bottle.request.json['src_dpid']
+    dst_dpid_ = bottle.request.json['dst_dpid']
+    src_portno_ = bottle.request.json['src_portno']
+    dst_portno_ = bottle.request.json['dst_portno']
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.link_insert(src_dpid=src_dpid_, src_pno=src_portno_,
+                             dst_dpid=dst_dpid_, dst_pno=dst_portno_)
+        PROXY_DB.commit()
+        WLOG.debug("Successfull committed information!")
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_intersw_link_create: " + str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    if not PROXY_PCE_CHECK('topology'):
+        bottle.abort(500, "Unable to contact ior-dispatcher on PCE node!")
+
+    try:
+        src_node_ = create_node_ipv4(src_dpid_, src_portno_)
+        dst_node_ = create_node_ipv4(dst_dpid_, dst_portno_)
+        WLOG.debug("Src Node=%s, Dst Node=%s", src_node_, dst_node_)
+
+        PROXY_PCE.add_link_from_strings(src_node_, dst_node_)
+        PROXY_PCE.add_link_from_strings(dst_node_, src_node_)
+
+    except Exception as err:
+        WLOG.error("pckt_intersw_link_create: " + str(err))
+        bottle.abort(500, str(err))
+
+    return bottle.HTTPResponse(body='Operation completed', status=201)
+
+
+# DELETE /pckt_intersw_link
+@bottle.delete('/pckt_intersw_link')
+def pckt_intersw_link_delete():
+    WLOG.info("Enter http pckt_intersw_link_delete")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    src_dpid_ = bottle.request.json['src_dpid']
+    dst_dpid_ = bottle.request.json['dst_dpid']
+    src_portno_ = bottle.request.json['src_portno']
+    dst_portno_ = bottle.request.json['dst_portno']
+
+    if PROXY_PCE_CHECK('topology'):
+        src_node_ = create_node_ipv4(src_dpid_, src_portno_)
+        dst_node_ = create_node_ipv4(dst_dpid_, dst_portno_)
+        WLOG.debug("Src Node=%s, Dst Node=%s", src_node_, dst_node_)
+
+        PROXY_PCE.del_link_from_strings(src_node_, dst_node_)
+        PROXY_PCE.del_link_from_strings(dst_node_, src_node_)
+
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.link_delete(src_dpid=src_dpid_, src_pno=src_portno_)
+        PROXY_DB.commit()
+        WLOG.debug("Successfull committed information!")
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_intersw_link_delete: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    return bottle.HTTPResponse(body='Operation completed', status=204)
+
+
+# HTTP northbound interface
+#
+@bottle.route('/hello')
+def hello():
+    evt_ = nxw_utils.Pck_setFlowEntryEvent('192.168.1.1', '192.168.1.2')
+    PROXY_POST(evt_.describe())
+    return "Hello World!"
+
+
+@bottle.get('/dpids')
+def dpids():
+    WLOG.info("Enter http dpids")
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.datapath_select()
+        resp_ = nxw_utils.HTTPResponseGetDPIDS([str(r['id']) for r in rows_])
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("dpids: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
+@bottle.get('/dpids/<dpid:int>')
+def dpid_info(dpid):
+    WLOG.info("Enter http dpid_info: dpid=%d", dpid)
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.datapath_select(d_id=dpid)
+
+        if len(rows_) > 1:
+            bottle.abort(500, 'Duplicated key!')
+
+        resp_ = nxw_utils.HTTPResponseGetDPIDInfo(db_row=rows_[0])
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("dpid_info: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
 
 
 @bottle.get('/ports')
