@@ -306,6 +306,50 @@ def pckt_intersw_link_delete():
     return bottle.HTTPResponse(body='Operation completed', status=204)
 
 
+# POST /pckt_host + json params
+@bottle.post('/pckt_host')
+def pckt_host_create():
+    WLOG.info("Enter http pckt_host_create")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    ip_addr_ = bottle.request.json['ip_addr']
+    mac_ = bottle.request.json['mac']
+    dpid_ = bottle.request.json['peer_dpid']
+    portno_ = bottle.request.json['peer_portno']
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.host_insert(mac_addr=mac_, dpid=dpid_,
+                             in_port=portno_, ip_addr=ip_addr_)
+        PROXY_DB.commit()
+        WLOG.debug("Successfull committed information!")
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_host_create: " + str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    if not PROXY_PCE_CHECK('topology'):
+        bottle.abort(500, "Unable to contact ior-dispatcher on PCE node!")
+
+    try:
+        PROXY_PCE.add_node_from_string(ip_addr_)
+        dst_node_ = create_node_ipv4(dpid_, portno_)
+        WLOG.debug("Host=%s, Dst Node=%s", ip_addr_, dst_node_)
+
+        PROXY_PCE.add_link_from_strings(ip_addr_, dst_node_)
+        PROXY_PCE.add_link_from_strings(dst_node_, ip_addr_)
+
+    except Exception as err:
+        WLOG.error("pckt_host_create: " + str(err))
+        bottle.abort(500, str(err))
+
+    return bottle.HTTPResponse(body='Operation completed', status=201)
+
+
 # HTTP northbound interface
 #
 @bottle.route('/hello')
