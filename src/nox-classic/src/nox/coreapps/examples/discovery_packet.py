@@ -194,8 +194,38 @@ class DiscoveryPacket(Component):
         assert (stats is not None)
 
         LOG.debug("Received datapath_join event for DPID '%s'" % str(dpid))
-        return CONTINUE
 
+        d_name  = "ofswitch-" + str(dpid)
+        caps    = stats['caps']
+        actions = stats['actions']
+        buffers = stats['n_bufs']
+        tables  = stats['n_tables']
+        LOG.debug("Posting....")
+        # XXX FIXME: Insert code in order to send post message
+        LOG.debug("Name=%s, Caps=%s, Act=%s, Buf=%s, Tab=%s" (str(d_name),
+                                                              str(caps),
+                                                              str(actions),
+                                                              str(buffers),
+                                                              str(tables)))
+
+        for p_info in stats['ports']:
+            mac        = pkt_utils.mac_to_str(p_info['hw_addr'])
+            port_no    = p_info['port_no']
+            hw_addr    = mac
+            name       = p_info['name']
+            config     = p_info['config']
+            state      = p_info['state']
+            curr       = p_info['curr']
+            advertised = p_info['advertised']
+            supported  = p_info['supported']
+            peer       = p_info['peer']
+            LOG.debug("Posting....")
+            # XXX FIXME: Insert code in order to send post message
+            LOG.debug(port_no, hw_addr, name,
+                      config, state, curr,
+                      advertised, supported, peer)
+
+        return CONTINUE
 
     def datapath_leave_handler(self, dpid):
         """ Handler for datapath_leave event """
