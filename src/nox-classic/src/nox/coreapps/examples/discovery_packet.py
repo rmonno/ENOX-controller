@@ -32,6 +32,8 @@ import nox.lib.packet.packet_utils      as     pkt_utils
 
 import sys
 import os
+import json
+import requests
 import logging
 from   time import time
 
@@ -87,6 +89,7 @@ class DiscoveryPacket(Component):
                                               conf.port,
                                               int(conf.size))
         self.pce_client.create()
+        self.w_srv = nxw_utils.WebServConfigParser(DiscoveryPacket.CONFIG_FILE)
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pck_setFlowEntryEvent.NAME)
@@ -192,40 +195,44 @@ class DiscoveryPacket(Component):
         """ Handler for datapath_join event """
         assert (dpid  is not None)
         assert (stats is not None)
+        try:
+            LOG.debug("Received datapath_join event for DPID '%s'" % str(dpid))
 
-        LOG.debug("Received datapath_join event for DPID '%s'" % str(dpid))
+            ports = [ ]
+            for p_info in stats['ports']:
+                port = { }
+                port['port_no']    = p_info['port_no']
+                port['hw_addr']    = pkt_utils.mac_to_str(p_info['hw_addr'])
+                port['name']       = p_info['name']
+                port['config']     = p_info['config']
+                port['state']      = p_info['state']
+                port['curr']       = p_info['curr']
+                port['advertised'] = p_info['advertised']
+                port['supported']  = p_info['supported']
+                port['peer']       = p_info['peer']
+                ports.append(port)
 
-        d_name  = "ofswitch-" + str(dpid)
-        caps    = stats['caps']
-        actions = stats['actions']
-        buffers = stats['n_bufs']
-        tables  = stats['n_tables']
-        LOG.debug("Posting....")
-        # XXX FIXME: Insert code in order to send post message
-        LOG.debug("Name=%s, Caps=%s, Act=%s, Buf=%s, Tab=%s" (str(d_name),
-                                                              str(caps),
-                                                              str(actions),
-                                                              str(buffers),
-                                                              str(tables)))
+            url_    = "http://%s:%s/" % (str(self.w_srv.host),
+                                         str(self.w_srv.port))
+            hs_     = {'content-type': 'application/json'}
+            payload = { "dpid": dpid,
+                        "ofp_capabilities": stats['caps'],
+                        "ofp_actions": stats['actions'],
+                        "buffers": stats['n_bufs'],
+                        "tables": stats['n_tables'],
+                        "ports": ports,
+                      }
 
-        for p_info in stats['ports']:
-            mac        = pkt_utils.mac_to_str(p_info['hw_addr'])
-            port_no    = p_info['port_no']
-            hw_addr    = mac
-            name       = p_info['name']
-            config     = p_info['config']
-            state      = p_info['state']
-            curr       = p_info['curr']
-            advertised = p_info['advertised']
-            supported  = p_info['supported']
-            peer       = p_info['peer']
-            LOG.debug("Posting....")
-            # XXX FIXME: Insert code in order to send post message
-            LOG.debug(port_no, hw_addr, name,
-                      config, state, curr,
-                      advertised, supported, peer)
+            r_ = requests.post(url=url_ + "pckt_dpid", headers=hs_,
+                               data=json.dumps(payload))
+            LOG.debug("URL=%s" % r_.url)
+            LOG.debug("Response=%s" % r_.text)
 
-        return CONTINUE
+            return CONTINUE
+
+        except Exception, err:
+            LOG.error("Got error in datapath_join handler (%s)" % str(err))
+            return CONTINUE
 
     def datapath_leave_handler(self, dpid):
         """ Handler for datapath_leave event """
