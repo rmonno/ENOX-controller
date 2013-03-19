@@ -84,12 +84,10 @@ class DiscoveryPacket(Component):
                           11: "HOST_DELETE",
                          }
 
-        conf = nxw_utils.NoxConfigParser(DiscoveryPacket.CONFIG_FILE)
-        self.pce_client = nxw_utils.PCEClient(conf.address,
-                                              conf.port,
-                                              int(conf.size))
-        self.pce_client.create()
         self.w_srv = nxw_utils.WebServConfigParser(DiscoveryPacket.CONFIG_FILE)
+        self.url   = "http://%s:%s/" % (str(self.w_srv.host),
+                                        str(self.w_srv.port))
+        self.hs_   = {'content-type': 'application/json'}
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pck_setFlowEntryEvent.NAME)
@@ -212,9 +210,6 @@ class DiscoveryPacket(Component):
                 port['peer']       = p_info['peer']
                 ports.append(port)
 
-            url_    = "http://%s:%s/" % (str(self.w_srv.host),
-                                         str(self.w_srv.port))
-            hs_     = {'content-type': 'application/json'}
             payload = { "dpid": dpid,
                         "ofp_capabilities": stats['caps'],
                         "ofp_actions": stats['actions'],
@@ -223,10 +218,10 @@ class DiscoveryPacket(Component):
                         "ports": ports,
                       }
 
-            r_ = requests.post(url=url_ + "pckt_dpid", headers=hs_,
-                               data=json.dumps(payload))
-            LOG.debug("URL=%s" % r_.url)
-            LOG.debug("Response=%s" % r_.text)
+            req = requests.post(url=self.url + "pckt_dpid", headers=self.hs,
+                                data=json.dumps(payload))
+            LOG.debug("URL=%s" % req.url)
+            LOG.debug("Response=%s" % req.text)
 
             return CONTINUE
 
@@ -237,9 +232,86 @@ class DiscoveryPacket(Component):
     def datapath_leave_handler(self, dpid):
         """ Handler for datapath_leave event """
         assert (dpid is not None)
-        LOG.debug("Received datapath_leave event for DPID '%s'" % str(dpid))
+        try:
+            LOG.debug("Received datapath_leave event for DPID '%s'" % str(dpid))
 
-        return CONTINUE
+            req = requests.delete(url=self.url + "pckt_dpid %s" % str(dpid))
+            LOG.debug("URL=%s" % req.url)
+            LOG.debug("Response=%s" % req.text)
+
+            return CONTINUE
+
+        except Exception, err:
+            LOG.error("Got error in datapath_leave handler (%s)" % str(err))
+            return CONTINUE
+
+    def link_key_build(self, from_node, to_node):
+        """ Build key for a link """
+        assert(from_node is not None)
+        assert(to_node is not None)
+        key = None
+        key = str(from_node) + "TO" + str(to_node)
+        return key
+
+    def link_add(self, data):
+        """ Add a detected link """
+        assert(data is not None)
+        link_key = self.link_key_build(data['dpsrc'], data['dpdst'])
+        if link_key in self.links:
+            LOG.debug("Link '%s' will be updated with received info" % \
+                       str(link_key))
+            # XXX FIXME: Insert code to update link information
+
+        else:
+            LOG.debug("Adding new detected link '%s'..." % str(link_key))
+            self.links[link_key] = nxw_utils.Link(link_key,
+                                                  data['dpsrc'],
+                                                  data['dpdst'])
+
+        self.links[link_key].adjacency_add(int(data['sport']),
+                                           int(data['dport']))
+        LOG.info("Added a new adjacency for link '%s'" % str(link_key))
+
+        # post inter-switch link
+        payload = { "src_dpid"  : data['dpsrc'],
+                    "src_portno": data['sport'],
+                    "dst_dpid"  : data['dpdst'],
+                    "dst_portno": data['dport'],
+                  }
+        req = requests.post(url=self.url + "pckt_intersw_link",
+                            headers=self.hs_,
+                            data=json.dumps(payload))
+        LOG.debug("URL=%s" % req.url)
+        LOG.debug("Response=%s" % req.text)
+
+    def link_del(self, data):
+        """ Delete links """
+        link_key = self.link_key_build(data['dpsrc'], data['dpdst'])
+        if link_key in self.links:
+            LOG.debug("Link %s will be updated by removing adjancency" % \
+                       str(link_key))
+        else:
+            LOG.error("Cannot find any link with id '%s'" % str(link_key))
+
+        self.links[link_key].adjacency_del(data['sport'],
+                                           data['dport'])
+        LOG.info("Removed an existing adjacency for link '%s'" % str(link_key))
+
+        payload = { "src_dpid"  : data['dpsrc'],
+                    "src_portno": data['sport'],
+                    "dst_dpid"  : data['dpdst'],
+                    "dst_portno": data['dport'],
+                  }
+
+        payload = { "src_dpid": 1,
+                    "src_portno": 1,
+                    "dst_dpid": 2,
+                    "dst_portno": 2
+                  }
+        req = requests.delete(url=self.url_ + "pckt_intersw_link",
+                             headers=self.hs, data=json.dumps(payload))
+        LOG.debug("URL=%s" % req.url)
+        LOG.debug("Response=%s" % req.text)
 
     def link_event_handler(self, ingress):
         """ Handler for link_event """
@@ -250,11 +322,11 @@ class DiscoveryPacket(Component):
                        str(link_data))
             if link_data['action'] == "add":
                 LOG.debug("Adding new detected link...")
-                #self.link_add(link_data)
+                self.link_add(link_data)
 
             elif link_data['action'] == "remove":
                 LOG.debug("Removing link...")
-                #self.link_del(link_data)
+                self.link_del(link_data)
 
             else:
                 LOG.error("Cannot handle the following action: '%s'" % \
