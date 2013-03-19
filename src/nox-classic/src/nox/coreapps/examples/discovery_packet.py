@@ -87,7 +87,7 @@ class DiscoveryPacket(Component):
         self.w_srv = nxw_utils.WebServConfigParser(DiscoveryPacket.CONFIG_FILE)
         self.url   = "http://%s:%s/" % (str(self.w_srv.host),
                                         str(self.w_srv.port))
-        self.hs_   = {'content-type': 'application/json'}
+        self.hs    = {'content-type': 'application/json'}
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pck_setFlowEntryEvent.NAME)
@@ -279,7 +279,7 @@ class DiscoveryPacket(Component):
                     "dst_portno": data['dport'],
                   }
         req = requests.post(url=self.url + "pckt_intersw_link",
-                            headers=self.hs_,
+                            headers=self.hs,
                             data=json.dumps(payload))
         LOG.debug("URL=%s" % req.url)
         LOG.debug("Response=%s" % req.text)
