@@ -27,6 +27,7 @@ import bottle
 import threading
 
 from nox.lib.core import Component
+import nox.lib.openflow as openflow
 
 # update sys python path
 KEY = 'nox-classic'
@@ -109,6 +110,39 @@ def datapath_leave_db_actions(dpid):
         PROXY_DB.close()
 
     return (nodes, links, hosts)
+
+
+def get_optional_params(rjson, key):
+    try:
+        return rjson[key]
+
+    except KeyError:
+        return None
+
+def convert_flows_from_index(flows):
+    WLOG.debug("Flows=%s", str(flows))
+    try:
+        PROXY_DB.open_transaction()
+
+        res = []
+        for din, pin, dout, pout in flows:
+            try:
+                (d_in, p_in) = PROXY_DB.port_get_did_pno(pin)
+                (d_out, p_out) = PROXY_DB.port_get_did_pno(pout)
+
+                res.append((d_in, p_in, d_out, p_out))
+
+            except nxw_utils.DBException as err:
+                WLOG.warning(str(err))
+
+        return res
+
+    except nxw_utils.DBException as err:
+        WLOG.error(str(err))
+        return []
+
+    finally:
+        PROXY_DB.close()
 
 
 # HTTP southbound interface
@@ -385,6 +419,90 @@ def pckt_host_delete():
         PROXY_PCE.del_node_from_string(ip_)
 
     return bottle.HTTPResponse(body='Operation completed', status=204)
+
+
+# HTTP north/south-bound interface
+#
+# POST /pckt_host_path + json params
+@bottle.post('/pckt_host_path')
+def pckt_host_path_req_create():
+    WLOG.info("Enter http pckt_host_path_req_create")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    ip_src_ = bottle.request.json['ip_src']
+    ip_dst_ = bottle.request.json['ip_dst']
+    dst_port_ = get_optional_params(bottle.request.json, 'dst_port')
+    src_port_ = get_optional_params(bottle.request.json, 'src_port')
+    ip_proto_ = get_optional_params(bottle.request.json, 'ip_proto')
+    vlan_id_ = get_optional_params(bottle.request.json, 'vlan_id')
+
+    if not PROXY_PCE_CHECK('routing'):
+        bottle.abort(500, "Unable to contact ior-dispatcher on PCE node!")
+
+    (work_, prot_) = PROXY_PCE.connection_route_from_hosts(ip_src_, ip_dst_)
+    if not work_:
+        bottle.abort(500, "Unable to found working ERO!")
+
+    WLOG.info("WorkingEro(%d)=%s", len(work_), str(work_))
+    WLOG.debug("ProtectedEro(%d)=%s", len(prot_), str(prot_))
+
+    flows = []
+    for idx_x, idx_y in zip(work_, work_[1:]):
+        (din_idx, pin_idx) = PROXY_PCE.decode_ero_item(idx_x)
+        (dout_idx, pout_idx) = PROXY_PCE.decode_ero_item(idx_y)
+
+        flows.append((din_idx, pin_idx, dout_idx, pout_idx))
+
+    # default values
+    default_action = openflow.OFPAT_OUTPUT
+    default_idle = 5
+    default_hard = openflow.OFP_FLOW_PERMANENT
+    default_priority = openflow.OFP_DEFAULT_PRIORITY
+
+    cflows = convert_flows_from_index(flows)
+    try:
+        PROXY_DB.open_transaction()
+        for d_in, p_in, d_out, p_out in cflows:
+            evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=d_in,
+                                                 port_in=p_in,
+                                                 dp_out=d_out,
+                                                 port_out=p_out,
+                                                 ip_src=ip_src_,
+                                                 ip_dst=ip_dst_,
+                                                 tcp_dport=dst_port_,
+                                                 tcp_sport=src_port_,
+                                                 ip_proto=ip_proto_,
+                                                 vid=vlan_id_,
+                                                 action=default_action,
+                                                 idle=default_idle,
+                                                 hard=default_hard,
+                                                 prio=default_priority)
+            WLOG.debug(str(evt_))
+            PROXY_POST(evt_.describe())
+
+            PROXY_DB.flow_insert(dpid=d_in,
+                                 action=default_action,
+                                 idle_timeout=default_idle,
+                                 hard_timeout=default_hard,
+                                 priority=default_priority,
+                                 dl_vlan=vlan_id_,
+                                 nw_src=ip_src_,
+                                 nw_dst=ip_dst_,
+                                 tp_src=src_port_,
+                                 tp_dst=dst_port_,
+                                 in_port=p_in)
+        PROXY_DB.commit()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("pckt_host_path_req_create: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    return bottle.HTTPResponse(body='Operation completed', status=201)
 
 
 # HTTP northbound interface
@@ -673,7 +791,7 @@ class CoreManager(Component):
         self.pce_routing_enable()
 
         """ Register python events """
-        #self.register_python_event(nxw_utils.Pck_setFlowEntryEvent.NAME)
+        self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
         return CONTINUE
 
     def install(self):

@@ -39,6 +39,17 @@ def main (argv=None):
                             "advertised": 13,
                             "supported": 14,
                             "peer": 15,
+                        },
+                        {
+                            "port_no": 2,
+                            "hw_addr": "00:00:00:00:00:22",
+                            "name": "port-1-2",
+                            "config": 10,
+                            "state": 11,
+                            "curr": 12,
+                            "advertised": 13,
+                            "supported": 14,
+                            "peer": 15,
                         }
                     ]
                   }
@@ -49,6 +60,16 @@ def main (argv=None):
                     "mac": "00:11:22:33:44:55",
                     "peer_dpid": 1,
                     "peer_portno": 1
+                  }
+        r_ = requests.post(url=url_ + "pckt_host", headers=hs_,
+                           data=json.dumps(payload))
+        LOG.debug("URL=%s" % r_.url)
+        LOG.debug("Response=%s" % r_.text)
+
+        payload = { "ip_addr": "192.168.1.2",
+                    "mac": "00:11:22:33:44:55",
+                    "peer_dpid": 1,
+                    "peer_portno": 2
                   }
         r_ = requests.post(url=url_ + "pckt_host", headers=hs_,
                            data=json.dumps(payload))
