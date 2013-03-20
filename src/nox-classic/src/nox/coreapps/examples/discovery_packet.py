@@ -235,7 +235,7 @@ class DiscoveryPacket(Component):
         try:
             LOG.debug("Received datapath_leave event for DPID '%s'" % str(dpid))
 
-            req = requests.delete(url=self.url + "pckt_dpid %s" % str(dpid))
+            req = requests.delete(url=self.url + "pckt_dpid/%s" % str(dpid))
             LOG.debug("URL=%s" % req.url)
             LOG.debug("Response=%s" % req.text)
 
@@ -303,7 +303,7 @@ class DiscoveryPacket(Component):
                     "dst_portno": data['dport'],
                   }
 
-        req = requests.delete(url=self.url_ + "pckt_intersw_link",
+        req = requests.delete(url=self.url + "pckt_intersw_link",
                              headers=self.hs, data=json.dumps(payload))
         LOG.debug("URL=%s" % req.url)
         LOG.debug("Response=%s" % req.text)
@@ -360,7 +360,7 @@ class DiscoveryPacket(Component):
 
             try:
                 # get host (for check if it is already present)
-                req = requests.get(url=url_ + "/pckt_host/%s" % str(dladdr))
+                req = requests.get(url=self.url + "/pckt_host/%s" % str(dladdr))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
                 if req.text == "204":
@@ -426,7 +426,7 @@ class DiscoveryPacket(Component):
 
             try:
                 # get host (for check if it is already present)
-                req = requests.get(url=url_ + "/pckt_host/%s" % str(dladdr))
+                req = requests.get(url=self.url + "/pckt_host/%s" % str(dladdr))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
                 if req.text == "204":
@@ -447,8 +447,8 @@ class DiscoveryPacket(Component):
                 #post host
                 payload = { "ip_addr"     : host_ipaddr,
                             "mac"         : dladdr,
-                            "peer_dpid"   : bind_data['datapath_id'],
-                            "peer_portno" : bind_data['port'],
+                            "peer_dpid"   : self.hosts[dladdr].rem_dpid,
+                            "peer_portno" : self.hosts[dladdr].rem_port,
                           }
                 req = requests.post(url=self.url + "pckt_host",
                                     headers=self.hs, data=json.dumps(payload))
@@ -494,6 +494,32 @@ class DiscoveryPacket(Component):
         except Exception, err:
             LOG.error("Got error in flow_removed_handler (%s)" % str(err))
             return CONTINUE
+
+    def __host_leave(self, dladdr):
+        """ Handler for host_leave event """
+        LOG.debug("Received host_leave_ev for host with MAC %s" % str(dladdr))
+        try:
+            # XXX FIXME: Add proper check to avoid to send requests for OF
+            #            switch
+            #mac_addresses = self.db_conn.port_get_macs()
+            #if dladdr in mac_addresses:
+            #    LOG.debug("Ignoring received leave_ev for OF switch...")
+            #    self.db_conn.close()
+            #    return False
+
+            # Delete host
+            payload = { "mac": str(dladdr),
+                      }
+            req = requests.delete(url=self.url + "pckt_host",
+                                  headers=self.hs, data=json.dumps(payload))
+            LOG.debug("URL=%s" % str(req.url))
+            LOG.debug("Response=%s" % str(req.text))
+            LOG.info("Successfully delete host '%s'" % str(dladdr))
+            return True
+
+        except Exception, err:
+            LOG.error(str(err))
+            return False
 
     def install(self):
         """ Install """
