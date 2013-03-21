@@ -92,10 +92,7 @@ class DiscoveryPacket(Component):
         self.hs    = {'content-type': 'application/json'}
 
     def configure(self, configuration):
-        self.register_python_event(nxw_utils.Pck_setFlowEntryEvent.NAME)
-
-        self.register_handler(nxw_utils.Pck_setFlowEntryEvent.NAME,
-                              self.pck_setFlowEntry)
+        self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
 
     def pck_setFlowEntry(self, event):
         LOG.info("SRC=%s, DST=%s", event.pyevent.ip_src, event.pyevent.ip_dst)
@@ -534,6 +531,12 @@ class DiscoveryPacket(Component):
             LOG.error(str(err))
             return False
 
+    def flow_entry_handler(self, attrs):
+        """ Handler for flow_entry event """
+        LOG.info("Received flow_entry event with the following params %s" % \
+                  str(attrs))
+        return CONTINUE
+
     def install(self):
         """ Install """
         self.register_for_datapath_join(self.datapath_join_handler)
@@ -547,6 +550,12 @@ class DiscoveryPacket(Component):
                               self.host_auth_handler)
         self.register_handler(Host_bind_event.static_get_name(),
                               self.host_bind_handler)
+        self.register_handler(nxw_utils.Pckt_flowEntryEvent.NAME,
+                              self.flow_entry_handler)
+
+        self.register_handler(Host_bind_event.static_get_name(),
+                              self.host_bind_handler)
+
 
         self.bindings = self.resolve(pybindings_storage)
         LOG.debug("%s started..." % str(self.__class__.__name__))
