@@ -367,22 +367,17 @@ class DiscoveryPacket(Component):
                 LOG.debug("Ignoring auth_event (more notifications for" + \
                           " multiple inter-switch links)")
                 return CONTINUE
-            self.auth_hosts.append(dladdr)
+            else:
+                self.auth_hosts.append(dladdr)
 
-            try:
-                # get host (for check if it is already present)
-                req = requests.get(url=self.url + "pckt_host/%s" % str(dladdr))
-                LOG.debug("URL=%s" % req.url)
-                LOG.debug("Response=%s" % req.text)
-                if req.text == "204":
-                    LOG.debug("Found entry for an host with mac_addr '%s'" %
-                               str(dladdr))
-                    # XXX FIXME: Add proper checks for host info updating
-                    #LOG.debug("Updated host '%s'" % str(dladdr))
-                else:
-                    LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
-
-            except Exception, err:
+            # Check for presence of the host in stored (internal) hosts
+            if dladdr in self.hosts:
+                LOG.debug("Host with mac_addr '%s' already stored" %
+                           str(dladdr))
+                # XXX FIXME: Add proper checks for host info updating
+                #LOG.debug("Updated host '%s'" % str(dladdr))
+                return CONTINUE
+            else:
                 LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
 
             if auth_data['nwaddr'] != 0:
@@ -396,6 +391,10 @@ class DiscoveryPacket(Component):
                                     headers=self.hs, data=json.dumps(payload))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
+                if dladdr in self.auth_hosts:
+                    self.auth_hosts.pop(dladdr)
+
+
 
             return CONTINUE
 
@@ -421,9 +420,15 @@ class DiscoveryPacket(Component):
 
             # XXX FIXME: Insert mapping for values <--> reason
             if reason > 7:
-                ret = self.__host_leave(dladdr)
-                if not ret:
+                if dladdr not in self.hosts:
+                    log.debug("Ignoring Received host_leave_ev for an host" + \
+                              " not present in DB")
                     return CONTINUE
+                else:
+                    ret = self.__host_leave(dladdr)
+                    if not ret:
+                        return CONTINUE
+
             elif (reason < 3 or reason == 5) and (bind_data['nwaddr'] == 0):
                 LOG.debug("Ignoring host_bind_ev without IPaddr info")
                 return CONTINUE
@@ -465,16 +470,13 @@ class DiscoveryPacket(Component):
                                     headers=self.hs, data=json.dumps(payload))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
-                self.hosts.pop(dladdr)
                 if dladdr in self.auth_hosts:
-                    self.auth_hosts.remove(dladdr)
+                    self.auth_hosts.pop(dladdr)
 
             else:
-                LOG.debug("Got host_bind_ev for an host already " + \
-                          "present in DB")
+                LOG.debug("Got host_bind_ev for an host already stored")
                 LOG.debug("Updating host...")
                 # XXX FIXME: Insert code for host update
-                LOG.info("Host info updated successfully")
 
         except Exception, err:
             LOG.error("Got error in host_bind_handler (%s)" % str(err))
@@ -512,21 +514,21 @@ class DiscoveryPacket(Component):
         try:
             # XXX FIXME: Add proper check to avoid to send requests for OF
             #            switch
-            #mac_addresses = self.db_conn.port_get_macs()
-            #if dladdr in mac_addresses:
-            #    LOG.debug("Ignoring received leave_ev for OF switch...")
-            #    self.db_conn.close()
-            #    return False
 
             # Delete host
-            payload = { "mac": str(dladdr),
-                      }
+            payload = { "mac": str(dladdr)}
             req = requests.delete(url=self.url + "pckt_host",
                                   headers=self.hs, data=json.dumps(payload))
             LOG.debug("URL=%s" % str(req.url))
             LOG.debug("Response=%s" % str(req.text))
-            LOG.info("Successfully delete host '%s'" % str(dladdr))
-            return True
+            if req.text == "204":
+                LOG.info("Successfully delete host '%s'" % str(dladdr))
+                self.hosts.pop[dladdr]
+                return True
+            else:
+                LOG.error("Cannot delete host with mac address %s" % \
+                           str(dladdr))
+                return False
 
         except Exception, err:
             LOG.error(str(err))
