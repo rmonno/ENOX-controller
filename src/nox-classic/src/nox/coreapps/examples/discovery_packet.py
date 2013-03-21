@@ -17,7 +17,7 @@
 # ----------------------------------------------------------------------
 """ Discovey Packet NOX application """
 
-from nox.lib.core                                     import Component
+from nox.lib.core                                     import *
 from nox.lib.packet.ethernet                          import ethernet
 from nox.lib.util                                     import extract_flow
 from nox.netapps.discovery.pylinkevent                import Link_event
