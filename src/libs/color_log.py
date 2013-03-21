@@ -11,10 +11,10 @@ class ColorLog(object):
     """ ColorLog object """
     colormap = dict(
         debug=dict(color='grey', attrs=['bold']),
-        info=dict(color='yellow', attrs=['bold']),
+        info=dict(color='green', attrs=['bold']),
         warning=dict(color='yellow', attrs=['bold']),
         error=dict(color='red', attrs=['bold']),
-        critical=dict(color='red', attrs=['bold']),
+        critical=dict(color='magenta', attrs=['bold']),
     )
 
     def __init__(self, logger):

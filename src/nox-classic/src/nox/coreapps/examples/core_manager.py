@@ -250,7 +250,6 @@ def pckt_dpid_delete(id):
     except nxw_utils.DBException as err:
         PROXY_DB.rollback()
         WLOG.error("pckt_dpid_delete: " + str(err))
-        bottle.abort(500, str(err))
 
     finally:
         PROXY_DB.close()
@@ -315,13 +314,17 @@ def pckt_intersw_link_delete():
     src_portno_ = bottle.request.json['src_portno']
     dst_portno_ = bottle.request.json['dst_portno']
 
-    if PROXY_PCE_CHECK('topology'):
-        src_node_ = create_node_ipv4(src_dpid_, src_portno_)
-        dst_node_ = create_node_ipv4(dst_dpid_, dst_portno_)
-        WLOG.debug("Src Node=%s, Dst Node=%s", src_node_, dst_node_)
+    try:
+        if PROXY_PCE_CHECK('topology'):
+            src_node_ = create_node_ipv4(src_dpid_, src_portno_)
+            dst_node_ = create_node_ipv4(dst_dpid_, dst_portno_)
+            WLOG.debug("Src Node=%s, Dst Node=%s", src_node_, dst_node_)
 
-        PROXY_PCE.del_link_from_strings(src_node_, dst_node_)
-        PROXY_PCE.del_link_from_strings(dst_node_, src_node_)
+            PROXY_PCE.del_link_from_strings(src_node_, dst_node_)
+            PROXY_PCE.del_link_from_strings(dst_node_, src_node_)
+
+    except nxw_utils.DBException as err:
+        WLOG.error("pckt_intersw_link_delete: " + str(err))
 
     try:
         PROXY_DB.open_transaction()
@@ -332,7 +335,6 @@ def pckt_intersw_link_delete():
     except nxw_utils.DBException as err:
         PROXY_DB.rollback()
         WLOG.error("pckt_intersw_link_delete: " + str(err))
-        bottle.abort(500, str(err))
 
     finally:
         PROXY_DB.close()
@@ -405,12 +407,11 @@ def pckt_host_delete():
     except nxw_utils.DBException as err:
         PROXY_DB.rollback()
         WLOG.error("pckt_host_delete: " + str(err))
-        bottle.abort(500, str(err))
 
     finally:
         PROXY_DB.close()
 
-    if PROXY_PCE_CHECK('topology'):
+    if PROXY_PCE_CHECK('topology') and dpid_ and portno_ and ip_:
         dst_node_ = create_node_ipv4(dpid_, portno_)
         WLOG.debug("Host=%s, Dst Node=%s", ip_, dst_node_)
 
