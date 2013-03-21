@@ -790,9 +790,6 @@ class CoreManager(Component):
         """ Enable communication to flow-pce """
         self.pce_topology_enable()
         self.pce_routing_enable()
-
-        """ Register python events """
-        self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
         return CONTINUE
 
     def install(self):
