@@ -21,6 +21,8 @@ from nox.lib.core                                     import Component
 from nox.lib.packet.ethernet                          import ethernet
 from nox.lib.util                                     import extract_flow
 from nox.netapps.discovery.pylinkevent                import Link_event
+from nox.lib.util                                     import extract_flow
+from nox.lib.packet.ipv4                              import ipv4
 from nox.netapps.authenticator.pyauth                 import Host_auth_event, \
                                                              Host_bind_event
 from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
@@ -130,11 +132,20 @@ class DiscoveryPacket(Component):
         if packet.type == ethernet.IP_TYPE:
             ip_addr = packet.find('ipv4')
             LOG.info("IPv4 packet: " + str(ip_addr))
-            # XXX FIXME: Remove the following check in order to be generic...
-            #if ip_addr.protocol == ipv4.ICMP_PROTOCOL:
-            #    self.__resolve_path(pkt_utils.ip_to_str(ip_addr.srcip),
-            #                        pkt_utils.ip_to_str(ip_addr.dstip),
-            #                        packet)
+            #  XXX FIXME: Remove the following check in order to be generic...
+            if ip_addr.protocol == ipv4.ICMP_PROTOCOL:
+                flow    = extract_flow(packet)
+                LOG.debug("Sending path request for the following flow: %s" % \
+                           str(flow))
+                payload = { "dst_port": flow[core.TP_DST],
+                            "ip_dst"  : pkt_utils.ip_to_str(ip_addr.dstip),
+                            "ip_src"  : pkt_utils.ip_to_str(ip_addr.srcip),
+                            "vlan_id" : flow[core.DL_VLAN],
+                          }
+                req = requests.post(url=self.url + "pckt_host_path",
+                                    headers=self.hs, data=json.dumps(payload))
+                LOG.debug("URL=%s" % req.url)
+                LOG.debug("Response=%s" % req.text)
 
         return CONTINUE
 
@@ -360,7 +371,7 @@ class DiscoveryPacket(Component):
 
             try:
                 # get host (for check if it is already present)
-                req = requests.get(url=self.url + "/pckt_host/%s" % str(dladdr))
+                req = requests.get(url=self.url + "pckt_host/%s" % str(dladdr))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
                 if req.text == "204":
@@ -426,7 +437,7 @@ class DiscoveryPacket(Component):
 
             try:
                 # get host (for check if it is already present)
-                req = requests.get(url=self.url + "/pckt_host/%s" % str(dladdr))
+                req = requests.get(url=self.url + "pckt_host/%s" % str(dladdr))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
                 if req.text == "204":
