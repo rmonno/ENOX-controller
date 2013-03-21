@@ -5,6 +5,7 @@
 """ Color Log module """
 
 from termcolor import colored
+from datetime import datetime
 
 
 class ColorLog(object):
@@ -22,7 +23,8 @@ class ColorLog(object):
 
     def __getattr__(self, name):
         if name in ['debug', 'info', 'warning', 'error', 'critical']:
+            t = "[" + datetime.now().strftime("%D %H:%M:%S.%f") + "] "
             return lambda s, * args: getattr(self._log, name)(
-                colored(s, **self.colormap[name]), *args)
+                colored(t + str(s), **self.colormap[name]), *args)
 
         return getattr(self._log, name)
