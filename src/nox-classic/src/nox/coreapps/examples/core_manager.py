@@ -292,7 +292,6 @@ def pckt_intersw_link_create():
         WLOG.debug("Src Node=%s, Dst Node=%s", src_node_, dst_node_)
 
         PROXY_PCE.add_link_from_strings(src_node_, dst_node_)
-        PROXY_PCE.add_link_from_strings(dst_node_, src_node_)
 
     except Exception as err:
         WLOG.error("pckt_intersw_link_create: " + str(err))
