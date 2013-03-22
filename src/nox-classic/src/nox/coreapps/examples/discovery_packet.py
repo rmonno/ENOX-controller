@@ -226,13 +226,13 @@ class DiscoveryPacket(Component):
             req = requests.post(url=self.url + "pckt_dpid", headers=self.hs,
                                 data=json.dumps(payload))
             LOG.debug("URL=%s" % req.url)
-            LOG.debug("Response=%s" % req.text)
-
-            return CONTINUE
+            LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                         str(req.content)))
 
         except Exception, err:
             LOG.error("Got error in datapath_join handler (%s)" % str(err))
-            return CONTINUE
+
+        return CONTINUE
 
     def datapath_leave_handler(self, dpid):
         """ Handler for datapath_leave event """
@@ -242,13 +242,12 @@ class DiscoveryPacket(Component):
 
             req = requests.delete(url=self.url + "pckt_dpid/%s" % str(dpid))
             LOG.debug("URL=%s" % req.url)
-            LOG.debug("Response=%s" % req.text)
-
-            return CONTINUE
-
+            LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                         str(req.content)))
         except Exception, err:
             LOG.error("Got error in datapath_leave handler (%s)" % str(err))
-            return CONTINUE
+
+        return CONTINUE
 
     def link_key_build(self, from_node, to_node):
         """ Build key for a link """
@@ -287,7 +286,8 @@ class DiscoveryPacket(Component):
                             headers=self.hs,
                             data=json.dumps(payload))
         LOG.debug("URL=%s" % req.url)
-        LOG.debug("Response=%s" % req.text)
+        LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                     str(req.content)))
 
     def link_del(self, data):
         """ Delete links """
@@ -311,7 +311,8 @@ class DiscoveryPacket(Component):
         req = requests.delete(url=self.url + "pckt_intersw_link",
                              headers=self.hs, data=json.dumps(payload))
         LOG.debug("URL=%s" % req.url)
-        LOG.debug("Response=%s" % req.text)
+        LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                     str(req.content)))
 
     def link_event_handler(self, ingress):
         """ Handler for link_event """
@@ -332,11 +333,10 @@ class DiscoveryPacket(Component):
                 LOG.error("Cannot handle the following action: '%s'" % \
                            str(link_data['action']))
 
-            return CONTINUE
-
         except Exception, err:
             LOG.error("Got errors in link_event handler ('%s')" % str(err))
-            return CONTINUE
+
+        return CONTINUE
 
     def host_auth_handler(self, data):
         """ Handler for host_auth_event """
@@ -372,7 +372,8 @@ class DiscoveryPacket(Component):
                 req = requests.post(url=self.url + "pckt_host",
                                     headers=self.hs, data=json.dumps(payload))
                 LOG.debug("URL=%s" % req.url)
-                LOG.debug("Response=%s" % req.text)
+                LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                             str(req.content)))
 
         except Exception, err:
             LOG.error("Got errors in host_auth_ev handler ('%s')" % str(err))
@@ -398,7 +399,7 @@ class DiscoveryPacket(Component):
             # XXX FIXME: Insert mapping for values <--> reason
             if reason > 7:
                 if dladdr not in self.hosts:
-                    log.debug("Ignoring Received host_leave_ev for an host" + \
+                    LOG.debug("Ignoring Received host_leave_ev for an host" + \
                               " not present in DB")
                     return CONTINUE
                 else:
@@ -428,9 +429,11 @@ class DiscoveryPacket(Component):
                                 "peer_portno" : self.hosts[dladdr].rem_port,
                               }
                     req = requests.post(url=self.url + "pckt_host",
-                                        headers=self.hs, data=json.dumps(payload))
+                                        headers=self.hs,
+                                        data=json.dumps(payload))
                     LOG.debug("URL=%s" % req.url)
-                    LOG.debug("Response=%s" % req.text)
+                    LOG.debug("Response(code=%d, content=%s)" % \
+                               (req.status_code, str(req.content)))
                 else:
                     LOG.debug("Got host_bind_ev for an host already posted")
 
@@ -474,16 +477,20 @@ class DiscoveryPacket(Component):
         try:
             # XXX FIXME: Add proper check to avoid to send requests for OF
             #            switch
+            if not dladdr in self.hosts:
+                LOG.warn("Received host_leave_ev for an host already deleted")
+                return True
 
             # Delete host
             payload = { "mac": str(dladdr)}
             req = requests.delete(url=self.url + "pckt_host",
                                   headers=self.hs, data=json.dumps(payload))
             LOG.debug("URL=%s" % str(req.url))
-            LOG.debug("Response=%s" % str(req.text))
-            if req.text == "204":
+            LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                         str(req.content)))
+            if req.status_code == 204:
                 LOG.info("Successfully delete host '%s'" % str(dladdr))
-                self.hosts.pop[dladdr]
+                del self.hosts[dladdr]
                 return True
             else:
                 LOG.error("Cannot delete host with mac address %s" % \
