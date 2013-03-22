@@ -320,7 +320,9 @@ def pckt_intersw_link_delete():
             WLOG.debug("Src Node=%s, Dst Node=%s", src_node_, dst_node_)
 
             PROXY_PCE.del_link_from_strings(src_node_, dst_node_)
-            PROXY_PCE.del_link_from_strings(dst_node_, src_node_)
+            # Uncomment the following line if the links can be considered
+            # as bidirectional
+            #PROXY_PCE.del_link_from_strings(dst_node_, src_node_)
 
     except nxw_utils.DBException as err:
         WLOG.error("pckt_intersw_link_delete: " + str(err))
