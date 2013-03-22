@@ -348,33 +348,21 @@ class DiscoveryPacket(Component):
             dladdr      = pkt_utils.mac_to_str(auth_data['dladdr'])
             host_ipaddr = nxw_utils.convert_ipv4_to_str(auth_data['nwaddr'])
 
-            if auth_data['nwaddr'] == 0:
-                LOG.debug("Received auth_event without IP address...")
-                # Since Datapath_join event for an OF switch with
-                # dladdr could be caught later, we need to store info
-                self.hosts[dladdr]          = nxw_utils.Host(dladdr)
-                self.hosts[dladdr].rem_dpid = auth_data['datapath_id']
-                self.hosts[dladdr].rem_port = auth_data['port']
-                return CONTINUE
-
-            if dladdr in self.auth_hosts:
+            if dladdr in self.hosts:
                 LOG.debug("Ignoring auth_event (more notifications for" + \
                           " multiple inter-switch links)")
                 return CONTINUE
-            else:
-                self.auth_hosts.append(dladdr)
 
-            # Check for presence of the host in stored (internal) hosts
-            if dladdr in self.hosts:
-                LOG.debug("Host with mac_addr '%s' already stored" %
-                           str(dladdr))
-                # XXX FIXME: Add proper checks for host info updating
-                #LOG.debug("Updated host '%s'" % str(dladdr))
-                return CONTINUE
-            else:
-                LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
+            self.hosts[dladdr]          = nxw_utils.Host(dladdr)
+            self.hosts[dladdr].rem_dpid = auth_data['datapath_id']
+            self.hosts[dladdr].rem_port = auth_data['port']
 
-            if auth_data['nwaddr'] != 0:
+            if auth_data['nwaddr'] == 0:
+                LOG.debug("Received auth_event without IP address...")
+
+            else:
+                LOG.debug("Received auth_event with IP address info...")
+                self.hosts[dladdr].ip_addr = host_ipaddr
                 # post host
                 payload = { "ip_addr"     : host_ipaddr,
                             "mac"         : dladdr,
@@ -385,19 +373,14 @@ class DiscoveryPacket(Component):
                                     headers=self.hs, data=json.dumps(payload))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
-                if dladdr in self.auth_hosts:
-                    self.auth_hosts.pop(dladdr)
-
-
-
-            return CONTINUE
 
         except Exception, err:
             LOG.error("Got errors in host_auth_ev handler ('%s')" % str(err))
-            return CONTINUE
+
+        return CONTINUE
 
     def host_bind_handler(self, data):
-        """ Handler for host_binf_event """
+        """ Handler for host_bind_event """
         assert(data is not None)
         try:
             bind_data   = data.__dict__
@@ -435,29 +418,29 @@ class DiscoveryPacket(Component):
                       str(bind_data))
 
             # Check for presence of the host in stored (internal) hosts
-            if dladdr in self.auth_hosts:
-                LOG.debug("Got host_bind_ev for an host not present in DB yet")
-
-                #post host
-                payload = { "ip_addr"     : host_ipaddr,
-                            "mac"         : dladdr,
-                            "peer_dpid"   : self.hosts[dladdr].rem_dpid,
-                            "peer_portno" : self.hosts[dladdr].rem_port,
-                          }
-                req = requests.post(url=self.url + "pckt_host",
-                                    headers=self.hs, data=json.dumps(payload))
-                LOG.debug("URL=%s" % req.url)
-                LOG.debug("Response=%s" % req.text)
-                self.auth_hosts.pop(dladdr)
+            if dladdr in self.hosts:
+                if self.hosts[dladdr].ip_addr is None:
+                    LOG.debug("Got host_bind_ev for an host not posted yet")
+                    # Post host
+                    payload = { "ip_addr"     : host_ipaddr,
+                                "mac"         : dladdr,
+                                "peer_dpid"   : self.hosts[dladdr].rem_dpid,
+                                "peer_portno" : self.hosts[dladdr].rem_port,
+                              }
+                    req = requests.post(url=self.url + "pckt_host",
+                                        headers=self.hs, data=json.dumps(payload))
+                    LOG.debug("URL=%s" % req.url)
+                    LOG.debug("Response=%s" % req.text)
+                else:
+                    LOG.debug("Got host_bind_ev for an host already posted")
 
             else:
-                LOG.debug("Got host_bind_ev for an host already stored")
-                LOG.debug("Updating host...")
-                # XXX FIXME: Insert code for host update
+                LOG.debug("Got host_bind_ev for an host not authenticated yet")
 
         except Exception, err:
             LOG.error("Got error in host_bind_handler (%s)" % str(err))
-            return CONTINUE
+
+        return CONTINUE
 
     def flow_mod_handler(self, ingress):
         """ Handler for Flow_mod event """
