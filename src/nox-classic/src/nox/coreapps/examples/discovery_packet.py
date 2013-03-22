@@ -437,24 +437,8 @@ class DiscoveryPacket(Component):
             LOG.info("Received host_bind_ev with the following data: %s" % \
                       str(bind_data))
 
-            try:
-                # get host (for check if it is already present)
-                req = requests.get(url=self.url + "pckt_host/%s" % str(dladdr))
-                LOG.debug("URL=%s" % req.url)
-                LOG.debug("Response=%s" % req.text)
-                if req.text == "204":
-                    LOG.debug("Found entry for an host with mac_addr '%s'" %
-                               str(dladdr))
-                    # XXX FIXME: Add proper checks for host info updating
-                    #LOG.debug("Updated host '%s'" % str(dladdr))
-                    return CONTINUE
-                else:
-                    LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
-
-            except Exception, err:
-                LOG.debug("Any host with mac='%s' in DB" % str(dladdr))
-
-            if dladdr in self.hosts:
+            # Check for presence of the host in stored (internal) hosts
+            if dladdr in self.auth_hosts:
                 LOG.debug("Got host_bind_ev for an host not present in DB yet")
 
                 #post host
@@ -467,8 +451,7 @@ class DiscoveryPacket(Component):
                                     headers=self.hs, data=json.dumps(payload))
                 LOG.debug("URL=%s" % req.url)
                 LOG.debug("Response=%s" % req.text)
-                if dladdr in self.auth_hosts:
-                    self.auth_hosts.pop(dladdr)
+                self.auth_hosts.pop(dladdr)
 
             else:
                 LOG.debug("Got host_bind_ev for an host already stored")
