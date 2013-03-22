@@ -531,11 +531,85 @@ class DiscoveryPacket(Component):
             LOG.error(str(err))
             return False
 
-    def flow_entry_handler(self, attrs):
+    def flow_entry_handler(self, event):
         """ Handler for flow_entry event """
-        LOG.info("Received flow_entry event with the following params %s" % \
-                  str(attrs))
+        LOG.info("Received flow_entry event: %s" % str(event.pyevent))
+
+        if event.pyevent.datapath_in != event.pyevent.datapath_out:
+            LOG.debug("Received request for flow_mod with different dpids")
+            return CONTINUE
+
+        try:
+            # Build flow entry
+            attrs = self.__extract_flow_info(event.pyevent)
+            actions = [[event.pyevent.action, [0, event.pyevent.dataport_out]]]
+
+            # Send flow_mod message
+            self.install_datapath_flow(event.pyevent.datapath_in,
+                                       attrs,
+                                       event.pyevent.idle_timeout,
+                                       event.pyevent.hard_timeout,
+                                       actions,
+                                       None, #buffer_id
+                                       event.pyevent.priority,
+                                       event.pyevent.dataport_in,
+                                       None) #pkt
+            LOG.info("Sent FLOW_MOD to dpid %s: Flowentry=%s, actions=%s" % \
+                     (event.pyevent.datapath_in, str(attrs), str(actions)))
+
+        except Exception, err:
+            LOG.error("Got error in manage_flow_mod ('%s')" % str(err))
+
         return CONTINUE
+
+    def __extract_flow_info(self, flowevent):
+        """ Returns flow attributes from the pckt_flowentry_event """
+        attrs = {}
+
+        attrs[IN_PORT] = flowevent.dataport_in
+        attrs[NW_SRC] = str(flowevent.ip_src)
+        attrs[NW_DST] = str(flowevent.ip_dst)
+
+        if flowevent.ether_source:
+            attrs[core.DL_SRC] = flowevent.ether_source
+
+        if flowevent.ether_dst:
+            attrs[core.DL_DST] = flowevent.ether_dst
+
+        if flowevent.ether_type:
+            attrs[core.DL_TYPE] = flowevent.ether_type
+
+        attrs[core.DL_VLAN] = 0xffff # XXX should be written OFP_VLAN_NONE
+        attrs[core.DL_VLAN_PCP] = 0
+
+        if flowevent.vlan_id:
+            attrs[core.DL_VLAN] = flowevent.vlan_id
+
+        if flowevent.vlan_priority:
+            attrs[core.DL_VLAN_PCP] = flowevent.vlan_priority
+
+        attrs[core.NW_SRC] = 0
+        attrs[core.NW_DST] = 0
+        attrs[core.NW_PROTO] = 0
+        attrs[core.TP_SRC] = 0
+        attrs[core.TP_DST] = 0
+
+        if flowevent.ip_src:
+            attrs[core.NW_SRC] = str(flowevent.ip_src)
+
+        if flowevent.ip_dst:
+            attrs[core.NW_DST] = str(flowevent.ip_dst)
+
+        if flowevent.ip_proto:
+            attrs[core.NW_PROTO] = flowevent.ip_proto
+
+        if flowevent.tcp_udp_src_port:
+            attrs[core.TP_SRC] = flowevent.tcp_udp_src_port
+
+        if flowevent.tcp_udp_dst_port:
+            attrs[core.TP_DST] = flowevent.tcp_udp_dst_port
+
+        return attrs
 
     def install(self):
         """ Install """
@@ -552,10 +626,6 @@ class DiscoveryPacket(Component):
                               self.host_bind_handler)
         self.register_handler(nxw_utils.Pckt_flowEntryEvent.NAME,
                               self.flow_entry_handler)
-
-        self.register_handler(Host_bind_event.static_get_name(),
-                              self.host_bind_handler)
-
 
         self.bindings = self.resolve(pybindings_storage)
         LOG.debug("%s started..." % str(self.__class__.__name__))
