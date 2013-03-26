@@ -71,7 +71,6 @@ class DiscoveryPacket(Component):
         self.links      = {}
         self.switches   = {}
         self.db_conn    = None
-        self.flowentry_queue = []
         self.__reasons = {0: "AUTHENTICATION_EVENT",
                           1: "AUTO_AUTHENTICATION",
                           2: "NWADDR_AUTO_ADD",
@@ -510,19 +509,27 @@ class DiscoveryPacket(Component):
             LOG.debug("Received request for flow_mod with different dpids")
             return CONTINUE
 
-        entry_ = {}
-        entry_['dpin'] = event.pyevent.datapath_in
-        entry_['attrs'] = self.__extract_flow_info(event.pyevent)
-        entry_['idle'] = event.pyevent.idle_timeout
-        entry_['hard'] = event.pyevent.hard_timeout
-        entry_['actions'] = [[event.pyevent.action,
-                              [0, event.pyevent.dataport_out]]]
-        entry_['buffer'] = None
-        entry_['prio'] = event.pyevent.priority
-        entry_['pin'] = event.pyevent.dataport_in
-        entry_['pkt'] = None
+        try:
+            attrs = self.__extract_flow_info(event.pyevent)
+            actions = [[event.pyevent.action,
+                        [0, event.pyevent.dataport_out]]]
 
-        self.flowentry_queue.append(entry_)
+            self.install_datapath_flow(event.pyevent.datapath_in,
+                                       attrs,
+                                       event.pyevent.idle_timeout,
+                                       event.pyevent.hard_timeout,
+                                       actions,
+                                       None, # buffer
+                                       event.pyevent.priority,
+                                       event.pyevent.dataport_in,
+                                       None) # pkt
+
+            LOG.info("Sent FLOW_MOD to dpid %s: Entry=%s, actions=%s",
+                     event.pyevent.datapath_in, str(attrs), str(actions))
+
+        except Exception, err:
+            LOG.error("Got error sent FLOW_MOD: %s" % str(err))
+
         return CONTINUE
 
     def __extract_flow_info(self, flowevent):
@@ -591,30 +598,12 @@ class DiscoveryPacket(Component):
                               self.flow_entry_handler)
 
         self.bindings = self.resolve(pybindings_storage)
-        self.post_callback(1, self.timer_handler)
         LOG.debug("%s started..." % str(self.__class__.__name__))
 
     def getInterface(self):
         """ Get interface """
         return str(DiscoveryPacket)
 
-    def timer_handler(self):
-        LOG.debug("DiscoveryPacket timeout fired")
-        for e in self.flowentry_queue:
-            try:
-                self.install_datapath_flow(e['dpin'],e['attrs'],e['idle'],
-                                           e['hard'],e['actions'],e['buffer'],
-                                           e['prio'],e['pin'],e['pkt'])
-                LOG.info("Sent FLOW_MOD to dpid %s: Entry=%s, actions=%s",
-                         e['dpin'], str(e['attrs']), str(e['actions']))
-
-            except Exception, err:
-                LOG.error("Got error sent FLOW_MOD: %s" % str(err))
-
-        del self.flowentry_queue[:]
-
-        self.post_callback(1, self.timer_handler)
-        return CONTINUE
 
 def getFactory():
     """ Get factory """
