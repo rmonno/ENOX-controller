@@ -27,6 +27,7 @@ import bottle
 import threading
 
 from nox.lib.core import Component
+from nox.lib.packet.ethernet import ethernet
 import nox.lib.openflow as openflow
 
 # update sys python path
@@ -462,6 +463,7 @@ def pckt_host_path_req_create():
     default_idle = 5
     default_hard = openflow.OFP_FLOW_PERMANENT
     default_priority = openflow.OFP_DEFAULT_PRIORITY
+    default_etype = ethernet.IP_TYPE
 
     cflows = convert_flows_from_index(flows)
     try:
@@ -477,6 +479,7 @@ def pckt_host_path_req_create():
                                                  tcp_sport=src_port_,
                                                  ip_proto=ip_proto_,
                                                  vid=vlan_id_,
+                                                 etype=default_etype,
                                                  action=default_action,
                                                  idle=default_idle,
                                                  hard=default_hard,

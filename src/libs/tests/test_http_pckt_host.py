@@ -20,7 +20,7 @@ def main (argv=None):
     LOG.level_set("DEBUG")
 
     try:
-        url_ = "http://10.0.2.246:8080/"
+        url_ = "http://10.0.2.243:8080/"
         hs_ = {'content-type': 'application/json'}
         # post dpid#1
         payload = { "dpid": 1,

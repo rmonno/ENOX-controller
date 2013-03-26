@@ -232,11 +232,6 @@ class discovery(Component):
 
       deleteme = []
       for linktuple in self.adjacency_list:
-          print("AAAAAAAAA")
-          print(curtime)
-          print(self.adjacency_list[linktuple])
-          print(LINK_TIMEOUT)
-          print("BBBBBBBBB")
           if (curtime - self.adjacency_list[linktuple]) > LINK_TIMEOUT:
               deleteme.append(linktuple)
               lg.warn('link timeout ('+longlong_to_octstr(linktuple[0])+" p:"\
@@ -310,10 +305,7 @@ class discovery(Component):
 
 
         # add to adjaceny list or update timestamp
-        print("1111111111111")
-        print(time.time())
         self.adjacency_list[(dp_id, inport, chassid, portid)] = time.time()
-        print("1111111111111")
 
     # ----------------------------------------------------------------------
     # Start LLDP timer which sends an LLDP packet every

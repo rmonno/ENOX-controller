@@ -39,8 +39,8 @@ class Pckt_flowEntryEvent(pyevent):
         self.ip_dst = ip_dst
         self.ip_proto = ip_proto
         self.ip_tos_bits = ip_tos
-        self.tcp_udp_src_port = tcp_dport
-        self.tcp_udp_dst_port = tcp_sport
+        self.tcp_udp_src_port = tcp_sport
+        self.tcp_udp_dst_port = tcp_dport
         self.table_id = table
         self.action = action
         self.idle_timeout = idle

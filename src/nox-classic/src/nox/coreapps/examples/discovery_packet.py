@@ -19,7 +19,6 @@
 
 from nox.lib.core                                     import *
 from nox.lib.packet.ethernet                          import ethernet
-from nox.lib.util                                     import extract_flow
 from nox.netapps.discovery.pylinkevent                import Link_event
 from nox.lib.util                                     import extract_flow
 from nox.lib.packet.ipv4                              import ipv4
@@ -132,8 +131,10 @@ class DiscoveryPacket(Component):
                 LOG.debug("Sending path request for the following flow: %s" % \
                            str(flow))
                 payload = { "dst_port": flow[core.TP_DST],
+                            "src_port": flow[core.TP_SRC],
                             "ip_dst"  : pkt_utils.ip_to_str(ip_addr.dstip),
                             "ip_src"  : pkt_utils.ip_to_str(ip_addr.srcip),
+                            "ip_proto": flow[core.NW_PROTO],
                             "vlan_id" : flow[core.DL_VLAN],
                           }
                 req = requests.post(url=self.url + "pckt_host_path",
