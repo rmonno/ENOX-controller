@@ -96,6 +96,7 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             raise tofc.DBException("Transaction already opened!")
 
         try:
+            self._debug("Try connecting to db...")
             self._con = sql.connect(host=self._host,
                                     user=self._user,
                                     passwd=self._pswd,

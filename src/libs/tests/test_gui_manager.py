@@ -19,6 +19,46 @@ log.LOG.level_set('DEBUG')
 GLOG = log.LOG
 
 
+class DpidsInfoButton(QtGui.QPushButton):
+
+    def __init__(self, url, central=None):
+        QtGui.QPushButton.__init__(self, 'details')
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+
+    def onClick(self):
+        GLOG.debug("get_dpid_info action: %s", self.__url)
+        try:
+            r_ = requests.get(url=self.__url)
+            if r_.status_code != requests.codes.ok:
+                GLOG.error(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                info_ = r_.json()['dpid']
+                lbs_ = ['id', 'buffers', 'tables', 'ofp_capabilities',
+                        'ofp_actions', 'cports']
+                self.__central.setRowCount(1)
+                self.__central.setColumnCount(len(lbs_))
+                self.__central.setHorizontalHeaderLabels(lbs_)
+                self.__central.setCellWidget(0, 0,
+                            QtGui.QTextEdit(str(info_['id'])))
+                self.__central.setCellWidget(0, 1,
+                            QtGui.QTextEdit(str(info_['buffers'])))
+                self.__central.setCellWidget(0, 2,
+                            QtGui.QTextEdit(str(info_['tables'])))
+                self.__central.setCellWidget(0, 3,
+                            QtGui.QTextEdit(str(info_['ofp_capabilities'])))
+                self.__central.setCellWidget(0, 4,
+                            QtGui.QTextEdit(str(info_['ofp_actions'])))
+                self.__central.setCellWidget(0, 5,
+                            QtGui.QTextEdit(str(info_['cports'])))
+
+        except requests.exceptions.RequestException as exc:
+            GLOG.error(str(exc))
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, addr, port):
@@ -72,6 +112,11 @@ class GUIManager(QtGui.QMainWindow):
         tb_.addAction(self.__exitAction())
         tb_.addSeparator()
 
+    def __centralTable(self):
+        table_ = QtGui.QTableWidget(1,1)
+        table_.setHorizontalHeaderLabels(['Results'])
+        self.setCentralWidget(table_)
+
     def __initUI(self):
         self.resize(500, 500)
         self.__center()
@@ -79,6 +124,7 @@ class GUIManager(QtGui.QMainWindow):
 
         self.__menuBar()
         self.__toolBar()
+        self.__centralTable()
 
         self.statusBar().showMessage('Ready')
         self.show()
@@ -97,18 +143,47 @@ class GUIManager(QtGui.QMainWindow):
         GLOG.debug("get_dpids action")
         try:
             r_ = requests.get(url=self.__url + "dpids")
-
             if r_.status_code != requests.codes.ok:
-                err_ = "Bad response code: %s" % r_.status_code
-                self.__critical(err_)
+                self.__critical(r_.text)
 
-            GLOG.info("Response=%s" % str(r_.body))
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                self.centralWidget().setRowCount(len(r_.json()['dpids']))
+                self.centralWidget().setColumnCount(2)
+                self.centralWidget().setHorizontalHeaderLabels(['dpid', ''])
+                i = 0
+                for id_ in r_.json()['dpids']:
+                    c1_ = DpidsInfoButton(self.__url + 'dpids/' + id_['dpid'],
+                                          self.centralWidget())
+                    self.centralWidget().setCellWidget(i, 0,
+                            QtGui.QTextEdit(str(id_['dpid'])))
+                    self.centralWidget().setCellWidget(i, 1, c1_)
+                    i = i + 1
 
         except requests.exceptions.RequestException as exc:
             self.__critical(str(exc))
 
     def get_ports(self):
         GLOG.debug("get_ports action")
+        try:
+            r_ = requests.get(url=self.__url + "ports")
+            if r_.status_code != requests.codes.ok:
+                self.__critical(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                return
+                self.centralWidget().setRowCount(len(r_.json()['dpids']))
+                self.centralWidget().setColumnCount(1)
+                self.centralWidget().setHorizontalHeaderLabels(['dpid'])
+                i = 0
+                for id_ in r_.json()['dpids']:
+                    cell_ = QtGui.QTextEdit(id_['dpid'])
+                    self.centralWidget().setCellWidget(int(i), 0, cell_)
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.__critical(str(exc))
 
 
 def main(argv=None):
