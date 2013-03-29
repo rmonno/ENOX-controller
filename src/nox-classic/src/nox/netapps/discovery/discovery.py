@@ -25,6 +25,7 @@ from nox.netapps.discovery.pylinkevent   import Link_event
 from nox.netapps.bindings_storage.pybindings_storage import pybindings_storage
 from nox.netapps.user_event_log.pyuser_event_log import pyuser_event_log,LogLevel
 from nox.lib.packet.packet_utils      import array_to_octstr
+from nox.lib.packet.packet_utils      import mac_to_str
 from nox.lib.packet.packet_utils      import longlong_to_octstr
 from nox.lib.packet.ethernet          import LLDP_MULTICAST, NDP_MULTICAST
 from nox.lib.packet.ethernet          import ethernet
@@ -174,7 +175,6 @@ class discovery(Component):
 
     def dp_join(self, dp, stats):
         self.dps[dp] = stats
-
         self.lldp_packets[dp]  = {}
         for port in stats[PORTS]:
             if port[PORT_NO] == OFPP_LOCAL:
@@ -276,9 +276,20 @@ class discovery(Component):
                   cid[1] << 32 | cid[0] << 40
 
         # if chassid is from a switch we're not connected to, ignore
+	flag = False
         if chassid not in self.dps:
-            lg.debug('Recieved LLDP packet from unconnected switch')
-            return
+	    lg.debug("Chassid does not contain a dpid already stored." + \
+		     "Checking for MAC address...")
+	    for key in self.dps.keys():
+		for info in self.dps[key]['ports']:
+                    chassid_mac = array_to_octstr(array.array('B',struct.pack('!Q',chassid))[2:])
+                    if chassid_mac == mac_to_str(info['hw_addr']):
+			chassid = key
+		        flag = True
+
+	    if not flag:
+                lg.debug('Received LLDP packet from unconnected switch')
+                return
 
         # grab 16bit port ID from port tlv
         if lldph.tlvs[1].subtype != port_id.SUB_PORT:
@@ -294,6 +305,7 @@ class discovery(Component):
 
         # print 'LLDP packet in from',longlong_to_octstr(chassid),' port',str(portid)
 
+        #linktuple = (longlong_to_octstr(dp_id), inport, longlong_to_octstr(chassid), portid)
         linktuple = (dp_id, inport, chassid, portid)
 
         if linktuple not in self.adjacency_list:
