@@ -21,14 +21,14 @@ GLOG = log.LOG
 
 class DpidsInfoButton(QtGui.QPushButton):
 
-    def __init__(self, url, central=None):
+    def __init__(self, url, central):
         QtGui.QPushButton.__init__(self, 'details')
         self.clicked.connect(self.onClick)
         self.__url = url
         self.__central = central
 
     def onClick(self):
-        GLOG.debug("get_dpid_info action: %s", self.__url)
+        GLOG.debug("get_dpid_info action: url=%s", self.__url)
         try:
             r_ = requests.get(url=self.__url)
             if r_.status_code != requests.codes.ok:
@@ -59,6 +59,142 @@ class DpidsInfoButton(QtGui.QPushButton):
             GLOG.error(str(exc))
 
 
+class PortsInfoButton(QtGui.QPushButton):
+
+    def __init__(self, url, payload, central):
+        QtGui.QPushButton.__init__(self, 'details')
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__params = payload
+        self.__central = central
+
+    def onClick(self):
+        GLOG.debug("get_port_info action: url=%s, params=%s",
+                   self.__url, self.__params)
+        try:
+            r_ = requests.get(url=self.__url, params=self.__params)
+            if r_.status_code != requests.codes.ok:
+                GLOG.error(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                info_ = r_.json()['port']
+                lbs_ = ['dpid', 'port_no', 'name', 'hw_addr', 'state',  'curr',
+                        'config', 'advertised', 'supported', 'peer',
+                        'peer_dpid', 'peer_port_no', 'sw_tdm_gran', 'sw_type']
+                self.__central.setRowCount(1)
+                self.__central.setColumnCount(len(lbs_))
+                self.__central.setHorizontalHeaderLabels(lbs_)
+                self.__central.setCellWidget(0, 0,
+                            QtGui.QTextEdit(str(info_['dpid'])))
+                self.__central.setCellWidget(0, 1,
+                            QtGui.QTextEdit(str(info_['port_no'])))
+                self.__central.setCellWidget(0, 2,
+                            QtGui.QTextEdit(str(info_['name'])))
+                self.__central.setCellWidget(0, 3,
+                            QtGui.QTextEdit(str(info_['hw_addr'])))
+                self.__central.setCellWidget(0, 4,
+                            QtGui.QTextEdit(str(info_['state'])))
+                self.__central.setCellWidget(0, 5,
+                            QtGui.QTextEdit(str(info_['curr'])))
+                self.__central.setCellWidget(0, 6,
+                            QtGui.QTextEdit(str(info_['config'])))
+                self.__central.setCellWidget(0, 7,
+                            QtGui.QTextEdit(str(info_['advertised'])))
+                self.__central.setCellWidget(0, 8,
+                            QtGui.QTextEdit(str(info_['supported'])))
+                self.__central.setCellWidget(0, 9,
+                            QtGui.QTextEdit(str(info_['peer'])))
+                self.__central.setCellWidget(0, 10,
+                            QtGui.QTextEdit(str(info_['peer_dpath_id'])))
+                self.__central.setCellWidget(0, 11,
+                            QtGui.QTextEdit(str(info_['peer_port_no'])))
+                self.__central.setCellWidget(0, 12,
+                            QtGui.QTextEdit(str(info_['sw_tdm_gran'])))
+                self.__central.setCellWidget(0, 13,
+                            QtGui.QTextEdit(str(info_['sw_type'])))
+
+        except requests.exceptions.RequestException as exc:
+            GLOG.error(str(exc))
+
+
+class PcktFlowsButton(QtGui.QPushButton):
+
+    def __init__(self, url, central):
+        QtGui.QPushButton.__init__(self, 'send')
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+
+    def onClick(self):
+        dpid_ = self.__central.cellWidget(0, 0).text()
+        GLOG.debug("get_pckt_flows action: url=%s, dpid=%s",
+                   self.__url, dpid_)
+        try:
+            r_ = requests.get(url=self.__url + dpid_)
+            if r_.status_code != requests.codes.ok:
+                GLOG.error(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                infos_ = r_.json()['packet_flows']
+                lbs_ = ['dpid', 'in_port', 'flow_id', 'action', 'cookie',
+                        'prio', 'table', 'hard', 'idle',
+                        'dl_type', 'dl_src', 'dl_dst', 'vlan', 'vlan_prio',
+                        'nw_proto', 'nw_src', 'nw_dst',
+                        'nw_src_wc', 'nw_dst_wc', 'tp_src', 'tp_dst']
+                self.__central.setRowCount(len(infos_))
+                self.__central.setColumnCount(len(lbs_))
+                self.__central.setHorizontalHeaderLabels(lbs_)
+
+                i = 0
+                for info_ in infos_:
+                    self.__central.setCellWidget(i, 0,
+                        QtGui.QTextEdit(str(info_['dpid'])))
+                    self.__central.setCellWidget(i, 1,
+                        QtGui.QTextEdit(str(info_['input_port'])))
+                    self.__central.setCellWidget(i, 2,
+                        QtGui.QTextEdit(str(info_['flow_id'])))
+                    self.__central.setCellWidget(i, 3,
+                        QtGui.QTextEdit(str(info_['action'])))
+                    self.__central.setCellWidget(i, 4,
+                        QtGui.QTextEdit(str(info_['cookie'])))
+                    self.__central.setCellWidget(i, 5,
+                        QtGui.QTextEdit(str(info_['priority'])))
+                    self.__central.setCellWidget(i, 6,
+                        QtGui.QTextEdit(str(info_['table_id'])))
+                    self.__central.setCellWidget(i, 7,
+                        QtGui.QTextEdit(str(info_['hard_timeout'])))
+                    self.__central.setCellWidget(i, 8,
+                        QtGui.QTextEdit(str(info_['idle_timeout'])))
+                    self.__central.setCellWidget(i, 9,
+                        QtGui.QTextEdit(str(info_['datalink_type'])))
+                    self.__central.setCellWidget(i, 10,
+                        QtGui.QTextEdit(str(info_['datalink_source'])))
+                    self.__central.setCellWidget(i, 11,
+                        QtGui.QTextEdit(str(info_['datalink_destination'])))
+                    self.__central.setCellWidget(i, 12,
+                        QtGui.QTextEdit(str(info_['datalink_vlan'])))
+                    self.__central.setCellWidget(i, 13,
+                        QtGui.QTextEdit(str(info_['datalink_vlan_priority'])))
+                    self.__central.setCellWidget(i, 14,
+                        QtGui.QTextEdit(str(info_['network_protocol'])))
+                    self.__central.setCellWidget(i, 15,
+                        QtGui.QTextEdit(str(info_['network_source'])))
+                    self.__central.setCellWidget(i, 16,
+                        QtGui.QTextEdit(str(info_['network_destination'])))
+                    self.__central.setCellWidget(i, 17,
+                        QtGui.QTextEdit(str(info_['network_source_num_wild'])))
+                    self.__central.setCellWidget(i, 18,
+                        QtGui.QTextEdit(str(info_['network_destination_num_wild'])))
+                    self.__central.setCellWidget(i, 19,
+                        QtGui.QTextEdit(str(info_['transport_source'])))
+                    self.__central.setCellWidget(i, 20,
+                        QtGui.QTextEdit(str(info_['transport_destination'])))
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            GLOG.error(str(exc))
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, addr, port):
@@ -98,6 +234,24 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.get_ports)
         return act_
 
+    def __getLinksAction(self):
+        act_ = QtGui.QAction('Get LINKS', self)
+        act_.setStatusTip('GET links request')
+        act_.triggered.connect(self.get_links)
+        return act_
+
+    def __getHostsAction(self):
+        act_ = QtGui.QAction('Get HOSTS', self)
+        act_.setStatusTip('GET hosts request')
+        act_.triggered.connect(self.get_hosts)
+        return act_
+
+    def __getPcktFlowsAction(self):
+        act_ = QtGui.QAction('Get Pckt FLOWS', self)
+        act_.setStatusTip('GET packet flow-entries request')
+        act_.triggered.connect(self.get_pckt_flows)
+        return act_
+
     def __menuBar(self):
         mb_ = self.menuBar()
         fmenu_ = mb_.addMenu('&File')
@@ -106,6 +260,11 @@ class GUIManager(QtGui.QMainWindow):
         tmenu_ = mb_.addMenu('&Topology')
         tmenu_.addAction(self.__getDpidsAction())
         tmenu_.addAction(self.__getPortsAction())
+        tmenu_.addAction(self.__getLinksAction())
+        tmenu_.addAction(self.__getHostsAction())
+
+        pmenu_ = mb_.addMenu('&Provisioning')
+        pmenu_.addAction(self.__getPcktFlowsAction())
 
     def __toolBar(self):
         tb_ = self.addToolBar('gui-toolbar')
@@ -172,18 +331,90 @@ class GUIManager(QtGui.QMainWindow):
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
-                return
-                self.centralWidget().setRowCount(len(r_.json()['dpids']))
-                self.centralWidget().setColumnCount(1)
-                self.centralWidget().setHorizontalHeaderLabels(['dpid'])
+                self.centralWidget().setRowCount(len(r_.json()['ports']))
+                self.centralWidget().setColumnCount(3)
+                self.centralWidget().setHorizontalHeaderLabels(['dpid',
+                                                          'port-no', ''])
                 i = 0
-                for id_ in r_.json()['dpids']:
-                    cell_ = QtGui.QTextEdit(id_['dpid'])
-                    self.centralWidget().setCellWidget(int(i), 0, cell_)
+                for ids_ in r_.json()['ports']:
+                    c2_ = PortsInfoButton(self.__url + 'ports/',
+                            {'dpid': ids_['dpid'], 'portno': ids_['port_no']},
+                                          self.centralWidget())
+                    self.centralWidget().setCellWidget(i, 0,
+                            QtGui.QTextEdit(str(ids_['dpid'])))
+                    self.centralWidget().setCellWidget(i, 1,
+                            QtGui.QTextEdit(str(ids_['port_no'])))
+                    self.centralWidget().setCellWidget(i, 2, c2_)
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
             self.__critical(str(exc))
+
+    def get_links(self):
+        GLOG.debug("get_links action")
+        try:
+            r_ = requests.get(url=self.__url + "links")
+            if r_.status_code != requests.codes.ok:
+                self.__critical(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                self.centralWidget().setRowCount(len(r_.json()['links']))
+                self.centralWidget().setColumnCount(4)
+                lbs_ = ['src_dpid', 'src_port_no', 'dst_dpid', 'dst_port_no']
+                self.centralWidget().setHorizontalHeaderLabels(lbs_)
+                i = 0
+                for ids_ in r_.json()['links']:
+                    self.centralWidget().setCellWidget(i, 0,
+                            QtGui.QTextEdit(str(ids_['source_dpid'])))
+                    self.centralWidget().setCellWidget(i, 1,
+                            QtGui.QTextEdit(str(ids_['source_port_no'])))
+                    self.centralWidget().setCellWidget(i, 2,
+                            QtGui.QTextEdit(str(ids_['destination_dpid'])))
+                    self.centralWidget().setCellWidget(i, 3,
+                            QtGui.QTextEdit(str(ids_['destination_port_no'])))
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.__critical(str(exc))
+
+    def get_hosts(self):
+        GLOG.debug("get_hosts action")
+        try:
+            r_ = requests.get(url=self.__url + "hosts")
+            if r_.status_code != requests.codes.ok:
+                self.__critical(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                self.centralWidget().setRowCount(len(r_.json()['hosts']))
+                self.centralWidget().setColumnCount(4)
+                lbs_ = ['ip', 'dpid', 'port_no', 'hw_addr']
+                self.centralWidget().setHorizontalHeaderLabels(lbs_)
+                i = 0
+                for ids_ in r_.json()['hosts']:
+                    self.centralWidget().setCellWidget(i, 0,
+                            QtGui.QTextEdit(str(ids_['ip_address'])))
+                    self.centralWidget().setCellWidget(i, 1,
+                            QtGui.QTextEdit(str(ids_['dpid'])))
+                    self.centralWidget().setCellWidget(i, 2,
+                            QtGui.QTextEdit(str(ids_['port_no'])))
+                    self.centralWidget().setCellWidget(i, 3,
+                            QtGui.QTextEdit(str(ids_['mac_address'])))
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.__critical(str(exc))
+
+    def get_pckt_flows(self):
+        GLOG.debug("get_pckt_flows action")
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(2)
+        self.centralWidget().setHorizontalHeaderLabels(['Insert DPID', ''])
+
+        c1_ = PcktFlowsButton(self.__url + 'pckt_flows/', self.centralWidget())
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
+        self.centralWidget().setCellWidget(0, 1, c1_)
 
 
 def main(argv=None):
