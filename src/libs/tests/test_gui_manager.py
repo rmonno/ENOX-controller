@@ -19,10 +19,24 @@ log.LOG.level_set('DEBUG')
 GLOG = log.LOG
 
 
-class DpidsInfoButton(QtGui.QPushButton):
+class Button(QtGui.QPushButton):
 
-    def __init__(self, url, central):
-        QtGui.QPushButton.__init__(self, 'details')
+    def __init__(self, name, parent=None):
+        QtGui.QPushButton.__init__(self, name)
+        self.__parent = parent
+
+    def error(self, msg):
+        if self.__parent:
+            self.__parent.critical(msg)
+
+        else:
+            GLOG.error(msg)
+
+
+class DpidsInfoButton(Button):
+
+    def __init__(self, url, central, parent=None):
+        Button.__init__(self, 'details', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
         self.__central = central
@@ -32,37 +46,39 @@ class DpidsInfoButton(QtGui.QPushButton):
         try:
             r_ = requests.get(url=self.__url)
             if r_.status_code != requests.codes.ok:
-                GLOG.error(r_.text)
+                self.error(r_.text)
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
                 info_ = r_.json()['dpid']
-                lbs_ = ['id', 'buffers', 'tables', 'ofp_capabilities',
-                        'ofp_actions', 'cports']
+                lbs_ = ['id', 'region', 'buffers', 'tables',
+                        'ofp_capabilities', 'ofp_actions', 'cports']
                 self.__central.setRowCount(1)
                 self.__central.setColumnCount(len(lbs_))
                 self.__central.setHorizontalHeaderLabels(lbs_)
                 self.__central.setCellWidget(0, 0,
                             QtGui.QTextEdit(str(info_['id'])))
                 self.__central.setCellWidget(0, 1,
-                            QtGui.QTextEdit(str(info_['buffers'])))
+                            QtGui.QTextEdit(str(info_['region'])))
                 self.__central.setCellWidget(0, 2,
-                            QtGui.QTextEdit(str(info_['tables'])))
+                            QtGui.QTextEdit(str(info_['buffers'])))
                 self.__central.setCellWidget(0, 3,
-                            QtGui.QTextEdit(str(info_['ofp_capabilities'])))
+                            QtGui.QTextEdit(str(info_['tables'])))
                 self.__central.setCellWidget(0, 4,
-                            QtGui.QTextEdit(str(info_['ofp_actions'])))
+                            QtGui.QTextEdit(str(info_['ofp_capabilities'])))
                 self.__central.setCellWidget(0, 5,
+                            QtGui.QTextEdit(str(info_['ofp_actions'])))
+                self.__central.setCellWidget(0, 6,
                             QtGui.QTextEdit(str(info_['cports'])))
 
         except requests.exceptions.RequestException as exc:
-            GLOG.error(str(exc))
+            self.error(str(exc))
 
 
-class PortsInfoButton(QtGui.QPushButton):
+class PortsInfoButton(Button):
 
-    def __init__(self, url, payload, central):
-        QtGui.QPushButton.__init__(self, 'details')
+    def __init__(self, url, payload, central, parent=None):
+        Button.__init__(self, 'details', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
         self.__params = payload
@@ -74,7 +90,7 @@ class PortsInfoButton(QtGui.QPushButton):
         try:
             r_ = requests.get(url=self.__url, params=self.__params)
             if r_.status_code != requests.codes.ok:
-                GLOG.error(r_.text)
+                self.error(r_.text)
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
@@ -115,13 +131,13 @@ class PortsInfoButton(QtGui.QPushButton):
                             QtGui.QTextEdit(str(info_['sw_type'])))
 
         except requests.exceptions.RequestException as exc:
-            GLOG.error(str(exc))
+            self.error(str(exc))
 
 
-class PcktFlowsButton(QtGui.QPushButton):
+class PcktFlowsButton(Button):
 
-    def __init__(self, url, central):
-        QtGui.QPushButton.__init__(self, 'send')
+    def __init__(self, url, central, parent=None):
+        Button.__init__(self, 'send', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
         self.__central = central
@@ -133,7 +149,7 @@ class PcktFlowsButton(QtGui.QPushButton):
         try:
             r_ = requests.get(url=self.__url + dpid_)
             if r_.status_code != requests.codes.ok:
-                GLOG.error(r_.text)
+                self.error(r_.text)
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
@@ -194,7 +210,9 @@ class PcktFlowsButton(QtGui.QPushButton):
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
-            GLOG.error(str(exc))
+            self.error(str(exc))
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, addr, port):
@@ -204,10 +222,6 @@ class GUIManager(QtGui.QMainWindow):
 
     def __str__(self):
         return self.__url
-
-    def __critical(self, err_msg):
-        QtGui.QMessageBox.critical(self, 'Exception', err_msg,
-                                   QtGui.QMessageBox.Ok)
 
     def __center(self):
         qr_ = self.frameGeometry()
@@ -288,6 +302,10 @@ class GUIManager(QtGui.QMainWindow):
         self.statusBar().showMessage('Ready')
         self.show()
 
+    def critical(self, err_msg):
+        QtGui.QMessageBox.critical(self, 'Exception', err_msg,
+                                   QtGui.QMessageBox.Ok)
+
     def closeEvent(self, event):
         reply_ = QtGui.QMessageBox.question(self, 'Close Event',
                                             'Are you sure to quit?',
@@ -303,7 +321,7 @@ class GUIManager(QtGui.QMainWindow):
         try:
             r_ = requests.get(url=self.__url + "dpids")
             if r_.status_code != requests.codes.ok:
-                self.__critical(r_.text)
+                self.critical(r_.text)
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
@@ -313,21 +331,21 @@ class GUIManager(QtGui.QMainWindow):
                 i = 0
                 for id_ in r_.json()['dpids']:
                     c1_ = DpidsInfoButton(self.__url + 'dpids/' + id_['dpid'],
-                                          self.centralWidget())
+                                          self.centralWidget(), self)
                     self.centralWidget().setCellWidget(i, 0,
                             QtGui.QTextEdit(str(id_['dpid'])))
                     self.centralWidget().setCellWidget(i, 1, c1_)
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
-            self.__critical(str(exc))
+            self.critical(str(exc))
 
     def get_ports(self):
         GLOG.debug("get_ports action")
         try:
             r_ = requests.get(url=self.__url + "ports")
             if r_.status_code != requests.codes.ok:
-                self.__critical(r_.text)
+                self.critical(r_.text)
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
@@ -339,7 +357,7 @@ class GUIManager(QtGui.QMainWindow):
                 for ids_ in r_.json()['ports']:
                     c2_ = PortsInfoButton(self.__url + 'ports/',
                             {'dpid': ids_['dpid'], 'portno': ids_['port_no']},
-                                          self.centralWidget())
+                                          self.centralWidget(), self)
                     self.centralWidget().setCellWidget(i, 0,
                             QtGui.QTextEdit(str(ids_['dpid'])))
                     self.centralWidget().setCellWidget(i, 1,
@@ -348,14 +366,14 @@ class GUIManager(QtGui.QMainWindow):
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
-            self.__critical(str(exc))
+            self.critical(str(exc))
 
     def get_links(self):
         GLOG.debug("get_links action")
         try:
             r_ = requests.get(url=self.__url + "links")
             if r_.status_code != requests.codes.ok:
-                self.__critical(r_.text)
+                self.critical(r_.text)
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
@@ -376,14 +394,14 @@ class GUIManager(QtGui.QMainWindow):
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
-            self.__critical(str(exc))
+            self.critical(str(exc))
 
     def get_hosts(self):
         GLOG.debug("get_hosts action")
         try:
             r_ = requests.get(url=self.__url + "hosts")
             if r_.status_code != requests.codes.ok:
-                self.__critical(r_.text)
+                self.critical(r_.text)
 
             else:
                 GLOG.debug("Response=%s" % r_.text)
@@ -404,7 +422,7 @@ class GUIManager(QtGui.QMainWindow):
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
-            self.__critical(str(exc))
+            self.critical(str(exc))
 
     def get_pckt_flows(self):
         GLOG.debug("get_pckt_flows action")
@@ -412,7 +430,8 @@ class GUIManager(QtGui.QMainWindow):
         self.centralWidget().setColumnCount(2)
         self.centralWidget().setHorizontalHeaderLabels(['Insert DPID', ''])
 
-        c1_ = PcktFlowsButton(self.__url + 'pckt_flows/', self.centralWidget())
+        c1_ = PcktFlowsButton(self.__url + 'pckt_flows/',
+                              self.centralWidget(), self)
         self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
         self.centralWidget().setCellWidget(0, 1, c1_)
 

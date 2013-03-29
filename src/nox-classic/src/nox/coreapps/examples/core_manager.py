@@ -160,7 +160,7 @@ def pckt_dpid_create():
     try:
         PROXY_DB.open_transaction()
         PROXY_DB.datapath_insert(d_id=dpid_,
-                                 d_name="ofswitch-" + str(dpid_),
+                                 d_name=bottle.request.json['region'],
                                  caps=bottle.request.json['ofp_capabilities'],
                                  actions=bottle.request.json['ofp_actions'],
                                  buffers=bottle.request.json['buffers'],

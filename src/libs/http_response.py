@@ -33,6 +33,7 @@ class HTTPResponseGetDPIDInfo(object):
         dpid_ = {'dpid':{}}
 
         dpid_['dpid']['id'] = self._row['id']
+        dpid_['dpid']['region'] = check_value(self._row['name'])
         dpid_['dpid']['tables'] = check_value(self._row['tables'])
         dpid_['dpid']['ofp_capabilities'] = check_value(self._row['ofp_capabilities'])
         dpid_['dpid']['ofp_actions'] = check_value(self._row['ofp_actions'])

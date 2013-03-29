@@ -62,7 +62,7 @@ DEFAULT_STATS_POLL_TIME = 10
 
 class DiscoveryPacket(Component):
     """ Discovery Packet Class """
-    CONFIG_FILE = LIBS_PATH + "/libs/" + "nox_topologymgr.cfg"
+    FCONFIG = LIBS_PATH + "/libs/" + "nox_topologymgr.cfg"
 
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
@@ -70,7 +70,6 @@ class DiscoveryPacket(Component):
         self.hosts      = {}
         self.links      = {}
         self.switches   = {}
-        self.db_conn    = None
         self.__reasons = {0: "AUTHENTICATION_EVENT",
                           1: "AUTO_AUTHENTICATION",
                           2: "NWADDR_AUTO_ADD",
@@ -85,10 +84,13 @@ class DiscoveryPacket(Component):
                           11: "HOST_DELETE",
                          }
 
-        self.w_srv = nxw_utils.WebServConfigParser(DiscoveryPacket.CONFIG_FILE)
+        self.w_srv = nxw_utils.WebServConfigParser(DiscoveryPacket.FCONFIG)
         self.url   = "http://%s:%s/" % (str(self.w_srv.host),
                                         str(self.w_srv.port))
         self.hs    = {'content-type': 'application/json'}
+
+        discovery_ = nxw_utils.DiscoveryConfigParser(DiscoveryPacket.FCONFIG)
+        self.region = discovery_.packet_region
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
@@ -216,6 +218,7 @@ class DiscoveryPacket(Component):
                 ports.append(port)
 
             payload = { "dpid": dpid,
+                        "region": "packet_" + self.region,
                         "ofp_capabilities": stats['caps'],
                         "ofp_actions": stats['actions'],
                         "buffers": stats['n_bufs'],

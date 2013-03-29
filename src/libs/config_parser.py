@@ -71,6 +71,7 @@ class WebServConfigParser:
         LOG.debug("WebServ host=%s, port=%s, timeout=%s, debug=%s",
                   self.host, self.port, self.timeout, self.debug)
 
+
 class DBConfigParser:
     """Configuration File Parser Manager for DB controller
     """
@@ -95,3 +96,22 @@ class DBConfigParser:
 
         LOG.debug("DB name=%s, host=%s, user=%s, pswd=%s",
                   self.name, self.host, self.user, self.pswd)
+
+
+class DiscoveryConfigParser:
+    """Configuration File Parser Manager for Discovery controller
+    """
+
+    def __init__(self, filename):
+        self.packet_region = None
+
+        if check_file(filename):
+            config = ConfigParser.ConfigParser()
+            config.read(filename)
+
+            sects = config.sections()
+            for sect in sects:
+                if sect == 'discovery':
+                    self.packet_region = config.get(sect, 'packet_region')
+
+        LOG.debug("Discovery packet_region=%s", self.packet_region)
