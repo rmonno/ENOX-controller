@@ -184,3 +184,51 @@ ALTER TABLE `flow_entries`
     REFERENCES `datapaths` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- --------------------------------------------------------
+
+--
+-- Table structure for table `port_stats'
+--
+CREATE TABLE IF NOT EXISTS `port_stats` (
+  `datapath_id` bigint(20) unsigned NOT NULL,
+  `port_no` smallint(8) unsigned NOT NULL,
+  `rx_pkts` bigint(64) unsigned DEFAULT NULL,
+  `tx_pkts` bigint(64) unsigned DEFAULT NULL,
+  `rx_bytes` bigint(64) unsigned DEFAULT NULL,
+  `tx_bytes` bigint(64) unsigned DEFAULT NULL,
+  `rx_dropped` bigint(64) unsigned DEFAULT NULL,
+  `tx_dropped` bigint(64) unsigned DEFAULT NULL,
+  `rx_errors` bigint(64) unsigned DEFAULT NULL,
+  `tx_errors` bigint(64) unsigned DEFAULT NULL,
+  `rx_frame_err` bigint(64) unsigned DEFAULT NULL,
+  `tx_over_err` bigint(64) unsigned DEFAULT NULL,
+  `rx_crc_err` bigint(64) unsigned DEFAULT NULL,
+  `tx_collisions` bigint(64) unsigned DEFAULT NULL,
+  PRIMARY KEY (`datapath_id`,`port_no`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='port_stats details';
+
+--
+-- Constraints for table `port_stats`
+--
+
+ALTER TABLE `port_stats`
+  ADD CONSTRAINT `port_stats_ibfk_1` FOREIGN KEY (`datapath_id`, `port_no`)
+    REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `table_stats'
+--
+CREATE TABLE IF NOT EXISTS `table_stats` (
+  `datapath_id` bigint(20) unsigned NOT NULL,
+  `table_id` smallint(8) unsigned NOT NULL,
+  `max_entries` bigint(32) unsigned DEFAULT NULL,
+  `active_count` bigint(64) unsigned DEFAULT NULL,
+  `lookup_count` bigint(64) unsigned DEFAULT NULL,
+  `matched_count` bigint(64) unsigned DEFAULT NULL,
+  PRIMARY KEY (`datapath_id`,`table_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='table_stats details';
+
+ALTER TABLE `table_stats`
+  ADD CONSTRAINT `table_stats_ibfk_1` FOREIGN KEY (`datapath_id`)
+    REFERENCES `datapaths` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
