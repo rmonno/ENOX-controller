@@ -23,15 +23,10 @@ def main (argv=None):
         # connect and open transaction
         conn.open_transaction()
 
-        conn.datapath_insert(1)
-        conn.port_insert(1,1)
-        conn.port_insert(1,2)
+        conn.table_stats_delete(1,1)
+        conn.table_stats_delete(1,2)
 
-        conn.port_stats_insert(dpid=1, port_no=1,
-                               rx_pkts=100, tx_pkts=50)
-        conn.port_stats_insert(dpid=1, port_no=2,
-                               rx_pkts=200, tx_pkts=100,
-                               rx_bytes=1000, tx_bytes=500)
+        conn.datapath_delete(1)
 
         # commit transaction
         conn.commit()
@@ -42,7 +37,6 @@ def main (argv=None):
         conn.rollback()
 
     conn.close()
-
 
 if __name__ == "__main__":
     sys.exit(main())

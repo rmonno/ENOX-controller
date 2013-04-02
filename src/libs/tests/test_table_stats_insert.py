@@ -24,14 +24,17 @@ def main (argv=None):
         conn.open_transaction()
 
         conn.datapath_insert(1)
-        conn.port_insert(1,1)
-        conn.port_insert(1,2)
+        conn.table_stats_insert(dpid=1, table_id=1,
+                                max_entries=64,
+                                active_count=5,
+                                lookup_count=4,
+                                matched_count=3)
 
-        conn.port_stats_insert(dpid=1, port_no=1,
-                               rx_pkts=100, tx_pkts=50)
-        conn.port_stats_insert(dpid=1, port_no=2,
-                               rx_pkts=200, tx_pkts=100,
-                               rx_bytes=1000, tx_bytes=500)
+        conn.table_stats_insert(dpid=1, table_id=2,
+                                max_entries=128,
+                                active_count=10,
+                                lookup_count=8,
+                                matched_count=6)
 
         # commit transaction
         conn.commit()
@@ -42,7 +45,6 @@ def main (argv=None):
         conn.rollback()
 
     conn.close()
-
 
 if __name__ == "__main__":
     sys.exit(main())
