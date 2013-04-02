@@ -562,6 +562,94 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         values = (dpid, port_no, num_bandwidth)
         self.__execute(statement, values)
 
+    def port_stats_insert(self, dpid, port_no,
+                          rx_pkts=None, tx_pkts=None,
+                          rx_bytes=None, tx_bytes=None,
+                          rx_dropped=None, tx_dropped=None,
+                          rx_errors=None, tx_errors=None,
+                          rx_frame_err=None,
+                          rx_over_err=None,
+                          rx_crc_err=None,
+                          collisions=None):
+        """ port_stats insert """
+        table = "port_stats"
+
+        stat_header = "INSERT INTO " + table + "(datapath_id, port_no"
+        stat_body = "VALUES (%s, %s"
+        values = (str(dpid), str(port_no),)
+
+        if rx_pkts is not None:
+            stat_header += ", rx_pkts"
+            stat_body += ", %s"
+            values = values + (str(rx_pkts),)
+
+        if tx_pkts is not None:
+            stat_header += ", tx_pkts"
+            stat_body += ", %s"
+            values = values + (str(tx_pkts),)
+
+        if rx_bytes is not None:
+            stat_header += ", rx_bytes"
+            stat_body += ", %s"
+            values = values + (str(rx_bytes),)
+
+        if tx_bytes is not None:
+            stat_header += ", tx_bytes"
+            stat_body += ", %s"
+            values = values + (str(tx_bytes),)
+
+        if rx_dropped is not None:
+            stat_header += ", rx_dropped"
+            stat_body += ", %s"
+            values = values + (str(rx_dropped),)
+
+        if tx_dropped is not None:
+            stat_header += ", tx_dropped"
+            stat_body += ", %s"
+            values = values + (str(tx_dropped),)
+
+        if rx_errors is not None:
+            stat_header += ", rx_errors"
+            stat_body += ", %s"
+            values = values + (str(rx_errors),)
+
+        if tx_errors is not None:
+            stat_header += ", tx_errors"
+            stat_body += ", %s"
+            values = values + (str(tx_errors),)
+
+        if rx_frame_err is not None:
+            stat_header += ", rx_frame_err"
+            stat_body += ", %s"
+            values = values + (str(rx_frame_err),)
+
+        if rx_over_err is not None:
+            stat_header += ", rx_over_err"
+            stat_body += ", %s"
+            values = values + (str(rx_over_err),)
+
+        if rx_crc_err is not None:
+            stat_header += ", rx_crc_err"
+            stat_body += ", %s"
+            values = values + (str(rx_crc_err),)
+
+        if collisions is not None:
+            stat_header += ", collisions"
+            stat_body += ", %s"
+            values = values + (str(collisions),)
+
+        statement = stat_header + ") " + stat_body + ")"
+        self.__execute(statement, values)
+
+    def port_stats_delete(self, dpid, port_no):
+        """ port_stats delete """
+        table = "port_stats"
+
+        statement = "DELETE FROM " + table + \
+                    " WHERE datapath_id=%s AND port_no=%s"
+        values = (dpid, port_no)
+        self.__execute(statement, values)
+
     def flow_insert(self, dpid, table_id=None, action=None, idle_timeout=None,
                     hard_timeout=None, priority=None, cookie=None,
                     dl_type=None, dl_vlan=None, dl_vlan_pcp=None, dl_src=None,
