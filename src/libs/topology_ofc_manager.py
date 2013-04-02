@@ -869,6 +869,27 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         values = (dpid, port_no)
         self.__execute(statement, values)
 
+    def port_stats_select(self, dpid=None, port_no=None):
+        """ select * from datapath """
+        table = "port_stats"
+
+        statement = "SELECT * FROM " + table
+        values = ()
+
+        if dpid is not None and port_no is not None:
+            statement += " WHERE datapath_id=%s AND port_no=%s"
+            values = values + (str(dpid), str(port_no),)
+
+        elif dpid is not None:
+            statement += " WHERE datapath_id=%s"
+            values = values + (str(dpid),)
+
+        elif port_no is not None:
+            statement += " WHERE port_no=%s"
+            values = values + (str(port_no),)
+
+        return self.__execute_dict(statement, values, one=False)
+
     def table_stats_insert(self, dpid, table_id,
                             max_entries=None, active_count=None,
                             lookup_count=None, matched_count=None):
@@ -911,4 +932,23 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         values = (dpid, table_id)
         self.__execute(statement, values)
 
+    def table_stats_select(self, dpid=None, table_id=None):
+        """ select * from datapath """
+        table = "table_stats"
 
+        statement = "SELECT * FROM " + table
+        values = ()
+
+        if dpid is not None and table_id is not None:
+            statement += " WHERE datapath_id=%s AND table_id=%s"
+            values = values + (str(dpid), str(table_id),)
+
+        elif dpid is not None:
+            statement += " WHERE datapath_id=%s"
+            values = values + (str(dpid),)
+
+        elif table_id is not None:
+            statement += " WHERE table_id=%s"
+            values = values + (str(table_id),)
+
+        return self.__execute_dict(statement, values, one=False)

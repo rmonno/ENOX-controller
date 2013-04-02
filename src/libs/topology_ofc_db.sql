@@ -200,9 +200,9 @@ CREATE TABLE IF NOT EXISTS `port_stats` (
   `rx_errors` bigint(64) unsigned DEFAULT NULL,
   `tx_errors` bigint(64) unsigned DEFAULT NULL,
   `rx_frame_err` bigint(64) unsigned DEFAULT NULL,
-  `tx_over_err` bigint(64) unsigned DEFAULT NULL,
+  `rx_over_err` bigint(64) unsigned DEFAULT NULL,
   `rx_crc_err` bigint(64) unsigned DEFAULT NULL,
-  `tx_collisions` bigint(64) unsigned DEFAULT NULL,
+  `collisions` bigint(64) unsigned DEFAULT NULL,
   PRIMARY KEY (`datapath_id`,`port_no`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='port_stats details';
 
