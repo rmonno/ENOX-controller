@@ -709,6 +709,60 @@ def pckt_flow_create():
     finally:
         PROXY_DB.close()
 
+@bottle.post('/pckt_port_stats')
+def pckt_port_create():
+    WLOG.info("Enter http pckt_port_stats_create")
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.port_stats_insert(dpid=bottle.request.json['dpid'],
+                                   port_no=bottle.request.json['port_no'],
+                                   rx_pkts=bottle.request.json['rx_pkts'],
+                                   tx_pkts=bottle.request.json['tx_pkts'],
+                                   rx_bytes=bottle.request.json['rx_bytes'],
+                                   tx_bytes=bottle.request.json['tx_bytes'],
+                                   rx_dropped=bottle.request.json['rx_dropped'],
+                                   tx_dropped=bottle.request.json['tx_dropped'],
+                                   rx_errors=bottle.request.json['rx_errors'],
+                                   tx_errors=bottle.request.json['tx_errors'],
+                                   rx_frame_err=bottle.request.json['rx_frame_err'],
+                                   rx_crc_err=bottle.request.json['rx_crc_err'],
+                                   rx_over_err=bottle.request.json['rx_over_err'],
+                                   collisions=bottle.request.json['collisions'])
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed', status=201)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_port_stats: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+@bottle.get('/pckt_port_stats_info/')
+def pckt_port_stats_info():
+    dpid_   = int(bottle.request.query.dpid)
+    portno_ = int(bottle.request.query.portno)
+
+    WLOG.info("Enter http port_info: dpid=%d, portno=%d", dpid_, portno_)
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.port_stats_select(dpid=dpid_, port_no=portno_)
+
+        if len(rows_) > 1:
+            bottle.abort(500, 'Duplicated key!')
+
+        ids_ = PROXY_DB.port_stats_select(dpid=dpid_,
+                                          port_no=portno_)
+        resp_ = nxw_utils.HTTPResponseGetPCKTPortStats(ids_)
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("port_info: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
 
 class CoreService(threading.Thread):
     def __init__(self, name, host, port, debug):

@@ -144,3 +144,28 @@ class HTTPResponseGetPCKTFLOWS(object):
 
         return json.dumps(p_flows_, sort_keys=True, indent=4,
                           separators=(',', ': '))
+
+class HTTPResponseGetPCKTPortStats(object):
+    def __init__(self, db_rows):
+        self._rows = db_rows
+
+    def body(self):
+        p_port_stats = {'packet_port_stats':[]}
+        for row_ in self._rows:
+            p_port_stats['packet_port_stats'].append({
+                    'port_no': row_['port_no'],
+                    'rx_pkts': check_value(row_['rx_pkts']),
+                    'tx_pkts': check_value(row_['tx_pkts']),
+                    'rx_bytes': check_value(row_['rx_bytes']),
+                    'tx_bytes': check_value(row_['tx_bytes']),
+                    'rx_dropped': check_value(row_['rx_dropped']),
+                    'tx_dropped': check_value(row_['tx_dropped']),
+                    'rx_errors': check_value(row_['rx_errors']),
+                    'tx_errors': check_value(row_['tx_errors']),
+                    'rx_frame_err': check_value(row_['rx_frame_err']),
+                    'rx_crc_err': check_value(row_['rx_crc_err']),
+                    'rx_over_err': check_value(row_['rx_over_err']),
+                    'collisions': check_value(row_['collisions'])})
+
+        return json.dumps(p_port_stats, sort_keys=True, indent=4,
+                          separators=(',', ': '))

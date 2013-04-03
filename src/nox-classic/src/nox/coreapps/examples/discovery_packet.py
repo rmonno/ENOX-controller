@@ -652,6 +652,29 @@ class DiscoveryPacket(Component):
             LOG.debug("PORTS_STATS for dpid %s: %s" % (str(dpid),
                                                        str(new_ports)))
             self.port_stats[dpid] = new_ports
+            # post pckt_port_stats
+            payload = { "dpid"         : dpid,
+                        "port_no"      : port['port_no'],
+                        "rx_pkts"      : port['rx_packets'],
+                        "tx_pkts"      : port['tx_packets'],
+                        "rx_bytes"     : port['rx_bytes'],
+                        "tx_bytes"     : port['tx_bytes'],
+                        "rx_dropped"   : port['rx_dropped'],
+                        "tx_dropped"   : port['tx_dropped'],
+                        "rx_errors"    : port['rx_errors'],
+                        "tx_errors"    : port['tx_errors'],
+                        "rx_frame_err" : port['rx_frame_err'],
+                        "rx_crc_err"   : port['rx_crc_err'],
+                        "rx_over_err"  : port['rx_over_err'],
+                        "collisions"   : port['collisions'],
+                      }
+            req = requests.post(url=self.url + "pckt_port_stats",
+                                headers=self.hs, data=json.dumps(payload))
+            LOG.debug("URL=%s" % req.url)
+            LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                         str(req.content)))
+
+
         except Exception, err:
             LOG.error("Got exception in port_stats_handler ('%s')" % str(err))
 
