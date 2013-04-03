@@ -714,20 +714,45 @@ def pckt_port_create():
     WLOG.info("Enter http pckt_port_stats_create")
     try:
         PROXY_DB.open_transaction()
-        PROXY_DB.port_stats_insert(dpid=bottle.request.json['dpid'],
-                                   port_no=bottle.request.json['port_no'],
-                                   rx_pkts=bottle.request.json['rx_pkts'],
-                                   tx_pkts=bottle.request.json['tx_pkts'],
-                                   rx_bytes=bottle.request.json['rx_bytes'],
-                                   tx_bytes=bottle.request.json['tx_bytes'],
-                                   rx_dropped=bottle.request.json['rx_dropped'],
-                                   tx_dropped=bottle.request.json['tx_dropped'],
-                                   rx_errors=bottle.request.json['rx_errors'],
-                                   tx_errors=bottle.request.json['tx_errors'],
-                                   rx_frame_err=bottle.request.json['rx_frame_err'],
-                                   rx_crc_err=bottle.request.json['rx_crc_err'],
-                                   rx_over_err=bottle.request.json['rx_over_err'],
-                                   collisions=bottle.request.json['collisions'])
+        ret = None
+        try:
+            ret = PROXY_DB.port_stats_select(bottle.request.json['dpid'],
+                                             bottle.request.json['port_no'])
+        except Exception, err:
+            WLOG.debug("No stats for dpid %s and port_no %s. Inserting new entry..." % \
+                       (str(bottle.request.json['dpid']),
+                        str(bottle.request.json['port_no'])))
+        if not ret:
+            PROXY_DB.port_stats_insert(dpid=bottle.request.json['dpid'],
+                                       port_no=bottle.request.json['port_no'],
+                                       rx_pkts=bottle.request.json['rx_pkts'],
+                                       tx_pkts=bottle.request.json['tx_pkts'],
+                                       rx_bytes=bottle.request.json['rx_bytes'],
+                                       tx_bytes=bottle.request.json['tx_bytes'],
+                                       rx_dropped=bottle.request.json['rx_dropped'],
+                                       tx_dropped=bottle.request.json['tx_dropped'],
+                                       rx_errors=bottle.request.json['rx_errors'],
+                                       tx_errors=bottle.request.json['tx_errors'],
+                                       rx_frame_err=bottle.request.json['rx_frame_err'],
+                                       rx_crc_err=bottle.request.json['rx_crc_err'],
+                                       rx_over_err=bottle.request.json['rx_over_err'],
+                                       collisions=bottle.request.json['collisions'])
+        else:
+            PROXY_DB.port_stats_update(dpid=bottle.request.json['dpid'],
+                                       port_no=bottle.request.json['port_no'],
+                                       rx_pkts=bottle.request.json['rx_pkts'],
+                                       tx_pkts=bottle.request.json['tx_pkts'],
+                                       rx_bytes=bottle.request.json['rx_bytes'],
+                                       tx_bytes=bottle.request.json['tx_bytes'],
+                                       rx_dropped=bottle.request.json['rx_dropped'],
+                                       tx_dropped=bottle.request.json['tx_dropped'],
+                                       rx_errors=bottle.request.json['rx_errors'],
+                                       tx_errors=bottle.request.json['tx_errors'],
+                                       rx_frame_err=bottle.request.json['rx_frame_err'],
+                                       rx_crc_err=bottle.request.json['rx_crc_err'],
+                                       rx_over_err=bottle.request.json['rx_over_err'],
+                                       collisions=bottle.request.json['collisions'])
+
         PROXY_DB.commit()
         return bottle.HTTPResponse(body='Operation completed', status=201)
 
