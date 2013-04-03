@@ -1008,3 +1008,29 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             values = values + (str(table_id),)
 
         return self.__execute_dict(statement, values, one=False)
+
+    def table_stats_update(self, dpid, table_id,
+                           max_entries=None,
+                           active_count=None,
+                           lookup_count=None,
+                           matched_count=None):
+        """ table_stats update """
+        table = "table_stats"
+
+        stat_header = "UPDATE " + table + " SET "
+
+        if max_entries is not None:
+            stat_header += " max_entries=%s," % str(max_entries)
+
+        if active_count is not None:
+            stat_header += " active_count=%s," % str(active_count)
+
+        if lookup_count is not None:
+            stat_header += " lookup_count=%s," % str(lookup_count)
+
+        if matched_count is not None:
+            stat_header += " matched_count=%s" % str(matched_count)
+
+        statement = stat_header + " WHERE datapath_id=%s AND table_id=%s"
+        values = (dpid, table_id)
+        self.__execute(statement, values)

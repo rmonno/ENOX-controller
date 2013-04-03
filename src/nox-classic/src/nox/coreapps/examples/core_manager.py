@@ -789,6 +789,70 @@ def pckt_port_stats_info():
     finally:
         PROXY_DB.close()
 
+@bottle.post('/pckt_table_stats')
+def pckt_table_stats_create():
+    WLOG.info("Enter http pckt_table_stats_create")
+    try:
+        PROXY_DB.open_transaction()
+        ret = None
+        try:
+            ret = PROXY_DB.table_stats_select(bottle.request.json['dpid'],
+                                              bottle.request.json['table_id'])
+        except Exception, err:
+            WLOG.debug("No stats for dpid %s and table_id %s. Inserting new entry..." % \
+                       (str(bottle.request.json['dpid']),
+                           str(bottle.request.json['table_id'])))
+        if not ret:
+            PROXY_DB.table_stats_insert(dpid=bottle.request.json['dpid'],
+                            table_id=bottle.request.json['table_id'],
+                            max_entries=bottle.request.json['max_entries'],
+                            active_count=bottle.request.json['active_count'],
+                            lookup_count=bottle.request.json['lookup_count'],
+                            matched_count=bottle.request.json['matched_count'])
+        else:
+            PROXY_DB.table_stats_update(dpid=bottle.request.json['dpid'],
+                            table_id=bottle.request.json['table_id'],
+                            max_entries=bottle.request.json['max_entries'],
+                            active_count=bottle.request.json['active_count'],
+                            lookup_count=bottle.request.json['lookup_count'],
+                            matched_count=bottle.request.json['matched_count'])
+
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed', status=201)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_table_stats: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+@bottle.get('/pckt_table_stats_info/')
+def pckt_table_stats_info():
+    dpid_   = int(bottle.request.query.dpid)
+    tableid_ = int(bottle.request.query.tableid)
+
+    WLOG.info("Enter http port_info: dpid=%d, portno=%d", dpid_, tableid_)
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.table_stats_select(dpid=dpid_, table_id=tableid_)
+
+        if len(rows_) > 1:
+            bottle.abort(500, 'Duplicated key!')
+
+        ids_ = PROXY_DB.table_stats_select(dpid=dpid_,
+                                          table_id=tableid_)
+        resp_ = nxw_utils.HTTPResponseGetPCKTTableStats(ids_)
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("table_info: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
 class CoreService(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)

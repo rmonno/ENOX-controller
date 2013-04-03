@@ -620,19 +620,27 @@ class DiscoveryPacket(Component):
     def table_stats_handler(self, dpid, tables):
         """ Handler for table_stats_in event """
         try:
-            # XXX FIXME: Call a proper core_manager function (to avoid locally
-            #            storage of stats)
             LOG.debug("TABLE_STATS_IN for dpid %s: %s" % (str(dpid),
                                                           str(tables)))
-            self.table_stats[dpid] = tables
+            for table in tables:
+                payload = { "dpid"          : dpid,
+                            "table_id"      : table['table_id'],
+                            "max_entries"   : table['max_entries'],
+                            "active_count"  : table['active_count'],
+                            "lookup_count"  : table['lookup_count'],
+                            "matched_count" : table['matched_count'],
+                          }
+                req = requests.post(url=self.url + "pckt_table_stats",
+                                    headers=self.hs, data=json.dumps(payload))
+                LOG.debug("URL=%s" % req.url)
+                LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
+                                                             str(req.content)))
         except Exception, err:
             LOG.error("Got exception in table_stats_handler ('%s')" % str(err))
 
     def port_stats_handler(self, dpid, ports):
         """ Handler for port_stats_in event """
         try:
-            # XXX FIXME: Call a proper core_manager function (to avoid locally
-            #            storage of stats)
             if dpid not in self.port_stats:
                 new_ports = {}
                 for port in ports:
