@@ -35,7 +35,7 @@ For our purpose, the option "--switch user" MUST BE USED (1)
 3) Start NOX (from the folder nox-classic/build/src) with the following
    command:
 
-    ./nox_core -v -i ptcp:6633 discovery_packet
+    ./nox_core -v -i ptcp:6633 discovery_packet core_manager
 
 4) Verify the correct behaviuor of the discovery application. In particular,
    the port_status_change() function must be called whenever a port status
