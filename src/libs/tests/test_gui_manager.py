@@ -213,6 +213,118 @@ class PcktFlowsButton(Button):
             self.error(str(exc))
 
 
+class PcktTableStatsButton(Button):
+
+    def __init__(self, url, central, parent=None):
+        Button.__init__(self, 'send', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+
+    def onClick(self):
+        dpid_ = self.__central.cellWidget(0, 0).text()
+        tableid_ = self.__central.cellWidget(0, 1).text()
+        GLOG.debug("get_pckt_port_stats action: url=%s, dpid=%s, tableid=%s",
+                   self.__url, dpid_, tableid_)
+        try:
+            params_ = {'dpid': dpid_, 'tableid': tableid_}
+            r_ = requests.get(url=self.__url, params=params_)
+            if r_.status_code != requests.codes.ok:
+                self.error(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                infos_ = r_.json()['packet_table_stats']
+                lbs_ = ['dpid', 'table_id', 'max_entries',
+                        'active', 'matched', 'lookup']
+                self.__central.setRowCount(len(infos_))
+                self.__central.setColumnCount(len(lbs_))
+                self.__central.setHorizontalHeaderLabels(lbs_)
+
+                i = 0
+                for info_ in infos_:
+                    self.__central.setCellWidget(i, 0,
+                        QtGui.QTextEdit(str(info_['dpid'])))
+                    self.__central.setCellWidget(i, 1,
+                        QtGui.QTextEdit(str(info_['table_id'])))
+                    self.__central.setCellWidget(i, 2,
+                        QtGui.QTextEdit(str(info_['max_entries'])))
+                    self.__central.setCellWidget(i, 3,
+                        QtGui.QTextEdit(str(info_['active'])))
+                    self.__central.setCellWidget(i, 4,
+                        QtGui.QTextEdit(str(info_['matched'])))
+                    self.__central.setCellWidget(i, 5,
+                        QtGui.QTextEdit(str(info_['lookup'])))
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
+class PcktPortStatsButton(Button):
+
+    def __init__(self, url, central, parent=None):
+        Button.__init__(self, 'send', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+
+    def onClick(self):
+        dpid_ = self.__central.cellWidget(0, 0).text()
+        portno_ = self.__central.cellWidget(0, 1).text()
+        GLOG.debug("get_pckt_port_stats action: url=%s, dpid=%s, portno=%s",
+                   self.__url, dpid_, portno_)
+        try:
+            params_ = {'dpid': dpid_, 'portno': portno_}
+            r_ = requests.get(url=self.__url, params=params_)
+            if r_.status_code != requests.codes.ok:
+                self.error(r_.text)
+
+            else:
+                GLOG.debug("Response=%s" % r_.text)
+                infos_ = r_.json()['packet_port_stats']
+                lbs_ = ['port_no', 'collisions',
+                        'tx_pkts', 'tx_bytes', 'tx_dropped', 'tx_errors',
+                        'rx_pkts', 'rx_bytes', 'rx_dropped', 'rx_errors',
+                        'rx_crc_err', 'rx_frame_err', 'rx_over_err']
+                self.__central.setRowCount(len(infos_))
+                self.__central.setColumnCount(len(lbs_))
+                self.__central.setHorizontalHeaderLabels(lbs_)
+
+                i = 0
+                for info_ in infos_:
+                    self.__central.setCellWidget(i, 0,
+                        QtGui.QTextEdit(str(info_['port_no'])))
+                    self.__central.setCellWidget(i, 1,
+                        QtGui.QTextEdit(str(info_['collisions'])))
+                    self.__central.setCellWidget(i, 2,
+                        QtGui.QTextEdit(str(info_['tx_pkts'])))
+                    self.__central.setCellWidget(i, 3,
+                        QtGui.QTextEdit(str(info_['tx_bytes'])))
+                    self.__central.setCellWidget(i, 4,
+                        QtGui.QTextEdit(str(info_['tx_dropped'])))
+                    self.__central.setCellWidget(i, 5,
+                        QtGui.QTextEdit(str(info_['tx_errors'])))
+                    self.__central.setCellWidget(i, 6,
+                        QtGui.QTextEdit(str(info_['rx_pkts'])))
+                    self.__central.setCellWidget(i, 7,
+                        QtGui.QTextEdit(str(info_['rx_bytes'])))
+                    self.__central.setCellWidget(i, 8,
+                        QtGui.QTextEdit(str(info_['rx_dropped'])))
+                    self.__central.setCellWidget(i, 9,
+                        QtGui.QTextEdit(str(info_['rx_errors'])))
+                    self.__central.setCellWidget(i, 10,
+                        QtGui.QTextEdit(str(info_['rx_crc_err'])))
+                    self.__central.setCellWidget(i, 11,
+                        QtGui.QTextEdit(str(info_['rx_frame_err'])))
+                    self.__central.setCellWidget(i, 12,
+                        QtGui.QTextEdit(str(info_['rx_over_err'])))
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, addr, port):
@@ -266,6 +378,18 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.get_pckt_flows)
         return act_
 
+    def __getPcktTableStatsAction(self):
+        act_ = QtGui.QAction('Get TABLE stats', self)
+        act_.setStatusTip('GET table statistics request')
+        act_.triggered.connect(self.get_pckt_table_stats)
+        return act_
+
+    def __getPcktPortStatsAction(self):
+        act_ = QtGui.QAction('Get PORT stats', self)
+        act_.setStatusTip('GET port statistics request')
+        act_.triggered.connect(self.get_pckt_port_stats)
+        return act_
+
     def __menuBar(self):
         mb_ = self.menuBar()
         fmenu_ = mb_.addMenu('&File')
@@ -279,6 +403,10 @@ class GUIManager(QtGui.QMainWindow):
 
         pmenu_ = mb_.addMenu('&Provisioning')
         pmenu_.addAction(self.__getPcktFlowsAction())
+
+        smenu_ = mb_.addMenu('&Statistics')
+        smenu_.addAction(self.__getPcktTableStatsAction())
+        smenu_.addAction(self.__getPcktPortStatsAction())
 
     def __toolBar(self):
         tb_ = self.addToolBar('gui-toolbar')
@@ -434,6 +562,32 @@ class GUIManager(QtGui.QMainWindow):
                               self.centralWidget(), self)
         self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
         self.centralWidget().setCellWidget(0, 1, c1_)
+
+    def get_pckt_table_stats(self):
+        GLOG.debug("get_pckt_table_stats action")
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(3)
+        self.centralWidget().setHorizontalHeaderLabels(['Insert DPID',
+                                                        'Insert TABLEID' ,''])
+
+        c2_ = PcktTableStatsButton(self.__url + 'pckt_table_stats_info/',
+                                   self.centralWidget(), self)
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('FFFF'))
+        self.centralWidget().setCellWidget(0, 2, c2_)
+
+    def get_pckt_port_stats(self):
+        GLOG.debug("get_pckt_port_stats action")
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(3)
+        self.centralWidget().setHorizontalHeaderLabels(['Insert DPID',
+                                                        'Insert PORTNO' ,''])
+
+        c2_ = PcktPortStatsButton(self.__url + 'pckt_port_stats_info/',
+                                  self.centralWidget(), self)
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('FFFF'))
+        self.centralWidget().setCellWidget(0, 2, c2_)
 
 
 def main(argv=None):

@@ -145,6 +145,7 @@ class HTTPResponseGetPCKTFLOWS(object):
         return json.dumps(p_flows_, sort_keys=True, indent=4,
                           separators=(',', ': '))
 
+
 class HTTPResponseGetPCKTPortStats(object):
     def __init__(self, db_rows):
         self._rows = db_rows
@@ -168,4 +169,23 @@ class HTTPResponseGetPCKTPortStats(object):
                     'collisions': check_value(row_['collisions'])})
 
         return json.dumps(p_port_stats, sort_keys=True, indent=4,
+                          separators=(',', ': '))
+
+
+class HTTPResponseGetPCKTTableStats(object):
+    def __init__(self, db_rows):
+        self._rows = db_rows
+
+    def body(self):
+        p_table_stats = {'packet_table_stats':[]}
+        for row_ in self._rows:
+            p_table_stats['packet_table_stats'].append({
+                            'dpid': row_['datapath_id'],
+                            'table_id': row_['table_id'],
+                            'max_entries': check_value(row_['max_entries']),
+                            'matched': check_value(row_['matched_count']),
+                            'active': check_value(row_['active_count']),
+                            'lookup': check_value(row_['lookup_count'])})
+
+        return json.dumps(p_table_stats, sort_keys=True, indent=4,
                           separators=(',', ': '))
