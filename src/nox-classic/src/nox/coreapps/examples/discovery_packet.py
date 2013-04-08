@@ -56,9 +56,9 @@ import libs as nxw_utils
 LOG = nxw_utils.ColorLog(logging.getLogger('discovery_packet'))
 
 # XXX FIXME: Insert proper params (in conf file) to change the following values
-DEFAULT_TABLE_TIME = 10
-DEFAULT_PORT_TIME  = 10
-DEFAULT_AGGR_TIME  = 10
+DEFAULT_TABLE_TIME = 300
+DEFAULT_PORT_TIME  = 300
+DEFAULT_AGGR_TIME  = 300
 
 class DiscoveryPacket(Component):
     """ Discovery Packet Class """
