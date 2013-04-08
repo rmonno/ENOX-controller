@@ -20,6 +20,7 @@
 import sys
 import os
 import logging
+import requests
 
 from nox.lib.core import *
 from nox.netapps.flow_fetcher.pyflow_fetcher import flow_fetcher_app
@@ -45,18 +46,26 @@ FFLOG = nxw_utils.ColorLog(logging.getLogger('flows-monitor'))
 
 class FlowsMonitor(Component):
     """ Flows-Monitor Class """
-    CONFIG_FILE = LIBS_PATH + "/libs/" + "nox_topologymgr.cfg"
+    FCONF = LIBS_PATH + "/libs/" + "nox_topologymgr.cfg"
 
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
-        self._conf_ff = nxw_utils.FlowsMonitorConfigParser(FlowsMonitor.CONFIG_FILE)
+        self._conf_ff = nxw_utils.FlowsMonitorConfigParser(FlowsMonitor.FCONF)
+        self._conf_ws = nxw_utils.WebServConfigParser(FlowsMonitor.FCONF)
+        self._url = "http://%s:%s/" % (self._conf_ws.host, self._conf_ws.port)
         self._ffa = None
 
     def __flows_request(self):
         try:
-            dpid = datapathid.from_host(long("1", 16))
-            match = {}
-            ff = self._ffa.fetch(dpid, match, lambda: self.__flows_replay(ff))
+            r_ = requests.get(url=self._url + 'dpids')
+            if r_.status_code != requests.codes.ok:
+                FFLOG.error("Request dpids error=%s" % r_.text)
+                return
+
+            for id_ in r_.json()['dpids']:
+                dpid = datapathid.from_host(long(id_['dpid'], 16))
+                FFLOG.debug("Request flows for dpid=%s", str(dpid))
+                ff = self._ffa.fetch(dpid, {}, lambda: self.__flows_replay(ff))
 
         except Exception as e:
             FFLOG.error(str(e))

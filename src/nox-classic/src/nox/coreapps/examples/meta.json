@@ -63,7 +63,8 @@
             "name": "flows_monitor" ,
             "dependencies": [
                 "python",
-                "python_flow_fetcher"
+                "python_flow_fetcher",
+                "core_manager"
             ],
             "python": "nox.coreapps.examples.flows_monitor"
         }
