@@ -12,7 +12,8 @@ EXTRA_DIST =			\
 	countdown.py		\
 	dnsspy.py			\
 	core_manager.py		\
-	discovery_packet.py
+	discovery_packet.py	\
+	flows_monitor.py
 
 NOX_RUNTIMEFILES =		\
 	meta.json			\
@@ -24,7 +25,9 @@ NOX_RUNTIMEFILES =		\
 	countdown.py		\
 	dnsspy.py			\
 	core_manager.py		\
-	discovery_packet.py
+	discovery_packet.py	\
+	flows_monitor.py
+
 
 all-local: nox-all-local
 install-exec-hook: nox-install-local

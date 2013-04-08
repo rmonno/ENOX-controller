@@ -115,3 +115,22 @@ class DiscoveryConfigParser:
                     self.packet_region = config.get(sect, 'packet_region')
 
         LOG.debug("Discovery packet_region=%s", self.packet_region)
+
+
+class FlowsMonitorConfigParser:
+    """Configuration File Parser Manager for FlowsMonitoring controller
+    """
+
+    def __init__(self, filename):
+        self.timeout = None
+
+        if check_file(filename):
+            config = ConfigParser.ConfigParser()
+            config.read(filename)
+
+            sects = config.sections()
+            for sect in sects:
+                if sect == 'flows-monitoring':
+                    self.timeout = config.get(sect, 'timeout')
+
+        LOG.debug("FlowsMonitoring timeout=%s", self.timeout)

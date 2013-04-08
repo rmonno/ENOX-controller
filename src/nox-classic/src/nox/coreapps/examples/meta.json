@@ -58,6 +58,14 @@
                 "discovery_packet"
             ],
             "python": "nox.coreapps.examples.core_manager"
+        },
+        {
+            "name": "flows_monitor" ,
+            "dependencies": [
+                "python",
+                "python_flow_fetcher"
+            ],
+            "python": "nox.coreapps.examples.flows_monitor"
         }
 
     ]

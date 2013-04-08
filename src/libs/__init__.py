@@ -6,7 +6,8 @@ from connections import Server, message_send, msg_receive
 from fpce_dm import FPCE, Link, convert_ipv4_to_str, Host
 from pce_conn import PCEClient
 from config_parser import NoxConfigParser, WebServConfigParser,\
-                          DBConfigParser, DiscoveryConfigParser
+                          DBConfigParser, DiscoveryConfigParser,\
+                          FlowsMonitorConfigParser
 from color_log import ColorLog
 from conversion import createNodeIPv4
 from nox_events import *
