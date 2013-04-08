@@ -54,27 +54,41 @@ class FlowsMonitor(Component):
         self._conf_ws = nxw_utils.WebServConfigParser(FlowsMonitor.FCONF)
         self._url = "http://%s:%s/" % (self._conf_ws.host, self._conf_ws.port)
         self._ffa = None
+        self._queue = []
 
-    def __flows_request(self):
+    def __get_dpids(self):
         try:
             r_ = requests.get(url=self._url + 'dpids')
             if r_.status_code != requests.codes.ok:
-                FFLOG.error("Request dpids error=%s" % r_.text)
                 return
 
-            for id_ in r_.json()['dpids']:
-                dpid = datapathid.from_host(long(id_['dpid'], 16))
-                FFLOG.debug("Request flows for dpid=%s", str(dpid))
-                ff = self._ffa.fetch(dpid, {}, lambda: self.__flows_replay(ff))
+            self._queue = [long(id_['dpid'], 16) for id_ in r_.json()['dpids']]
 
         except Exception as e:
             FFLOG.error(str(e))
 
-    def __flows_replay(self, ff):
-        if ff.get_status() == 0:
-            FFLOG.info("Flows=%s", str(ff.get_flows()))
+    def __dpid_request(self):
+        try:
+            dpid = datapathid.from_host(self._queue.pop())
+            FFLOG.debug("Request flows for dpid=%s", str(dpid))
+            ff = self._ffa.fetch(dpid, {}, lambda: self.__flows_replay(ff))
+
+        except Exception as e:
+            FFLOG.error(str(e))
+
+    def __flows_request(self):
+        if len(self._queue) == 0:
+            self.__get_dpids()
         else:
+            FFLOG.debug("Queue=%s", str(self._queue))
+            self.__dpid_request()
+
+    def __flows_replay(self, ff):
+        if ff.get_status() != 0:
             FFLOG.error("An error occurring during flows-request!")
+            return
+
+        FFLOG.error("------>>>>>>>>>>>>>>>>>>>>>>> XXXXXX Flows=%s", str(ff.get_flows()))
 
     def install(self):
         self._ffa = self.resolve(flow_fetcher_app)
