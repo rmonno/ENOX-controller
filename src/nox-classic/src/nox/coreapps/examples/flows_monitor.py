@@ -111,16 +111,18 @@ class FlowsMonitor(Component):
                 "datalink_vlan": opt('dl_vlan', info['match']),
                 "datalink_vlan_priority": opt('dl_vlan_pcp', info['match']),
                 "datalink_source": opt('dl_src', info['match']),
-                "datalink_destination": opt('dl_dst'. info['match']),
+                "datalink_destination": opt('dl_dst', info['match']),
                 "network_source": nw_src,
                 "network_destination": nw_dst,
                 "network_source_num_wild": opt('nw_src_n_wild', info['match']),
-                "network_destination_num_wild": opt('nw_dst_n_wild', info['match']),
+                "network_destination_num_wild": opt('nw_dst_n_wild',
+                                                    info['match']),
                 "network_protocol": opt('nw_proto', info['match']),
                 "transport_source": opt('tp_src', info['match']),
                 "transport_destination": opt('tp_dst', info['match'])}
+
             r_ = requests.post(url=self._url + 'pckt_flows', params=payload)
-            if r_.status_code != requests.codes.ok:
+            if r_.text != 'Operation completed':
                 FFLOG.error("An error occurring during flow-post!")
 
         except Exception as e:
