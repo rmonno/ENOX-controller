@@ -673,11 +673,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
-    def flow_delete(self, idd):
+    def flow_delete(self, dpid):
         """ Flow entry delete """
         table = "flow_entries"
 
-        statement = "DELETE FROM " + table + " WHERE flow_id=" + str(idd)
+        statement = "DELETE FROM " + table + " WHERE dpid=" + str(dpid)
         self.__execute(statement)
 
     def flow_select(self, dpid=None):

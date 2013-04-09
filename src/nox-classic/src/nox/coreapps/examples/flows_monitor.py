@@ -43,6 +43,12 @@ import libs as nxw_utils
 
 FFLOG = nxw_utils.ColorLog(logging.getLogger('flows-monitor'))
 
+def opt(key_, dict_):
+    if key_ in dict_:
+        return dict_[key_]
+
+    return None
+
 
 class FlowsMonitor(Component):
     """ Flows-Monitor Class """
@@ -71,7 +77,8 @@ class FlowsMonitor(Component):
         try:
             dpid = datapathid.from_host(self._queue.pop())
             FFLOG.debug("Request flows for dpid=%s", str(dpid))
-            ff = self._ffa.fetch(dpid, {}, lambda: self.__flows_replay(ff))
+            ff = self._ffa.fetch(dpid, {},
+                                 lambda: self.__flows_replay(dpid, ff))
 
         except Exception as e:
             FFLOG.error(str(e))
@@ -83,12 +90,52 @@ class FlowsMonitor(Component):
             FFLOG.debug("Queue=%s", str(self._queue))
             self.__dpid_request()
 
-    def __flows_replay(self, ff):
+    def __flow_create(self, dpid, info):
+        try:
+            nw_src = opt('nw_src', info['match'])
+            if nw_src:
+                nw_src = nxw_utils.convert_ipv4_to_str(nw_src)
+
+            nw_dst = opt('nw_dst', info['match'])
+            if nw_dst:
+                nw_dst = nxw_utils.convert_ipv4_to_str(nw_dst)
+
+            payload = {"dpid": dpid,
+                "table_id": info['table_id'],
+                "input_port": opt('in_port', info['match']),
+                "idle_timeout": info['idle_timeout'],
+                "hard_timeout": info['hard_timeout'],
+                "priority": info['priority'],
+                "cookie": info['cookie'],
+                "datalink_type": opt('dl_type', info['match']),
+                "datalink_vlan": opt('dl_vlan', info['match']),
+                "datalink_vlan_priority": opt('dl_vlan_pcp', info['match']),
+                "datalink_source": opt('dl_src', info['match']),
+                "datalink_destination": opt('dl_dst'. info['match']),
+                "network_source": nw_src,
+                "network_destination": nw_dst,
+                "network_source_num_wild": opt('nw_src_n_wild', info['match']),
+                "network_destination_num_wild": opt('nw_dst_n_wild', info['match']),
+                "network_protocol": opt('nw_proto', info['match']),
+                "transport_source": opt('tp_src', info['match']),
+                "transport_destination": opt('tp_dst', info['match'])}
+            r_ = requests.post(url=self._url + 'pckt_flows', params=payload)
+            if r_.status_code != requests.codes.ok:
+                FFLOG.error("An error occurring during flow-post!")
+
+        except Exception as e:
+            FFLOG.error(str(e))
+
+    def __flows_replay(self, dpid, ff):
         if ff.get_status() != 0:
             FFLOG.error("An error occurring during flows-request!")
             return
 
-        FFLOG.error("------>>>>>>>>>>>>>>>>>>>>>>> XXXXXX Flows=%s", str(ff.get_flows()))
+        FFLOG.debug("DPID=%s, FLOWS=%s", str(dpid), str(ff.get_flows()))
+        requests.delete(url=self._url + 'pckt_flows/' + str(dpid))
+
+        for flow_ in ff.get_flows():
+            self.__flow_create(dpid, flow_)
 
     def install(self):
         self._ffa = self.resolve(flow_fetcher_app)

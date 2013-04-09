@@ -656,10 +656,10 @@ def pckt_flows(id):
 
 @bottle.delete('/pckt_flows/<id:int>')
 def pckt_flow_delete(id):
-    WLOG.info("Enter http pckt_flow_delete: id=%d", id)
+    WLOG.info("Enter http pckt_flow_delete: dpid=%d", id)
     try:
         PROXY_DB.open_transaction()
-        PROXY_DB.flow_delete(idd=id)
+        PROXY_DB.flow_delete(dpid=id)
         PROXY_DB.commit()
         return bottle.HTTPResponse(body='Operation completed', status=204)
 

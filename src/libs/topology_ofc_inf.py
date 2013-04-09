@@ -369,9 +369,10 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
-    def flow_delete(self, idd):
+    def flow_delete(self, dpid):
         """ Flow entry deletion
-        :param idd  flow identifier
+        :param dpid: datapath identifier
+
         :raises: DBException
         """
         pass
