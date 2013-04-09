@@ -123,6 +123,8 @@ class FlowsMonitorConfigParser:
 
     def __init__(self, filename):
         self.timeout = None
+        self.table_timeout = None
+        self.port_timeout = None
 
         if check_file(filename):
             config = ConfigParser.ConfigParser()
@@ -132,5 +134,8 @@ class FlowsMonitorConfigParser:
             for sect in sects:
                 if sect == 'flows-monitoring':
                     self.timeout = config.get(sect, 'timeout')
+                    self.table_timeout = config.get(sect, 'stats_table_timeout')
+                    self.port_timeout = config.get(sect, 'stats_port_timeout')
 
-        LOG.debug("FlowsMonitoring timeout=%s", self.timeout)
+        LOG.debug("FlowsMonitoring timeout=%s, table_timeout=%s, port_timeout=%s",
+                  self.timeout, self.table_timeout, self.port_timeout)

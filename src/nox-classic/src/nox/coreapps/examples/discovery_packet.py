@@ -702,8 +702,8 @@ class DiscoveryPacket(Component):
         self.register_handler(nxw_utils.Pckt_flowEntryEvent.NAME,
                               self.flow_entry_handler)
 
-        self.register_for_table_stats_in(self.table_stats_handler)
-        self.register_for_port_stats_in(self.port_stats_handler)
+        #self.register_for_table_stats_in(self.table_stats_handler)
+        #self.register_for_port_stats_in(self.port_stats_handler)
 
 
         self.bindings = self.resolve(pybindings_storage)

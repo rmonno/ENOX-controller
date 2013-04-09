@@ -979,14 +979,12 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
-    def table_stats_delete(self, dpid, table_id):
-        """ table_stats delete """
+    def table_stats_delete(self, dpid):
+        """ table stats delete """
         table = "table_stats"
 
-        statement = "DELETE FROM " + table + \
-                    " WHERE datapath_id=%s AND table_id=%s"
-        values = (dpid, table_id)
-        self.__execute(statement, values)
+        statement = "DELETE FROM " + table + " WHERE datapath_id=" + str(dpid)
+        self.__execute(statement)
 
     def table_stats_select(self, dpid=None, table_id=None):
         """ select * from datapath """

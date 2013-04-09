@@ -21,6 +21,7 @@ import sys
 import os
 import logging
 import requests
+import json
 
 from nox.lib.core import *
 from nox.netapps.flow_fetcher.pyflow_fetcher import flow_fetcher_app
@@ -61,14 +62,36 @@ class FlowsMonitor(Component):
         self._url = "http://%s:%s/" % (self._conf_ws.host, self._conf_ws.port)
         self._ffa = None
         self._queue = []
+        self._table_queue = []
+        self._port_queue = []
 
-    def __get_dpids(self):
+    def __get_dpids(self, rtype):
         try:
             r_ = requests.get(url=self._url + 'dpids')
             if r_.status_code != requests.codes.ok:
                 return
 
-            self._queue = [long(id_['dpid'], 16) for id_ in r_.json()['dpids']]
+            if rtype == 'flows':
+                self._queue = [long(id_['dpid'], 16)
+                               for id_ in r_.json()['dpids']]
+
+            elif rtype == 'tables':
+                self._table_queue = [long(id_['dpid'], 16)
+                                     for id_ in r_.json()['dpids']]
+            else:
+                FFLOG.error("Unmanaged request-type!")
+
+        except Exception as e:
+            FFLOG.error(str(e))
+
+    def __get_ports(self):
+        try:
+            r_ = requests.get(url=self._url + 'ports')
+            if r_.status_code != requests.codes.ok:
+                return
+
+            self._port_queue = [(ids_['dpid'], ids_['port_no'])
+                                for ids_ in r_.json()['ports']]
 
         except Exception as e:
             FFLOG.error(str(e))
@@ -83,12 +106,45 @@ class FlowsMonitor(Component):
         except Exception as e:
             FFLOG.error(str(e))
 
+    def __table_stats_request(self):
+        try:
+            dpid = self._table_queue.pop()
+            FFLOG.debug("Request table-stats for dpid=%s", str(dpid))
+            self.ctxt.send_table_stats_request(dpid)
+
+        except Exception as e:
+            FFLOG.error(str(e))
+
+    def __port_stats_request(self):
+        try:
+            (dpid, portno) = self._port_queue.pop()
+            FFLOG.debug("Request port-stats for dpid=%s, portno=%s",
+                        str(dpid), str(portno))
+            self.ctxt.send_port_stats_request(dpid, portno)
+
+        except Exception as e:
+            FFLOG.error(str(e))
+
     def __flows_request(self):
         if len(self._queue) == 0:
-            self.__get_dpids()
+            self.__get_dpids('flows')
         else:
             FFLOG.debug("Queue=%s", str(self._queue))
             self.__dpid_request()
+
+    def __tables_request(self):
+        if len(self._table_queue) == 0:
+            self.__get_dpids('tables')
+        else:
+            FFLOG.debug("Table-Queue=%s", str(self._table_queue))
+            self.__table_stats_request()
+
+    def __ports_request(self):
+        if len(self._port_queue) == 0:
+            self.__get_ports()
+        else:
+            FFLOG.error("Port-Queue=%s", str(self._port_queue))
+            self.__port_stats_request()
 
     def __flow_create(self, dpid, info):
         try:
@@ -128,6 +184,24 @@ class FlowsMonitor(Component):
         except Exception as e:
             FFLOG.error(str(e))
 
+    def __table_stats_create(self, dpid, info):
+        h_ = {'content-type': 'application/json'}
+        try:
+            payload = {"dpid": dpid,
+                       "table_id": info['table_id'],
+                       "max_entries": info['max_entries'],
+                       "active_count": info['active_count'],
+                       "lookup_count": info['lookup_count'],
+                       "matched_count": info['matched_count']}
+
+            r_ = requests.post(url=self._url + 'pckt_table_stats',
+                               headers=h_, data=json.dumps(payload))
+            if r_.text != 'Operation completed':
+                FFLOG.error("An error occurring during table-stats-post!")
+
+        except Exception as e:
+            FFLOG.error(str(e))
+
     def __flows_replay(self, dpid, ff):
         if ff.get_status() != 0:
             FFLOG.error("An error occurring during flows-request!")
@@ -141,13 +215,67 @@ class FlowsMonitor(Component):
 
     def install(self):
         self._ffa = self.resolve(flow_fetcher_app)
-        self.post_callback(int(self._conf_ff.timeout), self.timer_handler)
+        self.register_for_table_stats_in(self.table_stats_handler)
+        self.register_for_port_stats_in(self.port_stats_handler)
+
+        self.post_callback(int(self._conf_ff.timeout),
+                           self.timer_handler)
+        self.post_callback(int(self._conf_ff.table_timeout),
+                           self.table_timer_handler)
+        self.post_callback(int(self._conf_ff.port_timeout),
+                           self.port_timer_handler)
         return CONTINUE
+
+    def table_stats_handler(self, dpid, tables):
+        FFLOG.debug("TABLE_STATS dpid=%s, tables=%s", dpid, str(tables))
+        requests.delete(url=self._url + 'pckt_table_stats/' + str(dpid))
+
+        for table_ in tables:
+            self.__table_stats_create(dpid, table_)
+
+    def port_stats_handler(self, dpid, ports):
+        FFLOG.debug("PORT_STATS dpid=%s, ports=%s", dpid, str(ports))
+        h_ = {'content-type': 'application/json'}
+        for port in ports:
+            try:
+                payload = {"dpid": dpid,
+                           "port_no": port['port_no'],
+                           "rx_pkts": port['rx_packets'],
+                           "tx_pkts": port['tx_packets'],
+                           "rx_bytes": port['rx_bytes'],
+                           "tx_bytes": port['tx_bytes'],
+                           "rx_dropped": port['rx_dropped'],
+                           "tx_dropped": port['tx_dropped'],
+                           "rx_errors": port['rx_errors'],
+                           "tx_errors": port['tx_errors'],
+                           "rx_frame_err": port['rx_frame_err'],
+                           "rx_crc_err": port['rx_crc_err'],
+                           "rx_over_err": port['rx_over_err'],
+                           "collisions": port['collisions']}
+                r_ = requests.post(url=self._url + 'pckt_port_stats',
+                                   headers=h_, data=json.dumps(payload))
+
+                FFLOG.error("Response(code=%d, content=%s)" % (r_.status_code,
+                                                               str(r_.content)))
+            except Exception as e:
+                FFLOG.error(str(e))
 
     def timer_handler(self):
         FFLOG.debug("FlowsMonitor timeout fired")
         self.__flows_request()
         self.post_callback(int(self._conf_ff.timeout), self.timer_handler)
+
+    def table_timer_handler(self):
+        FFLOG.debug("FlowsMonitor table-timeout fired")
+        self.__tables_request()
+        self.post_callback(int(self._conf_ff.table_timeout),
+                           self.table_timer_handler)
+
+    def port_timer_handler(self):
+        FFLOG.debug("FlowsMonitor port-timeout fired")
+        self.__ports_request()
+        self.post_callback(int(self._conf_ff.port_timeout),
+                           self.port_timer_handler)
 
     def getInterface(self):
         return str(FlowsMonitor)
