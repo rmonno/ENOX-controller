@@ -55,10 +55,6 @@ import libs as nxw_utils
 
 LOG = nxw_utils.ColorLog(logging.getLogger('discovery_packet'))
 
-# XXX FIXME: Insert proper params (in conf file) to change the following values
-DEFAULT_TABLE_TIME = 300
-DEFAULT_PORT_TIME  = 300
-DEFAULT_AGGR_TIME  = 300
 
 class DiscoveryPacket(Component):
     """ Discovery Packet Class """
@@ -84,12 +80,6 @@ class DiscoveryPacket(Component):
                           11: "HOST_DELETE",
                          }
 
-        self.dp_stats       = {}
-        self.poll_period    = {}
-        self.table_stats    = {}
-        self.desc_stats     = {}
-        self.port_stats     = {}
-
         self.w_srv = nxw_utils.WebServConfigParser(DiscoveryPacket.FCONFIG)
         self.url   = "http://%s:%s/" % (str(self.w_srv.host),
                                         str(self.w_srv.port))
@@ -100,20 +90,6 @@ class DiscoveryPacket(Component):
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
-
-    def port_timer(self, dpid):
-        if dpid in self.dp_stats:
-            for port_idx in self.dp_stats[dpid]['ports']:
-                self.ctxt.send_port_stats_request(dpid,
-                                                  int(port_idx['port_no']))
-            self.post_callback(self.poll_period[dpid]['port'] + 1,
-                               lambda : self.port_timer(dpid))
-
-    def table_timer(self, dpid):
-        if dpid in self.dp_stats:
-            self.ctxt.send_table_stats_request(dpid)
-            self.post_callback(self.poll_period[dpid]['table'],
-                               lambda : self.table_timer(dpid))
 
     def packet_in_handler(self, dpid, inport, reason, length, bufid, packet):
         """ Handler for packet_in event """
@@ -251,20 +227,6 @@ class DiscoveryPacket(Component):
             LOG.debug("URL=%s" % req.url)
             LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
                                                          str(req.content)))
-
-            self.dp_stats[dpid] = stats
-
-            # polling intervals for switch statistics
-            self.poll_period[dpid]          = {}
-            self.poll_period[dpid]['table'] = DEFAULT_TABLE_TIME
-            self.poll_period[dpid]['port']  = DEFAULT_PORT_TIME
-
-            # stagger timers by one second
-            self.post_callback(self.poll_period[dpid]['table'],
-                                  lambda : self.table_timer(dpid))
-            self.post_callback(self.poll_period[dpid]['port'] + 1,
-                                  lambda : self.port_timer(dpid))
-
         except Exception, err:
             LOG.error("Got error in datapath_join handler (%s)" % str(err))
 
@@ -617,75 +579,6 @@ class DiscoveryPacket(Component):
 
         return attrs
 
-    def table_stats_handler(self, dpid, tables):
-        """ Handler for table_stats_in event """
-        try:
-            LOG.debug("TABLE_STATS_IN for dpid %s: %s" % (str(dpid),
-                                                          str(tables)))
-            for table in tables:
-                payload = { "dpid"          : dpid,
-                            "table_id"      : table['table_id'],
-                            "max_entries"   : table['max_entries'],
-                            "active_count"  : table['active_count'],
-                            "lookup_count"  : table['lookup_count'],
-                            "matched_count" : table['matched_count'],
-                          }
-                req = requests.post(url=self.url + "pckt_table_stats",
-                                    headers=self.hs, data=json.dumps(payload))
-                LOG.debug("URL=%s" % req.url)
-                LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
-                                                             str(req.content)))
-        except Exception, err:
-            LOG.error("Got exception in table_stats_handler ('%s')" % str(err))
-
-    def port_stats_handler(self, dpid, ports):
-        """ Handler for port_stats_in event """
-        try:
-            if dpid not in self.port_stats:
-                new_ports = {}
-                for port in ports:
-                    port['delta_bytes'] = 0
-                    new_ports[port['port_no']] = port
-                self.port_stats[dpid] = new_ports
-                return
-            new_ports = {}
-            for port in ports:
-                if port['port_no'] in self.port_stats[dpid]:
-                    port['delta_bytes'] = port['tx_bytes'] - \
-                            self.port_stats[dpid][port['port_no']]['tx_bytes']
-                    new_ports[port['port_no']] = port
-                else:
-                    port['delta_bytes'] = 0
-                    new_ports[port['port_no']] = port
-            LOG.debug("PORTS_STATS for dpid %s: %s" % (str(dpid),
-                                                       str(new_ports)))
-            self.port_stats[dpid] = new_ports
-            # post pckt_port_stats
-            payload = { "dpid"         : dpid,
-                        "port_no"      : port['port_no'],
-                        "rx_pkts"      : port['rx_packets'],
-                        "tx_pkts"      : port['tx_packets'],
-                        "rx_bytes"     : port['rx_bytes'],
-                        "tx_bytes"     : port['tx_bytes'],
-                        "rx_dropped"   : port['rx_dropped'],
-                        "tx_dropped"   : port['tx_dropped'],
-                        "rx_errors"    : port['rx_errors'],
-                        "tx_errors"    : port['tx_errors'],
-                        "rx_frame_err" : port['rx_frame_err'],
-                        "rx_crc_err"   : port['rx_crc_err'],
-                        "rx_over_err"  : port['rx_over_err'],
-                        "collisions"   : port['collisions'],
-                      }
-            req = requests.post(url=self.url + "pckt_port_stats",
-                                headers=self.hs, data=json.dumps(payload))
-            LOG.debug("URL=%s" % req.url)
-            LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
-                                                         str(req.content)))
-
-
-        except Exception, err:
-            LOG.error("Got exception in port_stats_handler ('%s')" % str(err))
-
     def install(self):
         """ Install """
         self.register_for_datapath_join(self.datapath_join_handler)
@@ -701,10 +594,6 @@ class DiscoveryPacket(Component):
                               self.host_bind_handler)
         self.register_handler(nxw_utils.Pckt_flowEntryEvent.NAME,
                               self.flow_entry_handler)
-
-        #self.register_for_table_stats_in(self.table_stats_handler)
-        #self.register_for_port_stats_in(self.port_stats_handler)
-
 
         self.bindings = self.resolve(pybindings_storage)
         LOG.debug("%s started..." % str(self.__class__.__name__))
