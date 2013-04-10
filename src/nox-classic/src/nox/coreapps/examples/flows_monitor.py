@@ -143,7 +143,7 @@ class FlowsMonitor(Component):
         if len(self._port_queue) == 0:
             self.__get_ports()
         else:
-            FFLOG.error("Port-Queue=%s", str(self._port_queue))
+            FFLOG.debug("Port-Queue=%s", str(self._port_queue))
             self.__port_stats_request()
 
     def __flow_create(self, dpid, info):
@@ -202,6 +202,32 @@ class FlowsMonitor(Component):
         except Exception as e:
             FFLOG.error(str(e))
 
+    def __port_stats_create(self, dpid, info):
+        h_ = {'content-type': 'application/json'}
+        try:
+            payload = {"dpid": dpid,
+                       "port_no": info['port_no'],
+                       "rx_pkts": info['rx_packets'],
+                       "tx_pkts": info['tx_packets'],
+                       "rx_bytes": info['rx_bytes'],
+                       "tx_bytes": info['tx_bytes'],
+                       "rx_dropped": info['rx_dropped'],
+                       "tx_dropped": info['tx_dropped'],
+                       "rx_errors": info['rx_errors'],
+                       "tx_errors": info['tx_errors'],
+                       "rx_frame_err": info['rx_frame_err'],
+                       "rx_crc_err": info['rx_crc_err'],
+                       "rx_over_err": info['rx_over_err'],
+                       "collisions": info['collisions']}
+
+            r_ = requests.post(url=self._url + 'pckt_port_stats',
+                               headers=h_, data=json.dumps(payload))
+            if r_.text != 'Operation completed':
+                FFLOG.error("An error occurring during port-stats-post!")
+
+        except Exception as e:
+            FFLOG.error(str(e))
+
     def __flows_replay(self, dpid, ff):
         if ff.get_status() != 0:
             FFLOG.error("An error occurring during flows-request!")
@@ -236,29 +262,14 @@ class FlowsMonitor(Component):
     def port_stats_handler(self, dpid, ports):
         FFLOG.debug("PORT_STATS dpid=%s, ports=%s", dpid, str(ports))
         h_ = {'content-type': 'application/json'}
-        for port in ports:
-            try:
-                payload = {"dpid": dpid,
-                           "port_no": port['port_no'],
-                           "rx_pkts": port['rx_packets'],
-                           "tx_pkts": port['tx_packets'],
-                           "rx_bytes": port['rx_bytes'],
-                           "tx_bytes": port['tx_bytes'],
-                           "rx_dropped": port['rx_dropped'],
-                           "tx_dropped": port['tx_dropped'],
-                           "rx_errors": port['rx_errors'],
-                           "tx_errors": port['tx_errors'],
-                           "rx_frame_err": port['rx_frame_err'],
-                           "rx_crc_err": port['rx_crc_err'],
-                           "rx_over_err": port['rx_over_err'],
-                           "collisions": port['collisions']}
-                r_ = requests.post(url=self._url + 'pckt_port_stats',
-                                   headers=h_, data=json.dumps(payload))
 
-                FFLOG.error("Response(code=%d, content=%s)" % (r_.status_code,
-                                                               str(r_.content)))
-            except Exception as e:
-                FFLOG.error(str(e))
+        for port_ in ports:
+            payload = {"dpid": dpid,
+                       "portno": port_['port_no']}
+            requests.delete(url=self._url + 'pckt_port_stats', headers=h_,
+                            data=json.dumps(payload))
+
+            self.__port_stats_create(dpid, port_)
 
     def timer_handler(self):
         FFLOG.debug("FlowsMonitor timeout fired")

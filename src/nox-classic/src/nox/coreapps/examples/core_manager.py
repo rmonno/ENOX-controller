@@ -714,45 +714,20 @@ def pckt_port_create():
     WLOG.info("Enter http pckt_port_stats_create")
     try:
         PROXY_DB.open_transaction()
-        ret = None
-        try:
-            ret = PROXY_DB.port_stats_select(bottle.request.json['dpid'],
-                                             bottle.request.json['port_no'])
-        except Exception, err:
-            WLOG.debug("No stats for dpid %s and port_no %s. Inserting new entry..." % \
-                       (str(bottle.request.json['dpid']),
-                        str(bottle.request.json['port_no'])))
-        if not ret:
-            PROXY_DB.port_stats_insert(dpid=bottle.request.json['dpid'],
-                                       port_no=bottle.request.json['port_no'],
-                                       rx_pkts=bottle.request.json['rx_pkts'],
-                                       tx_pkts=bottle.request.json['tx_pkts'],
-                                       rx_bytes=bottle.request.json['rx_bytes'],
-                                       tx_bytes=bottle.request.json['tx_bytes'],
-                                       rx_dropped=bottle.request.json['rx_dropped'],
-                                       tx_dropped=bottle.request.json['tx_dropped'],
-                                       rx_errors=bottle.request.json['rx_errors'],
-                                       tx_errors=bottle.request.json['tx_errors'],
-                                       rx_frame_err=bottle.request.json['rx_frame_err'],
-                                       rx_crc_err=bottle.request.json['rx_crc_err'],
-                                       rx_over_err=bottle.request.json['rx_over_err'],
-                                       collisions=bottle.request.json['collisions'])
-        else:
-            PROXY_DB.port_stats_update(dpid=bottle.request.json['dpid'],
-                                       port_no=bottle.request.json['port_no'],
-                                       rx_pkts=bottle.request.json['rx_pkts'],
-                                       tx_pkts=bottle.request.json['tx_pkts'],
-                                       rx_bytes=bottle.request.json['rx_bytes'],
-                                       tx_bytes=bottle.request.json['tx_bytes'],
-                                       rx_dropped=bottle.request.json['rx_dropped'],
-                                       tx_dropped=bottle.request.json['tx_dropped'],
-                                       rx_errors=bottle.request.json['rx_errors'],
-                                       tx_errors=bottle.request.json['tx_errors'],
-                                       rx_frame_err=bottle.request.json['rx_frame_err'],
-                                       rx_crc_err=bottle.request.json['rx_crc_err'],
-                                       rx_over_err=bottle.request.json['rx_over_err'],
-                                       collisions=bottle.request.json['collisions'])
-
+        PROXY_DB.port_stats_insert(dpid=bottle.request.json['dpid'],
+                            port_no=bottle.request.json['port_no'],
+                            rx_pkts=bottle.request.json['rx_pkts'],
+                            tx_pkts=bottle.request.json['tx_pkts'],
+                            rx_bytes=bottle.request.json['rx_bytes'],
+                            tx_bytes=bottle.request.json['tx_bytes'],
+                            rx_dropped=bottle.request.json['rx_dropped'],
+                            tx_dropped=bottle.request.json['tx_dropped'],
+                            rx_errors=bottle.request.json['rx_errors'],
+                            tx_errors=bottle.request.json['tx_errors'],
+                            rx_frame_err=bottle.request.json['rx_frame_err'],
+                            rx_crc_err=bottle.request.json['rx_crc_err'],
+                            rx_over_err=bottle.request.json['rx_over_err'],
+                            collisions=bottle.request.json['collisions'])
         PROXY_DB.commit()
         return bottle.HTTPResponse(body='Operation completed', status=201)
 
@@ -784,6 +759,30 @@ def pckt_port_stats_info():
 
     except nxw_utils.DBException as err:
         WLOG.error("port_info: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+@bottle.delete('/pckt_port_stats')
+def pckt_port_stats_delete():
+    WLOG.info("Enter http pckt_port_stats_delete")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    dpid_ = bottle.request.json['dpid']
+    portno_ = bottle.request.json['portno']
+
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.port_stats_delete(dpid=dpid_, port_no=portno_)
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed', status=204)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_port_stats_delete: " + str(err))
         bottle.abort(500, str(err))
 
     finally:
