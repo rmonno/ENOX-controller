@@ -13,43 +13,49 @@ basepath = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
 if basepath not in [ os.path.abspath(x) for x in sys.path ]:
     sys.path.insert(0, basepath)
 
-import log
 
-log.LOG.level_set('DEBUG')
-GLOG = log.LOG
+class Shell(QtGui.QTextEdit):
+
+    def __init__(self, tc='white', bc='black', sc='yellow', sbc='gray'):
+        QtGui.QTextEdit.__init__(self)
+        style_ = "color: %s; background-color: %s; selection-color: %s;\
+                  selection-background-color: %s;" % (tc, bc, sc, sbc)
+        self.setStyleSheet(style_)
+
+    def debug(self, msg):
+        self.append(msg)
 
 
 class Button(QtGui.QPushButton):
 
-    def __init__(self, name, parent=None):
+    def __init__(self, name, parent):
         QtGui.QPushButton.__init__(self, name)
         self.__parent = parent
 
-    def error(self, msg):
-        if self.__parent:
-            self.__parent.critical(msg)
+    def debug(self, msg):
+        self.__parent.shell().debug(msg)
 
-        else:
-            GLOG.error(msg)
+    def error(self, msg):
+        self.__parent.critical(msg)
 
 
 class DpidsInfoButton(Button):
 
-    def __init__(self, url, central, parent=None):
+    def __init__(self, url, central, parent):
         Button.__init__(self, 'details', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
         self.__central = central
 
     def onClick(self):
-        GLOG.debug("get_dpid_info action: url=%s", self.__url)
+        self.debug("get_dpid_info action: url=%s" % self.__url)
         try:
             r_ = requests.get(url=self.__url)
             if r_.status_code != requests.codes.ok:
                 self.error(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.debug("Response=%s" % r_.text)
                 info_ = r_.json()['dpid']
                 lbs_ = ['id', 'region', 'buffers', 'tables',
                         'ofp_capabilities', 'ofp_actions', 'cports']
@@ -77,7 +83,7 @@ class DpidsInfoButton(Button):
 
 class PortsInfoButton(Button):
 
-    def __init__(self, url, payload, central, parent=None):
+    def __init__(self, url, payload, central, parent):
         Button.__init__(self, 'details', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
@@ -85,15 +91,15 @@ class PortsInfoButton(Button):
         self.__central = central
 
     def onClick(self):
-        GLOG.debug("get_port_info action: url=%s, params=%s",
-                   self.__url, self.__params)
+        self.debug("get_port_info action: url=%s, params=%s" %
+                   (self.__url, self.__params))
         try:
             r_ = requests.get(url=self.__url, params=self.__params)
             if r_.status_code != requests.codes.ok:
                 self.error(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.debug("Response=%s" % r_.text)
                 info_ = r_.json()['port']
                 lbs_ = ['dpid', 'port_no', 'name', 'hw_addr', 'state',  'curr',
                         'config', 'advertised', 'supported', 'peer',
@@ -136,7 +142,7 @@ class PortsInfoButton(Button):
 
 class PcktFlowsButton(Button):
 
-    def __init__(self, url, central, parent=None):
+    def __init__(self, url, central, parent):
         Button.__init__(self, 'send', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
@@ -144,15 +150,15 @@ class PcktFlowsButton(Button):
 
     def onClick(self):
         dpid_ = self.__central.cellWidget(0, 0).text()
-        GLOG.debug("get_pckt_flows action: url=%s, dpid=%s",
-                   self.__url, dpid_)
+        self.debug("get_pckt_flows action: url=%s, dpid=%s" %
+                   (self.__url, dpid_))
         try:
             r_ = requests.get(url=self.__url + dpid_)
             if r_.status_code != requests.codes.ok:
                 self.error(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.debug("Response=%s" % r_.text)
                 infos_ = r_.json()['packet_flows']
                 lbs_ = ['dpid', 'in_port', 'flow_id', 'action', 'cookie',
                         'prio', 'table', 'hard', 'idle',
@@ -215,7 +221,7 @@ class PcktFlowsButton(Button):
 
 class PcktTableStatsButton(Button):
 
-    def __init__(self, url, central, parent=None):
+    def __init__(self, url, central, parent):
         Button.__init__(self, 'send', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
@@ -224,8 +230,8 @@ class PcktTableStatsButton(Button):
     def onClick(self):
         dpid_ = self.__central.cellWidget(0, 0).text()
         tableid_ = self.__central.cellWidget(0, 1).text()
-        GLOG.debug("get_pckt_port_stats action: url=%s, dpid=%s, tableid=%s",
-                   self.__url, dpid_, tableid_)
+        self.debug("get_pckt_port_stats action: url=%s, dpid=%s, tableid=%s" %
+                   (self.__url, dpid_, tableid_))
         try:
             params_ = {'dpid': dpid_, 'tableid': tableid_}
             r_ = requests.get(url=self.__url, params=params_)
@@ -233,7 +239,7 @@ class PcktTableStatsButton(Button):
                 self.error(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.debug("Response=%s" % r_.text)
                 infos_ = r_.json()['packet_table_stats']
                 lbs_ = ['dpid', 'table_id', 'max_entries',
                         'active', 'matched', 'lookup']
@@ -263,7 +269,7 @@ class PcktTableStatsButton(Button):
 
 class PcktPortStatsButton(Button):
 
-    def __init__(self, url, central, parent=None):
+    def __init__(self, url, central, parent):
         Button.__init__(self, 'send', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
@@ -272,8 +278,8 @@ class PcktPortStatsButton(Button):
     def onClick(self):
         dpid_ = self.__central.cellWidget(0, 0).text()
         portno_ = self.__central.cellWidget(0, 1).text()
-        GLOG.debug("get_pckt_port_stats action: url=%s, dpid=%s, portno=%s",
-                   self.__url, dpid_, portno_)
+        self.debug("get_pckt_port_stats action: url=%s, dpid=%s, portno=%s" %
+                   (self.__url, dpid_, portno_))
         try:
             params_ = {'dpid': dpid_, 'portno': portno_}
             r_ = requests.get(url=self.__url, params=params_)
@@ -281,7 +287,7 @@ class PcktPortStatsButton(Button):
                 self.error(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.debug("Response=%s" % r_.text)
                 infos_ = r_.json()['packet_port_stats']
                 lbs_ = ['port_no', 'collisions',
                         'tx_pkts', 'tx_bytes', 'tx_dropped', 'tx_errors',
@@ -330,7 +336,11 @@ class GUIManager(QtGui.QMainWindow):
     def __init__(self, addr, port):
         QtGui.QMainWindow.__init__(self)
         self.__url = 'http://' + addr + ':' + port + '/'
+        self.__table = None
+        self.__shell = None
         self.__initUI()
+
+        self.shell().debug("GUIManager started: %s" % str(self))
 
     def __str__(self):
         return self.__url
@@ -414,9 +424,18 @@ class GUIManager(QtGui.QMainWindow):
         tb_.addSeparator()
 
     def __centralTable(self):
-        table_ = QtGui.QTableWidget(1,1)
-        table_.setHorizontalHeaderLabels(['Results'])
-        self.setCentralWidget(table_)
+        self.__table = QtGui.QTableWidget(1,1)
+        self.__table.setHorizontalHeaderLabels(['Results'])
+
+        self.__shell = Shell()
+
+        central_ = QtGui.QWidget()
+        layout_ = QtGui.QGridLayout()
+        layout_.addWidget(self.__table, 0, 0)
+        layout_.addWidget(self.__shell, 1, 0)
+        central_.setLayout(layout_)
+
+        self.setCentralWidget(central_)
 
     def __initUI(self):
         self.resize(500, 500)
@@ -429,6 +448,12 @@ class GUIManager(QtGui.QMainWindow):
 
         self.statusBar().showMessage('Ready')
         self.show()
+
+    def centralWidget(self):
+        return self.__table
+
+    def shell(self):
+        return self.__shell
 
     def critical(self, err_msg):
         QtGui.QMessageBox.critical(self, 'Exception', err_msg,
@@ -445,14 +470,14 @@ class GUIManager(QtGui.QMainWindow):
             event.ignore()
 
     def get_dpids(self):
-        GLOG.debug("get_dpids action")
+        self.shell().debug("get_dpids action")
         try:
             r_ = requests.get(url=self.__url + "dpids")
             if r_.status_code != requests.codes.ok:
                 self.critical(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.shell().debug("Response=%s" % r_.text)
                 self.centralWidget().setRowCount(len(r_.json()['dpids']))
                 self.centralWidget().setColumnCount(2)
                 self.centralWidget().setHorizontalHeaderLabels(['dpid', ''])
@@ -469,14 +494,14 @@ class GUIManager(QtGui.QMainWindow):
             self.critical(str(exc))
 
     def get_ports(self):
-        GLOG.debug("get_ports action")
+        self.shell().debug("get_ports action")
         try:
             r_ = requests.get(url=self.__url + "ports")
             if r_.status_code != requests.codes.ok:
                 self.critical(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.shell().debug("Response=%s" % r_.text)
                 self.centralWidget().setRowCount(len(r_.json()['ports']))
                 self.centralWidget().setColumnCount(3)
                 self.centralWidget().setHorizontalHeaderLabels(['dpid',
@@ -497,14 +522,14 @@ class GUIManager(QtGui.QMainWindow):
             self.critical(str(exc))
 
     def get_links(self):
-        GLOG.debug("get_links action")
+        self.shell().debug("get_links action")
         try:
             r_ = requests.get(url=self.__url + "links")
             if r_.status_code != requests.codes.ok:
                 self.critical(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.shell().debug("Response=%s" % r_.text)
                 self.centralWidget().setRowCount(len(r_.json()['links']))
                 self.centralWidget().setColumnCount(4)
                 lbs_ = ['src_dpid', 'src_port_no', 'dst_dpid', 'dst_port_no']
@@ -525,14 +550,14 @@ class GUIManager(QtGui.QMainWindow):
             self.critical(str(exc))
 
     def get_hosts(self):
-        GLOG.debug("get_hosts action")
+        self.shell().debug("get_hosts action")
         try:
             r_ = requests.get(url=self.__url + "hosts")
             if r_.status_code != requests.codes.ok:
                 self.critical(r_.text)
 
             else:
-                GLOG.debug("Response=%s" % r_.text)
+                self.shell().debug("Response=%s" % r_.text)
                 self.centralWidget().setRowCount(len(r_.json()['hosts']))
                 self.centralWidget().setColumnCount(4)
                 lbs_ = ['ip', 'dpid', 'port_no', 'hw_addr']
@@ -553,7 +578,7 @@ class GUIManager(QtGui.QMainWindow):
             self.critical(str(exc))
 
     def get_pckt_flows(self):
-        GLOG.debug("get_pckt_flows action")
+        self.shell().debug("get_pckt_flows action")
         self.centralWidget().setRowCount(1)
         self.centralWidget().setColumnCount(2)
         self.centralWidget().setHorizontalHeaderLabels(['Insert DPID', ''])
@@ -564,7 +589,7 @@ class GUIManager(QtGui.QMainWindow):
         self.centralWidget().setCellWidget(0, 1, c1_)
 
     def get_pckt_table_stats(self):
-        GLOG.debug("get_pckt_table_stats action")
+        self.shell().debug("get_pckt_table_stats action")
         self.centralWidget().setRowCount(1)
         self.centralWidget().setColumnCount(3)
         self.centralWidget().setHorizontalHeaderLabels(['Insert DPID',
@@ -577,7 +602,7 @@ class GUIManager(QtGui.QMainWindow):
         self.centralWidget().setCellWidget(0, 2, c2_)
 
     def get_pckt_port_stats(self):
-        GLOG.debug("get_pckt_port_stats action")
+        self.shell().debug("get_pckt_port_stats action")
         self.centralWidget().setRowCount(1)
         self.centralWidget().setColumnCount(3)
         self.centralWidget().setHorizontalHeaderLabels(['Insert DPID',
@@ -606,14 +631,11 @@ def main(argv=None):
                       help='core-manager port number')
 
     rets_ = psr_.parse_args()
-    GLOG.debug("Options=%s" % str(rets_))
 
     app = QtGui.QApplication(sys.argv)
     gm_ = GUIManager(rets_.addr, rets_.port)
-    GLOG.info("GUIManager started: %s", str(gm_))
     app.exec_()
 
-    GLOG.info("Bye Bye...")
     return True
 
 
