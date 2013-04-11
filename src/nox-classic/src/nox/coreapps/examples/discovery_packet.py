@@ -101,22 +101,21 @@ class DiscoveryPacket(Component):
             return CONTINUE
 
         if packet.type == ethernet.LLDP_TYPE:
-            LOG.debug("Ignoring received LLDP packet...")
             return CONTINUE
+
+        dpid_ = str(datapathid.from_host(long(str(dpid))))
+        LOG.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
+                  dpid_, inport, reason, length, str(bufid), str(packet))
 
         # Handle ARP packets
         if packet.type == ethernet.ARP_TYPE:
             LOG.debug("Received ARP packet " + str(packet.find('arp')))
-            if not dpid in self.switches:
-                LOG.debug("Registering new switch %s" % str(dpid))
-                self.switches[dpid] = {}
+            if not dpid_ in self.switches:
+                LOG.debug("Registering new switch %s" % dpid_)
+                self.switches[dpid_] = {}
 
-            self.__do_l2_learning(dpid, inport, packet)
-            self.__forward_l2_packet(dpid, inport, packet, packet.arr, bufid)
-
-        LOG.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
-                  str(dpid), str(inport), str(reason), str(len),
-                  str(bufid), str(packet))
+            self.__do_l2_learning(dpid_, inport, packet)
+            self.__forward_l2_packet(dpid_, inport, packet, packet.arr, bufid)
 
         # switch over ethernet type
         if packet.type == ethernet.IP_TYPE:
@@ -124,20 +123,17 @@ class DiscoveryPacket(Component):
             LOG.info("IPv4 packet: " + str(ip_addr))
             #  XXX FIXME: Remove the following check in order to be generic...
             if ip_addr.protocol == ipv4.ICMP_PROTOCOL:
-                flow    = extract_flow(packet)
-                LOG.debug("Sending path request for the following flow: %s" % \
-                           str(flow))
-                payload = { "dst_port": flow[core.TP_DST],
-                            "src_port": flow[core.TP_SRC],
-                            "ip_dst"  : pkt_utils.ip_to_str(ip_addr.dstip),
-                            "ip_src"  : pkt_utils.ip_to_str(ip_addr.srcip),
-                            "ip_proto": flow[core.NW_PROTO],
-                            "vlan_id" : flow[core.DL_VLAN],
-                          }
+                flow = extract_flow(packet)
+                LOG.debug("Sending path request for flow: %s" % str(flow))
+                payload = {"dst_port": flow[core.TP_DST],
+                           "src_port": flow[core.TP_SRC],
+                           "ip_dst"  : pkt_utils.ip_to_str(ip_addr.dstip),
+                           "ip_src"  : pkt_utils.ip_to_str(ip_addr.srcip),
+                           "ip_proto": flow[core.NW_PROTO],
+                           "vlan_id" : flow[core.DL_VLAN]}
                 req = requests.post(url=self.url + "pckt_host_path",
                                     headers=self.hs, data=json.dumps(payload))
-                LOG.debug("URL=%s" % req.url)
-                LOG.debug("Response=%s" % req.text)
+                LOG.debug("URL=%s, response=%s", req.url, req.text)
 
         return CONTINUE
 
@@ -158,7 +154,7 @@ class DiscoveryPacket(Component):
             else:
                 return
         else:
-            LOG.debug("Learned MAC '%s' on %d %d " % \
+            LOG.debug("Learned MAC '%s' on %s %d " % \
                         (pkt_utils.mac_to_str(packet.src),
                          dpid, inport))
 
@@ -172,7 +168,7 @@ class DiscoveryPacket(Component):
             prt = self.switches[dpid][dstaddr]
             if prt[0] == inport:
                 LOG.err("**WARNING** Learned port = inport")
-                self.send_openflow(dpid, bufid, buf,
+                self.send_openflow(long(dpid), bufid, buf,
                                    openflow.OFPP_FLOOD,
                                    inport)
             else:
@@ -180,53 +176,54 @@ class DiscoveryPacket(Component):
                 LOG.debug("Installing flow for %s" % str(packet))
                 flow = extract_flow(packet)
                 actions = [[openflow.OFPAT_OUTPUT, [0, prt[0]]]]
-                self.install_datapath_flow(dpid, flow, 5,
+                self.install_datapath_flow(long(dpid), flow, 5,
                                            openflow.OFP_FLOW_PERMANENT,
                                            actions, bufid,
                                            openflow.OFP_DEFAULT_PRIORITY,
                                            inport, buf)
                 LOG.info("New installed flow entry for dpid '%s': %s" % \
-                          (str(dpid), str(flow)))
+                          (dpid, str(flow)))
         else:
             # haven't learned destination MAC. Flood
-            self.send_openflow(dpid, bufid, buf, openflow.OFPP_FLOOD, inport)
+            self.send_openflow(long(dpid), bufid, buf,
+                               openflow.OFPP_FLOOD, inport)
             LOG.debug("Flooding received packet...")
 
     def datapath_join_handler(self, dpid, stats):
         """ Handler for datapath_join event """
         assert (dpid  is not None)
         assert (stats is not None)
-        try:
-            LOG.debug("Received datapath_join event for DPID '%s'" % str(dpid))
 
-            ports = [ ]
+        dpid_ = str(datapathid.from_host(long(str(dpid))))
+        LOG.debug("Received datapath_join event for DPID '%s'" % dpid_)
+
+        try:
+            ports = []
             for p_info in stats['ports']:
-                port = { }
-                port['port_no']    = p_info['port_no']
-                port['hw_addr']    = pkt_utils.mac_to_str(p_info['hw_addr'])
-                port['name']       = p_info['name']
-                port['config']     = p_info['config']
-                port['state']      = p_info['state']
-                port['curr']       = p_info['curr']
+                port = {}
+                port['port_no'] = p_info['port_no']
+                port['hw_addr'] = pkt_utils.mac_to_str(p_info['hw_addr'])
+                port['name'] = p_info['name']
+                port['config'] = p_info['config']
+                port['state'] = p_info['state']
+                port['curr'] = p_info['curr']
                 port['advertised'] = p_info['advertised']
-                port['supported']  = p_info['supported']
-                port['peer']       = p_info['peer']
+                port['supported'] = p_info['supported']
+                port['peer'] = p_info['peer']
                 ports.append(port)
 
-            payload = { "dpid": dpid,
-                        "region": "packet_" + self.region,
-                        "ofp_capabilities": stats['caps'],
-                        "ofp_actions": stats['actions'],
-                        "buffers": stats['n_bufs'],
-                        "tables": stats['n_tables'],
-                        "ports": ports,
-                      }
-
+            payload = {"dpid": dpid_,
+                       "region": "packet_" + self.region,
+                       "ofp_capabilities": stats['caps'],
+                       "ofp_actions": stats['actions'],
+                       "buffers": stats['n_bufs'],
+                       "tables": stats['n_tables'],
+                       "ports": ports}
             req = requests.post(url=self.url + "pckt_dpid", headers=self.hs,
                                 data=json.dumps(payload))
-            LOG.debug("URL=%s" % req.url)
-            LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
-                                                         str(req.content)))
+            LOG.debug("URL=%s, response(code=%d, content=%s)",
+                      req.url, req.status_code, str(req.content))
+
         except Exception, err:
             LOG.error("Got error in datapath_join handler (%s)" % str(err))
 
@@ -235,13 +232,15 @@ class DiscoveryPacket(Component):
     def datapath_leave_handler(self, dpid):
         """ Handler for datapath_leave event """
         assert (dpid is not None)
-        try:
-            LOG.debug("Received datapath_leave ev for DPID '%s'" % str(dpid))
 
-            req = requests.delete(url=self.url + "pckt_dpid/%s" % str(dpid))
-            LOG.debug("URL=%s" % req.url)
-            LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
-                                                         str(req.content)))
+        dpid_ = str(datapathid.from_host(long(str(dpid))))
+        LOG.debug("Received datapath_leave ev for DPID '%s'" % dpid_)
+
+        try:
+            req = requests.delete(url=self.url + "pckt_dpid/%s" % dpid_)
+            LOG.debug("URL=%s, response(code=%d, content=%s)",
+                      req.url, req.status_code, str(req.content))
+
         except Exception, err:
             LOG.error("Got error in datapath_leave handler (%s)" % str(err))
 
@@ -251,66 +250,59 @@ class DiscoveryPacket(Component):
         """ Build key for a link """
         assert(from_node is not None)
         assert(to_node is not None)
-        key = None
-        key = str(from_node) + "TO" + str(to_node)
-        return key
+        return str(from_node) + "TO" + str(to_node)
 
     def link_add(self, data):
         """ Add a detected link """
         assert(data is not None)
-        link_key = self.link_key_build(data['dpsrc'], data['dpdst'])
+        dpsrc_ = str(datapathid.from_host(long(str(data['dpsrc']))))
+        dpdst_ = str(datapathid.from_host(long(str(data['dpdst']))))
+
+        link_key = self.link_key_build(dpsrc_, dpdst_)
         if link_key in self.links:
-            LOG.debug("Link '%s' will be updated with received info" % \
-                       str(link_key))
+            LOG.debug("Link '%s' will be updated with received info", link_key)
             # XXX FIXME: Insert code to update link information
 
         else:
-            LOG.debug("Adding new detected link '%s'..." % str(link_key))
-            self.links[link_key] = nxw_utils.Link(link_key,
-                                                  data['dpsrc'],
-                                                  data['dpdst'])
+            LOG.info("Adding new detected link '%s'..." % link_key)
+            self.links[link_key] = nxw_utils.Link(link_key, dpsrc_, dpdst_)
 
-        self.links[link_key].adjacency_add(int(data['sport']),
-                                           int(data['dport']))
-        LOG.info("Added a new adjacency for link '%s'" % str(link_key))
+        self.links[link_key].adjacency_add(data['sport'], data['dport'])
+        LOG.info("Added a new adjacency for link '%s'" % link_key)
 
         # post inter-switch link
-        payload = { "src_dpid"  : data['dpsrc'],
-                    "src_portno": data['sport'],
-                    "dst_dpid"  : data['dpdst'],
-                    "dst_portno": data['dport'],
-                  }
+        payload = {"src_dpid"  : dpsrc_,
+                   "src_portno": data['sport'],
+                   "dst_dpid"  : dpdst_,
+                   "dst_portno": data['dport']}
         req = requests.post(url=self.url + "pckt_intersw_link",
-                            headers=self.hs,
-                            data=json.dumps(payload))
-        LOG.debug("URL=%s" % req.url)
-        LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
-                                                     str(req.content)))
+                            headers=self.hs, data=json.dumps(payload))
+        LOG.debug("URL=%s, response(code=%d, content=%s)",
+                  req.url, req.status_code, str(req.content))
 
     def link_del(self, data):
         """ Delete links """
-        link_key = self.link_key_build(data['dpsrc'], data['dpdst'])
+        assert(data is not None)
+        dpsrc_ = str(datapathid.from_host(long(str(data['dpsrc']))))
+        dpdst_ = str(datapathid.from_host(long(str(data['dpdst']))))
+
+        link_key = self.link_key_build(dpsrc_, dpdst_)
         if link_key in self.links:
-            LOG.debug("Link %s will be updated by removing adjancency" % \
-                       str(link_key))
+            LOG.debug("Link %s will be updated removing adjancency" % link_key)
         else:
-            LOG.error("Cannot find any link with id '%s'" % str(link_key))
+            LOG.error("Cannot find any link with id '%s'" % link_key)
 
-        self.links[link_key].adjacency_del(data['sport'],
-                                           data['dport'])
-        LOG.info("Removed an existing adjacency for link '%s'" % str(link_key))
+        self.links[link_key].adjacency_del(data['sport'], data['dport'])
+        LOG.info("Removed an existing adjacency for link '%s'" % link_key)
 
-        payload = { "src_dpid"  : data['dpsrc'],
-                    "src_portno": data['sport'],
-                    "dst_dpid"  : data['dpdst'],
-                    "dst_portno": data['dport'],
-                  }
-
+        payload = {"src_dpid"  : dpsrc_,
+                   "src_portno": data['sport'],
+                   "dst_dpid"  : dpdst_,
+                   "dst_portno": data['dport']}
         req = requests.delete(url=self.url + "pckt_intersw_link",
                              headers=self.hs, data=json.dumps(payload))
-        LOG.debug("URL=%s" % req.url)
-        LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
-                                                     str(req.content)))
+        LOG.debug("URL=%s, response(code=%d, content=%s)",
+                  req.url, req.status_code, str(req.content))
 
     def link_event_handler(self, ingress):
         """ Handler for link_event """
@@ -351,8 +343,10 @@ class DiscoveryPacket(Component):
                           " multiple inter-switch links)")
                 return CONTINUE
 
+            r_ = str(datapathid.from_host(long(str(auth_data['datapath_id']))))
+
             self.hosts[dladdr]          = nxw_utils.Host(dladdr)
-            self.hosts[dladdr].rem_dpid = auth_data['datapath_id']
+            self.hosts[dladdr].rem_dpid = r_
             self.hosts[dladdr].rem_port = auth_data['port']
 
             if auth_data['nwaddr'] == 0:
@@ -362,16 +356,14 @@ class DiscoveryPacket(Component):
                 LOG.debug("Received auth_event with IP address info...")
                 self.hosts[dladdr].ip_addr = host_ipaddr
                 # post host
-                payload = { "ip_addr"     : host_ipaddr,
-                            "mac"         : dladdr,
-                            "peer_dpid"   : auth_data['datapath_id'],
-                            "peer_portno" : auth_data['port'],
-                          }
+                payload = {"ip_addr"     : host_ipaddr,
+                           "mac"         : dladdr,
+                           "peer_dpid"   : r_,
+                           "peer_portno" : auth_data['port']}
                 req = requests.post(url=self.url + "pckt_host",
                                     headers=self.hs, data=json.dumps(payload))
-                LOG.debug("URL=%s" % req.url)
-                LOG.debug("Response(code=%d, content=%s)" % (req.status_code,
-                                                             str(req.content)))
+                LOG.debug("URL=%s, response(code=%d, content=%s)",
+                          req.url, req.status_code, str(req.content))
 
         except Exception, err:
             LOG.error("Got errors in host_auth_ev handler ('%s')" % str(err))
@@ -421,17 +413,15 @@ class DiscoveryPacket(Component):
                 if self.hosts[dladdr].ip_addr is None:
                     LOG.debug("Got host_bind_ev for an host not posted yet")
                     # Post host
-                    payload = { "ip_addr"     : host_ipaddr,
-                                "mac"         : dladdr,
-                                "peer_dpid"   : self.hosts[dladdr].rem_dpid,
-                                "peer_portno" : self.hosts[dladdr].rem_port,
-                              }
+                    payload = {"ip_addr"    : host_ipaddr,
+                               "mac"        : dladdr,
+                               "peer_dpid"  : self.hosts[dladdr].rem_dpid,
+                               "peer_portno": self.hosts[dladdr].rem_port}
                     req = requests.post(url=self.url + "pckt_host",
                                         headers=self.hs,
                                         data=json.dumps(payload))
-                    LOG.debug("URL=%s" % req.url)
-                    LOG.debug("Response(code=%d, content=%s)" % \
-                               (req.status_code, str(req.content)))
+                    LOG.debug("URL=%s, response(code=%d, content=%s)",
+                              req.url, req.status_code, str(req.content))
                 else:
                     LOG.debug("Got host_bind_ev for an host already posted")
 
@@ -512,7 +502,7 @@ class DiscoveryPacket(Component):
             actions = [[event.pyevent.action,
                         [0, event.pyevent.dataport_out]]]
 
-            self.install_datapath_flow(event.pyevent.datapath_in,
+            self.install_datapath_flow(long(event.pyevent.datapath_in),
                                        attrs,
                                        event.pyevent.idle_timeout,
                                        event.pyevent.hard_timeout,
