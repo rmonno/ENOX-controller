@@ -120,7 +120,7 @@ class FlowsMonitor(Component):
             (dpid, portno) = self._port_queue.pop()
             FFLOG.debug("Request port-stats for dpid=%s, portno=%s",
                         str(dpid), str(portno))
-            self.ctxt.send_port_stats_request(dpid, portno)
+            self.ctxt.send_port_stats_request(long(str(dpid), 16), portno)
 
         except Exception as e:
             FFLOG.error(str(e))
@@ -253,23 +253,25 @@ class FlowsMonitor(Component):
         return CONTINUE
 
     def table_stats_handler(self, dpid, tables):
-        FFLOG.debug("TABLE_STATS dpid=%s, tables=%s", dpid, str(tables))
-        requests.delete(url=self._url + 'pckt_table_stats/' + str(dpid))
+        dpid_ = str(datapathid.from_host(dpid))
+        FFLOG.debug("TABLE_STATS dpid=%s, tables=%s", dpid_, str(tables))
+        requests.delete(url=self._url + 'pckt_table_stats/' + dpid_)
 
         for table_ in tables:
-            self.__table_stats_create(dpid, table_)
+            self.__table_stats_create(dpid_, table_)
 
     def port_stats_handler(self, dpid, ports):
-        FFLOG.debug("PORT_STATS dpid=%s, ports=%s", dpid, str(ports))
+        dpid_ = str(datapathid.from_host(dpid))
+        FFLOG.debug("PORT_STATS dpid=%s, ports=%s", dpid_, str(ports))
         h_ = {'content-type': 'application/json'}
 
         for port_ in ports:
-            payload = {"dpid": dpid,
+            payload = {"dpid": dpid_,
                        "portno": port_['port_no']}
             requests.delete(url=self._url + 'pckt_port_stats', headers=h_,
                             data=json.dumps(payload))
 
-            self.__port_stats_create(dpid, port_)
+            self.__port_stats_create(dpid_, port_)
 
     def timer_handler(self):
         FFLOG.debug("FlowsMonitor timeout fired")

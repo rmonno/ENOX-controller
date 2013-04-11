@@ -276,20 +276,16 @@ class discovery(Component):
                   cid[1] << 32 | cid[0] << 40
 
         # if chassid is from a switch we're not connected to, ignore
-	flag = False
-        if chassid not in self.dps:
-	    lg.debug("Chassid does not contain a dpid already stored." + \
-		     "Checking for MAC address...")
-	    for key in self.dps.keys():
-		for info in self.dps[key]['ports']:
-                    chassid_mac = array_to_octstr(array.array('B',struct.pack('!Q',chassid))[2:])
-                    if chassid_mac == mac_to_str(info['hw_addr']):
-			chassid = key
-		        flag = True
+        dst_dpid_ = None
+        for k_ in self.dps.keys():
+            if chassid == (k_ & 0x00ffffff):
+                dst_dpid_ = k_
 
-	    if not flag:
-                lg.debug('Received LLDP packet from unconnected switch')
-                return
+        if not dst_dpid_:
+            lg.debug('Received LLDP packet from unconnected switch')
+            return
+
+        chassid = dst_dpid_
 
         # grab 16bit port ID from port tlv
         if lldph.tlvs[1].subtype != port_id.SUB_PORT:
