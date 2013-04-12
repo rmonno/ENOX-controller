@@ -280,6 +280,17 @@ class discovery(Component):
         for k_ in self.dps.keys():
             if chassid == (k_ & 0x00ffffff):
                 dst_dpid_ = k_
+                break
+
+            else:
+                for info in self.dps[k_]['ports']:
+                    chassid_mac = array_to_octstr(array.array('B',struct.pack('!Q',chassid))[2:])
+                    if chassid_mac == mac_to_str(info['hw_addr']):
+                        dst_dpid_ = k_
+                        break
+
+                if dst_dpid_:
+                    break
 
         if not dst_dpid_:
             lg.debug('Received LLDP packet from unconnected switch')
