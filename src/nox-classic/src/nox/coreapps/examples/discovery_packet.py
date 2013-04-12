@@ -108,7 +108,9 @@ class DiscoveryPacket(Component):
                   dpid_, inport, reason, length, str(bufid), str(packet))
 
         # Handle ARP packets
-        if packet.type == ethernet.ARP_TYPE:
+        if packet.type == ethernet.ARP_TYPE or\
+           (packet.type == ethernet.VLAN_TYPE and\
+            packet.find('vlan').eth_type == ethernet.ARP_TYPE):
             LOG.debug("Received ARP packet " + str(packet.find('arp')))
             if not dpid_ in self.switches:
                 LOG.debug("Registering new switch %s" % dpid_)
@@ -118,7 +120,9 @@ class DiscoveryPacket(Component):
             self.__forward_l2_packet(dpid_, inport, packet, packet.arr, bufid)
 
         # switch over ethernet type
-        if packet.type == ethernet.IP_TYPE:
+        if packet.type == ethernet.IP_TYPE or\
+           (packet.type == ethernet.VLAN_TYPE and\
+            packet.find('vlan').eth_type == ethernet.IP_TYPE):
             ip_addr = packet.find('ipv4')
             LOG.info("IPv4 packet: " + str(ip_addr))
             #  XXX FIXME: Remove the following check in order to be generic...
@@ -168,7 +172,7 @@ class DiscoveryPacket(Component):
             prt = self.switches[dpid][dstaddr]
             if prt[0] == inport:
                 LOG.err("**WARNING** Learned port = inport")
-                self.send_openflow(long(dpid), bufid, buf,
+                self.send_openflow(long(str(dpid), 16), bufid, buf,
                                    openflow.OFPP_FLOOD,
                                    inport)
             else:
@@ -176,7 +180,7 @@ class DiscoveryPacket(Component):
                 LOG.debug("Installing flow for %s" % str(packet))
                 flow = extract_flow(packet)
                 actions = [[openflow.OFPAT_OUTPUT, [0, prt[0]]]]
-                self.install_datapath_flow(long(dpid), flow, 5,
+                self.install_datapath_flow(long(str(dpid), 16), flow, 5,
                                            openflow.OFP_FLOW_PERMANENT,
                                            actions, bufid,
                                            openflow.OFP_DEFAULT_PRIORITY,
@@ -185,7 +189,7 @@ class DiscoveryPacket(Component):
                           (dpid, str(flow)))
         else:
             # haven't learned destination MAC. Flood
-            self.send_openflow(long(dpid), bufid, buf,
+            self.send_openflow(long(str(dpid), 16), bufid, buf,
                                openflow.OFPP_FLOOD, inport)
             LOG.debug("Flooding received packet...")
 
@@ -502,7 +506,7 @@ class DiscoveryPacket(Component):
             actions = [[event.pyevent.action,
                         [0, event.pyevent.dataport_out]]]
 
-            self.install_datapath_flow(long(event.pyevent.datapath_in),
+            self.install_datapath_flow(long(str(event.pyevent.datapath_in), 16),
                                        attrs,
                                        event.pyevent.idle_timeout,
                                        event.pyevent.hard_timeout,
