@@ -1,0 +1,19 @@
+In order to use properly the released package, please follow these
+installation steps:
+
+1) NOX install
+
+    ./boot.sh
+    mkdir build/
+    cd build/
+    ../configure
+    make
+
+2) GMPLS install
+
+**Clone GMPLS repository into an external folder
+**./bootstrap
+**./configure --prefix=<build-src folder used for NOX installation>
+    (e.g. ./configure --prefix=/home/nox/eu-fibre/src/nox-classic/build/src)
+** ./builder --bootstrap nox
+** ./builder --build
