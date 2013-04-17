@@ -1,12 +1,6 @@
 ==============================================================================
 
-* topologymgr
-
-    * Call F-PCE functions and test its functionalities
-        * Verify deletion of all hosts from PCERA DB
-    * Verify correct using of the exception (e.g. for host_auth handler)
-
 * topology_sql.db:
     * Use ENUM for actions in the flow_entries table
     * [Opt] Definition of the acceptable values range (e.g. for the fields in
-      the flow_entry table
+      the flow_entry table)
