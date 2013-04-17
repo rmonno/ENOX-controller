@@ -1,5 +1,0 @@
-module Topology {
-  interface Configuration {
-    string getTopology(in string msg);
-  };
-};
