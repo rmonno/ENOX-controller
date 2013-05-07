@@ -6,6 +6,7 @@
 import os
 import sys
 import requests
+import json
 import argparse as ap
 from PySide import QtGui
 
@@ -219,6 +220,50 @@ class PcktFlowsButton(Button):
             self.error(str(exc))
 
 
+class PathRequestButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'compute', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+
+    def onClick(self):
+        params_ = {'ip_src': self.__central.cellWidget(0, 0).text(),
+                   'ip_dst': self.__central.cellWidget(0, 1).text()}
+
+        if self.__central.cellWidget(0, 2).text():
+            src_port_ = int(self.__central.cellWidget(0, 2).text())
+            params_.update({'src_port': src_port_})
+
+        if self.__central.cellWidget(0, 3).text():
+            dst_port_ = int(self.__central.cellWidget(0, 3).text())
+            params_.update({'dst_port': dst_port_})
+
+        if self.__central.cellWidget(0, 4).text():
+            ip_proto_ = int(self.__central.cellWidget(0, 4).text())
+            params_.update({'ip_proto': ip_proto_})
+
+        if self.__central.cellWidget(0, 5).text():
+            vlan_id_ = int(self.__central.cellWidget(0, 5).text())
+            params_.update({'vlan_id': vlan_id_})
+
+        self.debug("path_request action: url=%s, params=%s" %
+                   (self.__url, str(params_)))
+
+        try:
+            r_ = requests.post(url=self.__url, data=json.dumps(params_),
+                               headers={'content-type': 'application/json'})
+            if r_.status_code != 201:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
 class PcktTableStatsButton(Button):
 
     def __init__(self, url, central, parent):
@@ -388,6 +433,12 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.get_pckt_flows)
         return act_
 
+    def __pathRequestAction(self):
+        act_ = QtGui.QAction('Path Request', self)
+        act_.setStatusTip('COMPUTE path request')
+        act_.triggered.connect(self.compute_path_request)
+        return act_
+
     def __getPcktTableStatsAction(self):
         act_ = QtGui.QAction('Get TABLE stats', self)
         act_.setStatusTip('GET table statistics request')
@@ -412,6 +463,7 @@ class GUIManager(QtGui.QMainWindow):
         tmenu_.addAction(self.__getHostsAction())
 
         pmenu_ = mb_.addMenu('&Provisioning')
+        pmenu_.addAction(self.__pathRequestAction())
         pmenu_.addAction(self.__getPcktFlowsAction())
 
         smenu_ = mb_.addMenu('&Statistics')
@@ -587,6 +639,25 @@ class GUIManager(QtGui.QMainWindow):
                               self.centralWidget(), self)
         self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
         self.centralWidget().setCellWidget(0, 1, c1_)
+
+    def compute_path_request(self):
+        self.shell().debug("compute_path_request action")
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(7)
+        self.centralWidget().setHorizontalHeaderLabels(['ip_src', 'ip_dst',
+                                    'tcp/udp port_src', 'tcp/udp port_dst',
+                                    'ip_proto', 'vlan_id', ''])
+
+        c7_ = PathRequestButton(self.__url + 'pckt_host_path',
+                                self.centralWidget(), self)
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('x.x.x.x'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('y.y.y.y'))
+        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 5, QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 6, c7_)
+
 
     def get_pckt_table_stats(self):
         self.shell().debug("get_pckt_table_stats action")

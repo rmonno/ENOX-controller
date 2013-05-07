@@ -87,6 +87,7 @@ class DiscoveryPacket(Component):
 
         discovery_ = nxw_utils.DiscoveryConfigParser(DiscoveryPacket.FCONFIG)
         self.region = discovery_.packet_region
+        self.allow_ping = discovery_.allow_ping
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
@@ -135,9 +136,12 @@ class DiscoveryPacket(Component):
                            "ip_src"  : pkt_utils.ip_to_str(ip_addr.srcip),
                            "ip_proto": flow[core.NW_PROTO],
                            "vlan_id" : flow[core.DL_VLAN]}
-                req = requests.post(url=self.url + "pckt_host_path",
-                                    headers=self.hs, data=json.dumps(payload))
-                LOG.debug("URL=%s, response=%s", req.url, req.text)
+
+                LOG.debug("Payload=%s" % str(payload))
+                if self.allow_ping == 'True':
+                    req = requests.post(url=self.url + "pckt_host_path",
+                                        headers=self.hs, data=json.dumps(payload))
+                    LOG.debug("URL=%s, response=%s", req.url, req.text)
 
         return CONTINUE
 

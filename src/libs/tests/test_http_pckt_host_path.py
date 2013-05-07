@@ -20,14 +20,25 @@ def main (argv=None):
     LOG.level_set("DEBUG")
 
     try:
-        url_ = "http://10.0.2.243:8080/"
+        url_ = "http://10.0.2.146:8080/"
         hs_ = {'content-type': 'application/json'}
         # post host path request
-        payload = { "dst_port": 9999,
-                    "ip_dst": "192.168.1.1",
-                    "ip_src": "192.168.1.2",
-                    "vlan_id": 111
+        payload = {"ip_src": "10.0.0.1",
+                   "ip_dst": "10.0.0.2",
+                   "src_port": 8,
+                   "dst_port": 0,
+                   "ip_proto": 1,
+                   "vlan_id": 65535
                   }
+        r_ = requests.post(url=url_ + "pckt_host_path", headers=hs_,
+                           data=json.dumps(payload))
+        LOG.debug("URL=%s" % r_.url)
+        LOG.debug("Response=%s" % r_.text)
+
+        payload['ip_src'] = "10.0.0.2"
+        payload['ip_dst'] = "10.0.0.1"
+        payload['src_port'] = 0
+
         r_ = requests.post(url=url_ + "pckt_host_path", headers=hs_,
                            data=json.dumps(payload))
         LOG.debug("URL=%s" % r_.url)

@@ -5,6 +5,8 @@
 or
    sudo mn --custom <path>/mininet_2h-2s.py --topo=mytopo --switch user --controller=remote
 
+   sudo mn --custom mininet_4h-6sw.py --topo=topo_2islands --switch user --controller=remote
+
 WARNING: Mininet MUST be run without option --mac in order to avoid that OF
 switches use SAME MAC address used by hosts!!
 
@@ -27,6 +29,8 @@ For our purpose, the option "--switch user" MUST BE USED (1)
    command:
 
     ./nox_core -v -i ptcp:6633 discovery_packet core_manager
+
+    ./nox_core -v -i ptcp:6633 discovery_packet core_manager flows_monitor
 
 3) Verify the correct behaviuor of the discovery application. In particular,
    the port_status_change() function must be called whenever a port status

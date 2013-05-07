@@ -104,6 +104,7 @@ class DiscoveryConfigParser:
 
     def __init__(self, filename):
         self.packet_region = None
+        self.allow_ping = None
 
         if check_file(filename):
             config = ConfigParser.ConfigParser()
@@ -113,8 +114,10 @@ class DiscoveryConfigParser:
             for sect in sects:
                 if sect == 'discovery':
                     self.packet_region = config.get(sect, 'packet_region')
+                    self.allow_ping = config.get(sect, 'allow_ping')
 
-        LOG.debug("Discovery packet_region=%s", self.packet_region)
+        LOG.debug("Discovery packet_region=%s, allow_ping=%s",
+                  self.packet_region, self.allow_ping)
 
 
 class FlowsMonitorConfigParser:
