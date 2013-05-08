@@ -39,6 +39,9 @@ class Button(QtGui.QPushButton):
     def error(self, msg):
         self.__parent.critical(msg)
 
+    def info_popup(self, msg):
+        QtGui.QMessageBox.information(self, 'Info', msg, QtGui.QMessageBox.Ok)
+
 
 class DpidsInfoButton(Button):
 
@@ -136,6 +139,36 @@ class PortsInfoButton(Button):
                             QtGui.QTextEdit(str(info_['sw_tdm_gran'])))
                 self.__central.setCellWidget(0, 13,
                             QtGui.QTextEdit(str(info_['sw_type'])))
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
+class AddHostButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'create', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+
+    def onClick(self):
+        params_ = {'ip_addr': self.__central.cellWidget(0, 0).text(),
+                   'mac': self.__central.cellWidget(0, 1).text(),
+                   'peer_dpid': self.__central.cellWidget(0, 2).text(),
+                   'peer_portno': self.__central.cellWidget(0, 3).text()}
+
+        self.debug("add_host_request action: url=%s, params=%s" %
+                   (self.__url, str(params_)))
+        try:
+            r_ = requests.post(url=self.__url, data=json.dumps(params_),
+                               headers={'content-type': 'application/json'})
+            if r_.status_code != 201:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+                self.info_popup(r_.text)
 
         except requests.exceptions.RequestException as exc:
             self.error(str(exc))
@@ -250,7 +283,6 @@ class PathRequestButton(Button):
 
         self.debug("path_request action: url=%s, params=%s" %
                    (self.__url, str(params_)))
-
         try:
             r_ = requests.post(url=self.__url, data=json.dumps(params_),
                                headers={'content-type': 'application/json'})
@@ -259,6 +291,7 @@ class PathRequestButton(Button):
 
             else:
                 self.debug("Response=%s" % r_.text)
+                self.info_popup(r_.text)
 
         except requests.exceptions.RequestException as exc:
             self.error(str(exc))
@@ -427,6 +460,12 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.get_hosts)
         return act_
 
+    def __addHostAction(self):
+        act_ = QtGui.QAction('Add HOST', self)
+        act_.setStatusTip('CREATE host request')
+        act_.triggered.connect(self.add_host)
+        return act_
+
     def __getPcktFlowsAction(self):
         act_ = QtGui.QAction('Get Pckt FLOWS', self)
         act_.setStatusTip('GET packet flow-entries request')
@@ -437,6 +476,12 @@ class GUIManager(QtGui.QMainWindow):
         act_ = QtGui.QAction('Path Request', self)
         act_.setStatusTip('COMPUTE path request')
         act_.triggered.connect(self.compute_path_request)
+        return act_
+
+    def __pathBoDRequestAction(self):
+        act_ = QtGui.QAction('Path (BoD) Request', self)
+        act_.setStatusTip('COMPUTE path request with bandwidth constraints')
+        act_.triggered.connect(self.compute_path_bod_request)
         return act_
 
     def __getPcktTableStatsAction(self):
@@ -461,9 +506,13 @@ class GUIManager(QtGui.QMainWindow):
         tmenu_.addAction(self.__getPortsAction())
         tmenu_.addAction(self.__getLinksAction())
         tmenu_.addAction(self.__getHostsAction())
+        tmenu_.addSeparator()
+        tmenu_.addAction(self.__addHostAction())
 
         pmenu_ = mb_.addMenu('&Provisioning')
         pmenu_.addAction(self.__pathRequestAction())
+        pmenu_.addAction(self.__pathBoDRequestAction())
+        pmenu_.addSeparator()
         pmenu_.addAction(self.__getPcktFlowsAction())
 
         smenu_ = mb_.addMenu('&Statistics')
@@ -629,6 +678,21 @@ class GUIManager(QtGui.QMainWindow):
         except requests.exceptions.RequestException as exc:
             self.critical(str(exc))
 
+    def add_host(self):
+        self.shell().debug("add_host action")
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(5)
+        self.centralWidget().setHorizontalHeaderLabels(['ip-address',
+                                        'mac', 'dpid', 'port-no', ''])
+
+        c5_ = AddHostButton(self.__url + 'pckt_host',
+                            self.centralWidget(), self)
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('x.x.x.x'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('a:a:a:a:a:a'))
+        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 4, c5_)
+
     def get_pckt_flows(self):
         self.shell().debug("get_pckt_flows action")
         self.centralWidget().setRowCount(1)
@@ -658,6 +722,9 @@ class GUIManager(QtGui.QMainWindow):
         self.centralWidget().setCellWidget(0, 5, QtGui.QLineEdit(''))
         self.centralWidget().setCellWidget(0, 6, c7_)
 
+    def compute_path_bod_request(self):
+        self.shell().debug("compute_path_bod_request action")
+        self.critical("Not Implemented Yet!")
 
     def get_pckt_table_stats(self):
         self.shell().debug("get_pckt_table_stats action")
