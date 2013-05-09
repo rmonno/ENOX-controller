@@ -460,7 +460,7 @@ def pckt_host_path_req_create():
 
     # default values
     default_action = openflow.OFPAT_OUTPUT
-    default_idle = 5
+    default_idle = 300
     default_hard = openflow.OFP_FLOW_PERMANENT
     default_priority = openflow.OFP_DEFAULT_PRIORITY
     default_etype = ethernet.IP_TYPE
