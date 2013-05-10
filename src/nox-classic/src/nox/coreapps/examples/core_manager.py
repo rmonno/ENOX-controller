@@ -145,6 +145,31 @@ def convert_flows_from_index(flows):
     finally:
         PROXY_DB.close()
 
+def convert_rate_support(rate):
+    bw_ = 0
+    if (rate & (1 << 0)) or (rate & (1 << 1)):
+        bw_ += 10 # 10 Mb half/full-duplex
+
+    if (rate & (1 << 2)) or (rate & (1 << 3)):
+        bw_ += 100 # 100 Mb half/full-duplex
+
+    if (rate & (1 << 4)) or (rate & (1 << 5)):
+        bw_ += 1000 # 1 Gb half/full-duplex
+
+    if rate & (1 << 6):
+        bw_ += 10000 # 10 Gb full-duplex
+
+    return bw_
+
+def link_bandwidth(src_rate, dst_rate):
+    srate_ = convert_rate_support(src_rate)
+    drate_ = convert_rate_support(dst_rate)
+    WLOG.debug("Source rate=%s, Destination rate=%s", srate_, drate_)
+
+    if srate_ == 0 and drate_ == 0:
+        return None
+
+    return (srate_ if (srate_ >= drate_) else drate_)
 
 # HTTP southbound interface
 #
@@ -270,10 +295,15 @@ def pckt_intersw_link_create():
     dst_dpid_ = bottle.request.json['dst_dpid']
     src_portno_ = bottle.request.json['src_portno']
     dst_portno_ = bottle.request.json['dst_portno']
+    bw_ = None
     try:
         PROXY_DB.open_transaction()
+        bw_=link_bandwidth(PROXY_DB.port_get_curr_rate(src_dpid_, src_portno_),
+                           PROXY_DB.port_get_curr_rate(dst_dpid_, dst_portno_))
+
         PROXY_DB.link_insert(src_dpid=src_dpid_, src_pno=src_portno_,
-                             dst_dpid=dst_dpid_, dst_pno=dst_portno_)
+                             dst_dpid=dst_dpid_, dst_pno=dst_portno_,
+                             bandwidth=bw_)
         PROXY_DB.commit()
         WLOG.debug("Successfull committed information!")
 
@@ -290,9 +320,9 @@ def pckt_intersw_link_create():
     try:
         src_node_ = create_node_ipv4(src_dpid_, src_portno_)
         dst_node_ = create_node_ipv4(dst_dpid_, dst_portno_)
-        WLOG.debug("Src Node=%s, Dst Node=%s", src_node_, dst_node_)
+        WLOG.debug("Src Node=%s, Dst Node=%s, BW=%s", src_node_,dst_node_,bw_)
 
-        PROXY_PCE.add_link_from_strings(src_node_, dst_node_)
+        PROXY_PCE.add_link_from_strings(src_node_, dst_node_, bw_)
 
     except Exception as err:
         WLOG.error("pckt_intersw_link_create: " + str(err))
@@ -605,8 +635,8 @@ def links():
     try:
         PROXY_DB.open_transaction()
         rows_ = PROXY_DB.link_select()
-        ids_ = [(r['src_dpid'], r['src_pno'],
-                 r['dst_dpid'], r['dst_pno']) for r in rows_]
+        ids_ = [(r['src_dpid'], r['src_pno'], r['dst_dpid'], r['dst_pno'],
+                 r['available_bw']) for r in rows_]
         resp_ = nxw_utils.HTTPResponseGetLINKS(ids_)
         return resp_.body()
 

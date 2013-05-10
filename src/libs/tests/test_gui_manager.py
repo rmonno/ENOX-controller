@@ -632,8 +632,9 @@ class GUIManager(QtGui.QMainWindow):
             else:
                 self.shell().debug("Response=%s" % r_.text)
                 self.centralWidget().setRowCount(len(r_.json()['links']))
-                self.centralWidget().setColumnCount(4)
-                lbs_ = ['src_dpid', 'src_port_no', 'dst_dpid', 'dst_port_no']
+                self.centralWidget().setColumnCount(5)
+                lbs_ = ['src_dpid', 'src_port_no', 'dst_dpid',
+                        'dst_port_no', 'available_bw (Mb)']
                 self.centralWidget().setHorizontalHeaderLabels(lbs_)
                 i = 0
                 for ids_ in r_.json()['links']:
@@ -645,6 +646,8 @@ class GUIManager(QtGui.QMainWindow):
                             QtGui.QTextEdit(str(ids_['destination_dpid'])))
                     self.centralWidget().setCellWidget(i, 3,
                             QtGui.QTextEdit(str(ids_['destination_port_no'])))
+                    self.centralWidget().setCellWidget(i, 4,
+                            QtGui.QTextEdit(str(ids_['available_bw'])))
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:

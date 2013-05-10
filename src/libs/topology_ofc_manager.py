@@ -320,6 +320,17 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return ret["nodeID"]
 
+    def port_get_curr_rate(self, d_id, port_no):
+        """ get port current rate support """
+        table = "ports"
+
+        statement = "SELECT curr FROM " + table +\
+                    " WHERE datapath_id=%s AND port_no=%s"
+        values = (d_id, port_no)
+        ret = self.__execute_dict(statement, values, one=True)
+
+        return ret["curr"]
+
     def port_get_indexes(self, d_id):
         """ get port indexes """
         table = "ports"
@@ -362,7 +373,8 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return (ret["datapath_id"], ret["port_no"])
 
-    def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno):
+    def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno,
+                    bandwidth=None):
         """ link insert """
         table = "links"
 
@@ -371,6 +383,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         stat_body = "VALUES (%s, %s, %s, %s"
         values = (str(src_dpid), str(src_pno),
                   str(dst_dpid), str(dst_pno))
+
+        if bandwidth is not None:
+            stat_header += ", available_bw"
+            stat_body += ", %s"
+            values = values + (str(bandwidth),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)

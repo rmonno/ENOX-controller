@@ -173,6 +173,17 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def port_get_curr_rate(self, d_id, port_no):
+        """Get rate support at ports table
+
+        :param d_id   : datapath identifier (primary key)
+        :param port_no: port number (primary key)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def port_get_indexes(self, d_id):
         """Get unique indexes at ports table
 
@@ -193,13 +204,15 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
-    def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno):
+    def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno,
+                    bandwidth=None):
         """Insert a new entry at links table
 
         :param src_dpid : source datapath identifier (primary key)
         :param src_pno  : source port number (primary key)
         :param dst_dpid : destination datapath identifier
         :param src_pno  : destination port number
+        :param bandwidth: link available bandwidth
 
         :raises: DBException
         """

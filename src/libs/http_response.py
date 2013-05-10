@@ -89,11 +89,12 @@ class HTTPResponseGetLINKS(object):
 
     def body(self):
         links_ = {'links':[]}
-        for src_dpid_, src_port_no_, dst_dpid_, dst_port_no_ in self._ids:
+        for src_dpid_, src_port_no_, dst_dpid_, dst_port_no_, bw_ in self._ids:
             links_['links'].append({'source_dpid': src_dpid_,
                                     'source_port_no': src_port_no_,
                                     'destination_dpid': dst_dpid_,
-                                    'destination_port_no': dst_port_no_})
+                                    'destination_port_no': dst_port_no_,
+                                    'available_bw': check_value(bw_)})
 
         return json.dumps(links_, sort_keys=True, indent=4,
                           separators=(',', ': '))

@@ -84,21 +84,22 @@ class NetLink(object):
     def __str__(self):
         return str(self.ident)
 
-    def com_params(self):
+    def com_params(self, available_bw=None):
         """ Common parameters """
-        mbw = NetLink.maxBW
+        mbw = NetLink.maxBW if not available_bw else (available_bw * 1000)
         return GLOB.gmplsTypes.teLinkComParams(10, 1, 0, chr(0),
                                                mbw, mbw, 0, [])
 
-    def avail_bw(self):
+    def avail_bw(self, available_bw=None):
         """ available bandwidth """
-        return [NetLink.maxBW] * 8
+        mbw = NetLink.maxBW if not available_bw else (available_bw * 1000)
+        return [mbw] * 8
 
-    def isc_gen(self):
+    def isc_gen(self, available_bw=None):
         """ ISC generic parameters """
         ipgen = GLOB.gmplsTypes.iscParamsGen(GLOB.gmplsTypes.SWITCHINGCAP_LSC,
                                            GLOB.gmplsTypes.ENCODINGTYPE_LAMBDA,
-                                           [NetLink.maxBW] * 8)
+                                           self.avail_bw(available_bw))
         return [GLOB.gmplsTypes.isc(GLOB.gmplsTypes.SWITCHINGCAP_LSC, ipgen)]
 
     def states(self):
@@ -311,21 +312,21 @@ class FPCE(object):
         except Exception, exe:
             LOG.error("Generic exception: %s", str(exe))
 
-    def add_link_from_strings(self, node_a, node_b):
+    def add_link_from_strings(self, node_a, node_b, available_bw=None):
         """ add link from string """
         assert(node_a is not None)
         assert(node_b is not None)
-        LOG.info("Try to add link=%s -> %s", node_a, node_b)
-
+        LOG.info("Try to add link=%s -> %s, BW=%s",
+                 node_a, node_b, str(available_bw))
         try:
             lnk = NetLink(node_a, node_b)
             self.info.linkAdd(lnk.ident)
             # update common link-params
-            self.info.teLinkUpdateCom(lnk.ident, lnk.com_params())
+            self.info.teLinkUpdateCom(lnk.ident, lnk.com_params(available_bw))
             # update available bandwidth
-            self.info.teLinkUpdateGenBw(lnk.ident, lnk.avail_bw())
+            self.info.teLinkUpdateGenBw(lnk.ident, lnk.avail_bw(available_bw))
             # append isc gen
-            self.info.teLinkAppendIsc(lnk.ident, lnk.isc_gen())
+            self.info.teLinkAppendIsc(lnk.ident, lnk.isc_gen(available_bw))
             # update states
             self.info.teLinkUpdateStates(lnk.ident, lnk.states())
             LOG.debug("Successfully added link: %s", str(lnk))

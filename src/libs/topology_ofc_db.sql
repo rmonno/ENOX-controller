@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS `links` (
   `src_pno` smallint(8) unsigned NOT NULL COMMENT 'source port number',
   `dst_dpid` bigint(20) unsigned DEFAULT NULL COMMENT 'destination datapath identifier',
   `dst_pno` smallint(8) unsigned DEFAULT NULL COMMENT 'destination port number',
+  `available_bw` bigint(20) unsigned DEFAULT NULL COMMENT 'available bandwidth',
   PRIMARY KEY (`src_dpid`,`src_pno`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='links info';
 
