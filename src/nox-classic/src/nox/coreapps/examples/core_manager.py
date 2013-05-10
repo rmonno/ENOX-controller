@@ -166,10 +166,10 @@ def link_bandwidth(src_rate, dst_rate):
     drate_ = convert_rate_support(dst_rate)
     WLOG.debug("Source rate=%s, Destination rate=%s", srate_, drate_)
 
-    if srate_ == 0 and drate_ == 0:
+    if srate_ == 0 or drate_ == 0:
         return None
 
-    return (srate_ if (srate_ >= drate_) else drate_)
+    return (srate_ if (srate_ <= drate_) else drate_)
 
 # HTTP southbound interface
 #
