@@ -456,6 +456,13 @@ def pckt_host_delete():
 
 # HTTP north/south-bound interface
 #
+def secure_service_insert(service, dpid, port):
+    try:
+        PROXY_DB.service_insert(service, dpid, port)
+
+    except nxw_utils.DBException as err:
+        WLOG.warning(str(err))
+
 # POST /pckt_host_path + json params
 @bottle.post('/pckt_host_path')
 def pckt_host_path_req_create():
@@ -525,24 +532,20 @@ def pckt_host_path_req_create():
             WLOG.debug(str(evt_))
             PROXY_POST(evt_.describe())
 
-            try:
-                PROXY_DB.flow_insert(dpid=d_in,
-                                     action=default_action,
-                                     idle_timeout=default_idle,
-                                     hard_timeout=default_hard,
-                                     priority=default_priority,
-                                     dl_vlan=vlan_id_,
-                                     nw_src=ip_src_,
-                                     nw_dst=ip_dst_,
-                                     tp_src=src_port_,
-                                     tp_dst=dst_port_,
-                                     in_port=p_in)
+            PROXY_DB.flow_insert(dpid=d_in,
+                                 action=default_action,
+                                 idle_timeout=default_idle,
+                                 hard_timeout=default_hard,
+                                 priority=default_priority,
+                                 dl_vlan=vlan_id_,
+                                 nw_src=ip_src_,
+                                 nw_dst=ip_dst_,
+                                 tp_src=src_port_,
+                                 tp_dst=dst_port_,
+                                 in_port=p_in)
 
-                PROXY_DB.service_insert(service_, d_in, p_in)
-                PROXY_DB.service_insert(service_, d_out, p_out)
-
-            except nxw_utils.DBException as err:
-                WLOG.warning(str(err))
+            secure_service_insert(service_, d_in, p_in)
+            secure_service_insert(service_, d_out, p_out)
 
         PROXY_DB.commit()
 

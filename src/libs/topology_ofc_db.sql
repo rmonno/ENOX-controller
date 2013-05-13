@@ -275,7 +275,7 @@ CREATE TABLE IF NOT EXISTS `services` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='services details';
 
 --
--- Constraints for tables `services`
+-- Constraints for table `services`
 --
 ALTER TABLE `services` AUTO_INCREMENT=1;
 
@@ -283,6 +283,20 @@ ALTER TABLE `services`
   ADD CONSTRAINT `services_ibfk_1` FOREIGN KEY (`serviceID`)
     REFERENCES `requests` (`serviceID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
-ALTER TABLE `services`
-  ADD CONSTRAINT `services_ibfk_2` FOREIGN KEY (`dpid`, `port_no`)
-    REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
+--
+-- Trigger for table `datapaths`
+--
+delimiter |
+
+CREATE TRIGGER `after_datapath_delete` AFTER DELETE ON `datapaths`
+FOR EACH ROW BEGIN
+    DELETE FROM services WHERE services.dpid=OLD.id;
+END;
+
+CREATE TRIGGER `after_service_delete` AFTER DELETE ON `services`
+FOR EACH ROW BEGIN
+    DELETE FROM requests WHERE requests.serviceID=OLD.serviceID;
+END;
+|
+
+delimiter ;
