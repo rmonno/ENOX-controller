@@ -421,3 +421,49 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def request_insert(self, ip_src, ip_dst, port_src, port_dst, ip_proto,
+                       vlan_id, bw=None):
+        """ Request entry insert
+
+        :param ip_src:   source ip address (primary key)
+        :param ip_dst:   destination ip address (primary key)
+        :param port_src: sorce (tcp/udp) port number (primary key)
+        :param port_dst: destination (tcp/udp) port number (primary key)
+        :param ip_proto: ip protocol number (primary key)
+        :param vlan_id:  vlan identifier (primary key)
+        :param bw:       requested bandwidth
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def request_get_serviceID(self, ip_src, ip_dst, port_src, port_dst,
+                              ip_proto, vlan_id):
+        """Get unique service ID at requests table
+
+        :param ip_src:   source ip address (primary key)
+        :param ip_dst:   destination ip address (primary key)
+        :param port_src: sorce (tcp/udp) port number (primary key)
+        :param port_dst: destination (tcp/udp) port number (primary key)
+        :param ip_proto: ip protocol number (primary key)
+        :param vlan_id:  vlan identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def service_insert(self, service_id, dpid, port_no, bw=None):
+        """ Service entry insert
+
+        :param service_id: unique service identifier (primary key)
+        :param dpid:       datapath identifier (primary key)
+        :param port_no:    port number (primary key)
+        :param bw:         bandwidth
+
+        :raises: DBException
+        """
+        pass

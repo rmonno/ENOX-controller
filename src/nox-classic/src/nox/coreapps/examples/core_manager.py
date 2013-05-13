@@ -494,10 +494,18 @@ def pckt_host_path_req_create():
     default_hard = openflow.OFP_FLOW_PERMANENT
     default_priority = openflow.OFP_DEFAULT_PRIORITY
     default_etype = ethernet.IP_TYPE
+    service_ = None
 
     cflows = convert_flows_from_index(flows)
     try:
         PROXY_DB.open_transaction()
+        PROXY_DB.request_insert(ip_src_, ip_dst_, src_port_, dst_port_,
+                                ip_proto_, vlan_id_)
+
+        service_ = PROXY_DB.request_get_serviceID(ip_src_, ip_dst_, src_port_,
+                                               dst_port_, ip_proto_, vlan_id_)
+        WLOG.info("Service ID=%s", str(service_))
+
         for d_in, p_in, d_out, p_out in cflows:
             evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=d_in,
                                                  port_in=p_in,
@@ -517,20 +525,29 @@ def pckt_host_path_req_create():
             WLOG.debug(str(evt_))
             PROXY_POST(evt_.describe())
 
-            PROXY_DB.flow_insert(dpid=d_in,
-                                 action=default_action,
-                                 idle_timeout=default_idle,
-                                 hard_timeout=default_hard,
-                                 priority=default_priority,
-                                 dl_vlan=vlan_id_,
-                                 nw_src=ip_src_,
-                                 nw_dst=ip_dst_,
-                                 tp_src=src_port_,
-                                 tp_dst=dst_port_,
-                                 in_port=p_in)
+            try:
+                PROXY_DB.flow_insert(dpid=d_in,
+                                     action=default_action,
+                                     idle_timeout=default_idle,
+                                     hard_timeout=default_hard,
+                                     priority=default_priority,
+                                     dl_vlan=vlan_id_,
+                                     nw_src=ip_src_,
+                                     nw_dst=ip_dst_,
+                                     tp_src=src_port_,
+                                     tp_dst=dst_port_,
+                                     in_port=p_in)
+
+                PROXY_DB.service_insert(service_, d_in, p_in)
+                PROXY_DB.service_insert(service_, d_out, p_out)
+
+            except nxw_utils.DBException as err:
+                WLOG.warning(str(err))
+
         PROXY_DB.commit()
 
     except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
         WLOG.error("pckt_host_path_req_create: " + str(err))
         bottle.abort(500, str(err))
 

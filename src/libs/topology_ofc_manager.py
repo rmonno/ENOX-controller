@@ -1049,3 +1049,51 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         statement = stat_header + " WHERE datapath_id=%s AND table_id=%s"
         values = (dpid, table_id)
         self.__execute(statement, values)
+
+    def request_insert(self, ip_src, ip_dst, port_src, port_dst, ip_proto,
+                       vlan_id, bw=None):
+        """ Request entry insert """
+        table = "requests"
+
+        stat_header = "INSERT INTO " + table + "(ip_src, ip_dst, port_src," +\
+                      " port_dst, ip_proto, vlan_id"
+        stat_body = "VALUES (%s, %s, %s, %s, %s, %s"
+        values = (str(ip_src), str(ip_dst), str(port_src),
+                  str(port_dst), str(ip_proto), str(vlan_id),)
+
+        if bw is not None:
+            stat_header += ", bw"
+            stat_body += ", %s"
+            values = values + (str(bw),)
+
+        statement = stat_header + ") " + stat_body + ")"
+        self.__execute(statement, values)
+
+    def request_get_serviceID(self, ip_src, ip_dst, port_src, port_dst,
+                              ip_proto, vlan_id):
+        """Get unique service ID at requests table """
+        table = "requests"
+
+        statement = "SELECT serviceID FROM " + table +\
+                    " WHERE ip_src=%s AND ip_dst=%s AND port_src=%s" +\
+                    " AND port_dst=%s AND ip_proto=%s AND vlan_id=%s"
+        values = (ip_src, ip_dst, port_src, port_dst, ip_proto, vlan_id)
+        ret = self.__execute_dict(statement, values, one=True)
+
+        return ret["serviceID"]
+
+    def service_insert(self, service_id, dpid, port_no, bw=None):
+        """ Service entry insert """
+        table = "services"
+
+        stat_header = "INSERT INTO " + table + "(serviceID, dpid, port_no"
+        stat_body = "VALUES (%s, %s, %s"
+        values = (str(service_id), str(dpid), str(port_no),)
+
+        if bw is not None:
+            stat_header += ", bw"
+            stat_body += ", %s"
+            values = values + (str(bw),)
+
+        statement = stat_header + ") " + stat_body + ")"
+        self.__execute(statement, values)

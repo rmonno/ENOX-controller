@@ -210,7 +210,6 @@ CREATE TABLE IF NOT EXISTS `port_stats` (
 --
 -- Constraints for table `port_stats`
 --
-
 ALTER TABLE `port_stats`
   ADD CONSTRAINT `port_stats_ibfk_1` FOREIGN KEY (`datapath_id`, `port_no`)
     REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -230,6 +229,60 @@ CREATE TABLE IF NOT EXISTS `table_stats` (
   PRIMARY KEY (`datapath_id`,`table_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='table_stats details';
 
+--
+-- Constraints for table `table_stats`
+--
 ALTER TABLE `table_stats`
   ADD CONSTRAINT `table_stats_ibfk_1` FOREIGN KEY (`datapath_id`)
     REFERENCES `datapaths` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `requests'
+--
+CREATE TABLE IF NOT EXISTS `requests` (
+  `ip_src` varchar(18) CHARACTER SET latin1 NOT NULL COMMENT 'source ip address',
+  `ip_dst` varchar(18) CHARACTER SET latin1 NOT NULL COMMENT 'destination ip address',
+  `port_src` smallint(8) unsigned NOT NULL COMMENT 'sorce (tcp/udp) port number',
+  `port_dst` smallint(8) unsigned NOT NULL COMMENT 'destination (tcp/udp) port number',
+  `ip_proto` int(8) unsigned NOT NULL COMMENT 'ip protocol number',
+  `vlan_id` int(16) unsigned NOT NULL COMMENT 'vlan identifier',
+  `bw` bigint(20) unsigned DEFAULT NULL COMMENT 'requested bandwidth',
+  `serviceID` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique service identifier',
+  PRIMARY KEY (`ip_src`, `ip_dst`, `port_src`, `port_dst`, `ip_proto`, `vlan_id`),
+  UNIQUE KEY (`serviceID`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='services requests';
+
+--
+-- Constraints for tables `requests`
+--
+ALTER TABLE `requests` AUTO_INCREMENT=1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `services'
+--
+CREATE TABLE IF NOT EXISTS `services` (
+  `serviceID` smallint(5) unsigned NOT NULL COMMENT 'unique service identifier',
+  `dpid` bigint(20) unsigned NOT NULL COMMENT 'datapath identifier',
+  `port_no` smallint(8) unsigned NOT NULL COMMENT 'port number',
+  `bw` bigint(20) unsigned DEFAULT NULL COMMENT 'bandwidth',
+  `sequenceID` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique sequence identifier',
+  PRIMARY KEY (`serviceID`, `dpid`, `port_no`),
+  UNIQUE KEY (`sequenceID`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='services details';
+
+--
+-- Constraints for tables `services`
+--
+ALTER TABLE `services` AUTO_INCREMENT=1;
+
+ALTER TABLE `services`
+  ADD CONSTRAINT `services_ibfk_1` FOREIGN KEY (`serviceID`)
+    REFERENCES `requests` (`serviceID`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `services`
+  ADD CONSTRAINT `services_ibfk_2` FOREIGN KEY (`dpid`, `port_no`)
+    REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
