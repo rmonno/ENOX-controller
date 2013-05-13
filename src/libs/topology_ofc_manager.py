@@ -1082,6 +1082,13 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return ret["serviceID"]
 
+    def request_select(self):
+        """ requests select """
+        table = "requests"
+
+        statement = "SELECT * FROM " + table
+        return self.__execute_dict(statement, one=False)
+
     def service_insert(self, service_id, dpid, port_no, bw=None):
         """ Service entry insert """
         table = "services"

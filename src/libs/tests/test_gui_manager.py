@@ -409,6 +409,19 @@ class PcktPortStatsButton(Button):
             self.error(str(exc))
 
 
+class ServiceInfoButton(Button):
+
+    def __init__(self, url, payload, central, parent):
+        Button.__init__(self, 'details', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__params = payload
+        self.__central = central
+
+    def onClick(self):
+        self.error("Not Implemented YET!")
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, addr, port):
@@ -484,6 +497,12 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.compute_path_bod_request)
         return act_
 
+    def __getServicesAction(self):
+        act_ = QtGui.QAction('GET SERVICES', self)
+        act_.setStatusTip('GET services request')
+        act_.triggered.connect(self.get_services)
+        return act_
+
     def __getPcktTableStatsAction(self):
         act_ = QtGui.QAction('Get TABLE stats', self)
         act_.setStatusTip('GET table statistics request')
@@ -513,6 +532,7 @@ class GUIManager(QtGui.QMainWindow):
         pmenu_.addAction(self.__pathRequestAction())
         pmenu_.addAction(self.__pathBoDRequestAction())
         pmenu_.addSeparator()
+        pmenu_.addAction(self.__getServicesAction())
         pmenu_.addAction(self.__getPcktFlowsAction())
 
         smenu_ = mb_.addMenu('&Statistics')
@@ -728,6 +748,47 @@ class GUIManager(QtGui.QMainWindow):
     def compute_path_bod_request(self):
         self.shell().debug("compute_path_bod_request action")
         self.critical("Not Implemented Yet!")
+
+    def get_services(self):
+        self.shell().debug("get_services action")
+        try:
+            r_ = requests.get(url=self.__url + "services")
+            if r_.status_code != requests.codes.ok:
+                self.critical(r_.text)
+
+            else:
+                self.shell().debug("Response=%s" % r_.text)
+                self.centralWidget().setRowCount(len(r_.json()['services']))
+                self.centralWidget().setColumnCount(9)
+                self.centralWidget().setHorizontalHeaderLabels(['serviceID',
+                                 'ip_src', 'ip_dst', 'port_src', 'port_dst',
+                                 'ip_proto', 'vlan_id', 'bw', ''])
+                i = 0
+                for info_ in r_.json()['services']:
+                    c9_ = ServiceInfoButton(self.__url + 'services/',
+                                 {'service_id': info_['service_id']},
+                                          self.centralWidget(), self)
+                    self.centralWidget().setCellWidget(i, 0,
+                            QtGui.QTextEdit(str(info_['service_id'])))
+                    self.centralWidget().setCellWidget(i, 1,
+                            QtGui.QTextEdit(str(info_['ip_src'])))
+                    self.centralWidget().setCellWidget(i, 2,
+                            QtGui.QTextEdit(str(info_['ip_dst'])))
+                    self.centralWidget().setCellWidget(i, 3,
+                            QtGui.QTextEdit(str(info_['port_src'])))
+                    self.centralWidget().setCellWidget(i, 4,
+                            QtGui.QTextEdit(str(info_['port_dst'])))
+                    self.centralWidget().setCellWidget(i, 5,
+                            QtGui.QTextEdit(str(info_['ip_proto'])))
+                    self.centralWidget().setCellWidget(i, 6,
+                            QtGui.QTextEdit(str(info_['vlan_id'])))
+                    self.centralWidget().setCellWidget(i, 7,
+                            QtGui.QTextEdit(str(info_['bw'])))
+                    self.centralWidget().setCellWidget(i, 8, c9_)
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.critical(str(exc))
 
     def get_pckt_table_stats(self):
         self.shell().debug("get_pckt_table_stats action")

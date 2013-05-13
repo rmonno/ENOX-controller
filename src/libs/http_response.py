@@ -190,3 +190,23 @@ class HTTPResponseGetPCKTTableStats(object):
 
         return json.dumps(p_table_stats, sort_keys=True, indent=4,
                           separators=(',', ': '))
+
+
+class HTTPResponseGetSERVICES(object):
+    def __init__(self, db_rows):
+        self._rows = db_rows
+
+    def body(self):
+        services = {'services':[]}
+        for row_ in self._rows:
+            services['services'].append({'ip_src': row_['ip_src'],
+                                         'ip_dst': row_['ip_dst'],
+                                         'port_src': row_['port_src'],
+                                         'port_dst': row_['port_dst'],
+                                         'ip_proto': row_['ip_proto'],
+                                         'vlan_id': row_['vlan_id'],
+                                         'service_id': row_['serviceID'],
+                                         'bw': check_value(row_['bw'])})
+
+        return json.dumps(services, sort_keys=True, indent=4,
+                          separators=(',', ': '))

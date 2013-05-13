@@ -903,6 +903,23 @@ def pckt_table_stats_delete(id):
         PROXY_DB.close()
 
 
+@bottle.get('/services')
+def services():
+    WLOG.info("Enter http services")
+    try:
+        PROXY_DB.open_transaction()
+        rows_ = PROXY_DB.request_select()
+        resp_ = nxw_utils.HTTPResponseGetSERVICES(rows_)
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("services: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+
 class CoreService(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)

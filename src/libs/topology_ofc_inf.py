@@ -456,6 +456,14 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def request_select(self):
+        """Select * from requests table
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def service_insert(self, service_id, dpid, port_no, bw=None):
         """ Service entry insert
 
