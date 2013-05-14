@@ -411,15 +411,41 @@ class PcktPortStatsButton(Button):
 
 class ServiceInfoButton(Button):
 
-    def __init__(self, url, payload, central, parent):
+    def __init__(self, url, central, parent):
         Button.__init__(self, 'details', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
-        self.__params = payload
         self.__central = central
 
     def onClick(self):
-        self.error("Not Implemented YET!")
+        self.debug("get_service_info action: url=%s" % self.__url)
+        try:
+            r_ = requests.get(url=self.__url)
+            if r_.status_code != requests.codes.ok:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+                infos_ = r_.json()['info']
+                lbs_ = ['service_id', 'dpid', 'port_no', 'bw']
+                self.__central.setRowCount(len(infos_))
+                self.__central.setColumnCount(len(lbs_))
+                self.__central.setHorizontalHeaderLabels(lbs_)
+
+                i = 0
+                for info_ in infos_:
+                    self.__central.setCellWidget(i, 0,
+                        QtGui.QTextEdit(str(info_['service_id'])))
+                    self.__central.setCellWidget(i, 1,
+                        QtGui.QTextEdit(str(info_['dpid'])))
+                    self.__central.setCellWidget(i, 2,
+                        QtGui.QTextEdit(str(info_['port_no'])))
+                    self.__central.setCellWidget(i, 3,
+                        QtGui.QTextEdit(str(info_['bw'])))
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
 
 
 class GUIManager(QtGui.QMainWindow):
@@ -765,9 +791,9 @@ class GUIManager(QtGui.QMainWindow):
                                  'ip_proto', 'vlan_id', 'bw', ''])
                 i = 0
                 for info_ in r_.json()['services']:
-                    c9_ = ServiceInfoButton(self.__url + 'services/',
-                                 {'service_id': info_['service_id']},
-                                          self.centralWidget(), self)
+                    c9_ = ServiceInfoButton(self.__url + 'services/' +
+                                            str(info_['service_id']),
+                                            self.centralWidget(), self)
                     self.centralWidget().setCellWidget(i, 0,
                             QtGui.QTextEdit(str(info_['service_id'])))
                     self.centralWidget().setCellWidget(i, 1,

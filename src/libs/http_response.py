@@ -210,3 +210,20 @@ class HTTPResponseGetSERVICES(object):
 
         return json.dumps(services, sort_keys=True, indent=4,
                           separators=(',', ': '))
+
+
+class HTTPResponseGetSERVICESInfo(object):
+    def __init__(self, db_rows):
+        self._rows = db_rows
+
+    def body(self):
+        info = {'info':[]}
+        for row_ in self._rows:
+            info['info'].append({'service_id': row_['serviceID'],
+                                 'dpid': row_['dpid'],
+                                 'port_no': row_['port_no'],
+                                 'sequence_id': row_['sequenceID'],
+                                 'bw': check_value(row_['bw'])})
+
+        return json.dumps(info, sort_keys=True, indent=4,
+                          separators=(',', ': '))

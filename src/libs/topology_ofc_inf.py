@@ -475,3 +475,11 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def service_select(self, service_id=None):
+        """Select * from services table
+
+        :raises: DBException
+        """
+        pass

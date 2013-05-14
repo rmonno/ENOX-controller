@@ -1104,3 +1104,17 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
+
+    def service_select(self, service_id=None):
+        """Select * from services table """
+        table = "services"
+
+        statement = "SELECT * FROM " + table
+        values = ()
+
+        if service_id is not None:
+            statement += " WHERE serviceID=%s"
+            values = values + (str(service_id),)
+
+        statement += " order by sequenceID"
+        return self.__execute_dict(statement, values, one=False)
