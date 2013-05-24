@@ -138,7 +138,7 @@ class CallID(object):
 class LspParams(object):
     """ LSP parameters object """
 
-    def __init__(self):
+    def __init__(self, bandwidth=None):
         tlsp = GLOB.gmplsTypes.LSPTYPE_SPC
         rlsp = GLOB.gmplsTypes.LSPROLE_UNDEFINED
         sw_cap = GLOB.gmplsTypes.SWITCHINGCAP_UNKNOWN
@@ -148,9 +148,10 @@ class LspParams(object):
         act = GLOB.gmplsTypes.LSPRESOURCEACTION_XCONNECT
         tinfo = GLOB.gmplsTypes.timeInfo(0, 0)
         qos = GLOB.gmplsTypes.qosParams(0, 0, 0)
+        bw = 0 if not bandwidth else (bandwidth * 1000)
 
         self.ident = GLOB.gmplsTypes.lspParams(tlsp, rlsp, sw_cap, enc, gpid,
-                                               0, 0, 0, 0, 0, 0,
+                                               bw, 0, 0, 0, 0, 0,
                                                ptype, act, tinfo, [], qos)
 
 
@@ -235,7 +236,7 @@ class Host(object):
         self.rem_dpid = None
         self.rem_port = None
 
-    def __str__():
+    def __str__(self):
         ret = "Host(mac_addr='%s', ip_addr='%s', r_dpid='%s', r_port='%s')" % \
                (str(self.mac_addr), str(self.ip_addr),
                 str(self.rem_dpid), str(self.rem_port))
@@ -387,6 +388,33 @@ class FPCE(object):
         except Exception, exe:
             LOG.error("Generic exception: %s", str(exe))
 
+    def update_link_bw_from_strings(self, node_a, node_b, bw):
+        """ update link bandwidth from string """
+        assert(node_a is not None)
+        assert(node_b is not None)
+        LOG.info("Try to update link=%s -> %s, BW=%s", node_a, node_b, bw)
+
+        try:
+            lnk = NetLink(node_a, node_b)
+            # update common link-params
+            self.info.teLinkUpdateCom(lnk.ident, lnk.com_params(bw))
+            # update available bandwidth
+            self.info.teLinkUpdateGenBw(lnk.ident, lnk.avail_bw(bw))
+            LOG.debug("Successfully updated link: %s", str(lnk))
+
+        except TOPOLOGY.CannotFetchNode, exe:
+            LOG.error("CannotFetchNode exception: %s", str(exe))
+        except TOPOLOGY.CannotFetchLink, exe:
+            LOG.error("CannotFetchLink exception: %s", str(exe))
+        except TOPOLOGY.LinkParamsMismatch, exe:
+            LOG.error("LinkParamsMismatch exception: %s", str(exe))
+        except TOPOLOGY.InternalProblems, exe:
+            LOG.error("InternalProblems exception: %s", str(exe))
+        except TOPOLOGY.InvocationNotAllowed, exe:
+            LOG.error("InvocationNotAllowed exception: %s", str(exe))
+        except Exception, exe:
+            LOG.error("Generic exception: %s", str(exe))
+
     def connection_route_from_hosts(self, ingr, egr):
         """ invoke connection-route to FLOW PCE """
         assert(ingr is not None)
@@ -398,6 +426,49 @@ class FPCE(object):
             cep_src = ConnectionEP(ingr)
             cep_dst = ConnectionEP(egr)
             lsp = LspParams()
+
+            (wero, pero) = self.routing.connectionRoute(cep_src.ident,
+                                                        cep_dst.ident,
+                                                        call_id.ident,
+                                                        lsp.ident,
+                                                        [])
+            # in any case flush the call
+            self.routing.callFlush(call_id.ident)
+
+            return (wero, pero)
+
+        except PCERA.CannotFetchConnEndPoint, exe:
+            LOG.error("CannotFetchConnEndPoint exception: %s", str(exe))
+        except PCERA.ConnectionParamsMismatch, exe:
+            LOG.error("ConnectionParamsMismatch exception: %s", str(exe))
+        except PCERA.ConnectionEroMismatch, exe:
+            LOG.error("ConnectionEroMismatch exception: %s", str(exe))
+        except PCERA.ConnectionEroMismatch, exe:
+            LOG.error("ConnectionEroMismatch exception: %s", str(exe))
+        except PCERA.NoRoute, exe:
+            LOG.error("NoRoute exception: %s", str(exe))
+        except PCERA.CannotFetchCall, exe:
+            LOG.error("CannotFetchCall exception: %s", str(exe))
+        except PCERA.InternalProblems, exe:
+            LOG.error("InternalProblems exception: %s", str(exe))
+        except Exception, exe:
+            LOG.error("Generic exception: %s", str(exe))
+
+        return (None, None)
+
+    def connection_route_from_hosts_bw(self, ingr, egr, bw):
+        """ invoke connection-route to FLOW PCE with bandwidth constraint """
+        assert(ingr is not None)
+        assert(egr  is not None)
+        assert(bw is not None)
+        LOG.info("Try to connection-route %s -> %s with constraint bw=%s",
+                 ingr, egr, bw)
+
+        call_id = CallID(ingr)
+        try:
+            cep_src = ConnectionEP(ingr)
+            cep_dst = ConnectionEP(egr)
+            lsp = LspParams(bw)
 
             (wero, pero) = self.routing.connectionRoute(cep_src.ident,
                                                         cep_dst.ident,

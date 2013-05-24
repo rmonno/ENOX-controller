@@ -297,6 +297,58 @@ class PathRequestButton(Button):
             self.error(str(exc))
 
 
+class PathBoDRequestButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'compute', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+
+    def onClick(self):
+        params_ = {'ip_src': self.__central.cellWidget(0, 0).text(),
+                   'ip_dst': self.__central.cellWidget(0, 1).text()}
+
+        if self.__central.cellWidget(0, 2).text():
+            src_port_ = int(self.__central.cellWidget(0, 2).text())
+            params_.update({'src_port': src_port_})
+
+        if self.__central.cellWidget(0, 3).text():
+            dst_port_ = int(self.__central.cellWidget(0, 3).text())
+            params_.update({'dst_port': dst_port_})
+
+        if self.__central.cellWidget(0, 4).text():
+            ip_proto_ = int(self.__central.cellWidget(0, 4).text())
+            params_.update({'ip_proto': ip_proto_})
+
+        if self.__central.cellWidget(0, 5).text():
+            vlan_id_ = int(self.__central.cellWidget(0, 5).text())
+            params_.update({'vlan_id': vlan_id_})
+
+        if self.__central.cellWidget(0, 6).text():
+            bw_ = int(self.__central.cellWidget(0, 6).text())
+            if bw_ <= 0:
+                self.error("Please, specify a reserved bandwidth value (>0)!")
+                return
+
+            params_.update({'bw': bw_})
+
+        self.debug("bod_path_request action: url=%s, params=%s" %
+                   (self.__url, str(params_)))
+        try:
+            r_ = requests.post(url=self.__url, data=json.dumps(params_),
+                               headers={'content-type': 'application/json'})
+            if r_.status_code != 201:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+                self.info_popup(r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
 class PcktTableStatsButton(Button):
 
     def __init__(self, url, central, parent):
@@ -427,7 +479,7 @@ class ServiceInfoButton(Button):
             else:
                 self.debug("Response=%s" % r_.text)
                 infos_ = r_.json()['info']
-                lbs_ = ['service_id', 'dpid', 'port_no', 'bw']
+                lbs_ = ['service_id', 'dpid', 'port_no', 'bw (Kb)']
                 self.__central.setRowCount(len(infos_))
                 self.__central.setColumnCount(len(lbs_))
                 self.__central.setHorizontalHeaderLabels(lbs_)
@@ -680,7 +732,7 @@ class GUIManager(QtGui.QMainWindow):
                 self.centralWidget().setRowCount(len(r_.json()['links']))
                 self.centralWidget().setColumnCount(5)
                 lbs_ = ['src_dpid', 'src_port_no', 'dst_dpid',
-                        'dst_port_no', 'available_bw (Mb)']
+                        'dst_port_no', 'available_bw (Kb)']
                 self.centralWidget().setHorizontalHeaderLabels(lbs_)
                 i = 0
                 for ids_ in r_.json()['links']:
@@ -693,7 +745,7 @@ class GUIManager(QtGui.QMainWindow):
                     self.centralWidget().setCellWidget(i, 3,
                             QtGui.QTextEdit(str(ids_['destination_port_no'])))
                     self.centralWidget().setCellWidget(i, 4,
-                            QtGui.QTextEdit(str(ids_['available_bw'])))
+                            QtGui.QTextEdit(str(ids_['available_bw'] * 1000)))
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
@@ -765,15 +817,31 @@ class GUIManager(QtGui.QMainWindow):
                                 self.centralWidget(), self)
         self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('x.x.x.x'))
         self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('y.y.y.y'))
-        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit(''))
-        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit(''))
-        self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit(''))
-        self.centralWidget().setCellWidget(0, 5, QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit('1'))
+        self.centralWidget().setCellWidget(0, 5, QtGui.QLineEdit('65535'))
         self.centralWidget().setCellWidget(0, 6, c7_)
 
     def compute_path_bod_request(self):
         self.shell().debug("compute_path_bod_request action")
-        self.critical("Not Implemented Yet!")
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(8)
+        self.centralWidget().setHorizontalHeaderLabels(['ip_src', 'ip_dst',
+                                    'tcp/udp port_src', 'tcp/udp port_dst',
+                                    'ip_proto', 'vlan_id', 'reserved bw (Kb)',
+                                    ''])
+
+        c8_ = PathBoDRequestButton(self.__url + 'pckt_host_bod_path',
+                                   self.centralWidget(), self)
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('x.x.x.x'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('y.y.y.y'))
+        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit('1'))
+        self.centralWidget().setCellWidget(0, 5, QtGui.QLineEdit('65535'))
+        self.centralWidget().setCellWidget(0, 6, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 7, c8_)
 
     def get_services(self):
         self.shell().debug("get_services action")
@@ -788,7 +856,7 @@ class GUIManager(QtGui.QMainWindow):
                 self.centralWidget().setColumnCount(9)
                 self.centralWidget().setHorizontalHeaderLabels(['serviceID',
                                  'ip_src', 'ip_dst', 'port_src', 'port_dst',
-                                 'ip_proto', 'vlan_id', 'bw', ''])
+                                 'ip_proto', 'vlan_id', 'bw (Kb)', ''])
                 i = 0
                 for info_ in r_.json()['services']:
                     c9_ = ServiceInfoButton(self.__url + 'services/' +

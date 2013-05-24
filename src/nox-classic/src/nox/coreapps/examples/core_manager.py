@@ -456,9 +456,9 @@ def pckt_host_delete():
 
 # HTTP north/south-bound interface
 #
-def secure_service_insert(service, dpid, port):
+def secure_service_insert(service, dpid, port, bw=None):
     try:
-        PROXY_DB.service_insert(service, dpid, port)
+        PROXY_DB.service_insert(service, dpid, port, bw)
 
     except nxw_utils.DBException as err:
         WLOG.warning(str(err))
@@ -546,6 +546,113 @@ def pckt_host_path_req_create():
 
             secure_service_insert(service_, d_in, p_in)
             secure_service_insert(service_, d_out, p_out)
+
+        PROXY_DB.commit()
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("pckt_host_path_req_create: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    return bottle.HTTPResponse(body='Operation completed', status=201)
+
+
+def secure_interswitch_link_update(dpid_in, port_in, dpid_out, port_out, bw):
+    try:
+        avail_bw_ = PROXY_DB.link_get_bw(dpid_in, port_in, dpid_out, port_out)
+        bw_ = ((avail_bw_ * 1000) - bw) / 1000
+        PROXY_DB.link_update_bw(dpid_in, port_in, dpid_out, port_out, bw_)
+
+        didx_in_ = PROXY_DB.datapath_get_index(dpid_in)
+        pidx_in_ = PROXY_DB.port_get_index(dpid_in, port_in)
+        didx_out_ = PROXY_DB.datapath_get_index(dpid_out)
+        pidx_out_ = PROXY_DB.port_get_index(dpid_out, port_out)
+
+        src_node = nxw_utils.createNodeIPv4(didx_in_, pidx_in_)
+        dst_node = nxw_utils.createNodeIPv4(didx_out_, pidx_out_)
+
+        PROXY_PCE.update_link_bw_from_strings(src_node, dst_node, bw_)
+
+    except nxw_utils.DBException as err:
+        WLOG.warning(str(err))
+
+# POST /pckt_host_bod_path + json params
+@bottle.post('/pckt_host_bod_path')
+def pckt_host_bod_path_req_create():
+    WLOG.info("Enter http pckt_host_bod_path_req_create")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    ip_src_ = bottle.request.json['ip_src']
+    ip_dst_ = bottle.request.json['ip_dst']
+    rbw_ = bottle.request.json['bw']
+    dst_port_ = get_optional_params(bottle.request.json, 'dst_port')
+    src_port_ = get_optional_params(bottle.request.json, 'src_port')
+    ip_proto_ = get_optional_params(bottle.request.json, 'ip_proto')
+    vlan_id_ = get_optional_params(bottle.request.json, 'vlan_id')
+
+    if not PROXY_PCE_CHECK('routing'):
+        bottle.abort(500, "Unable to contact ior-dispatcher on PCE node!")
+
+    (work_, prot_) = PROXY_PCE.connection_route_from_hosts_bw(ip_src_,
+                                                        ip_dst_, rbw_)
+    if not work_:
+        bottle.abort(500, "Unable to found working ERO!")
+
+    WLOG.info("WorkingEro(%d)=%s", len(work_), str(work_))
+    WLOG.debug("ProtectedEro(%d)=%s", len(prot_), str(prot_))
+
+    flows = []
+    for idx_x, idx_y in zip(work_, work_[1:]):
+        (din_idx, pin_idx) = PROXY_PCE.decode_ero_item(idx_x)
+        (dout_idx, pout_idx) = PROXY_PCE.decode_ero_item(idx_y)
+
+        flows.append((din_idx, pin_idx, dout_idx, pout_idx))
+
+    # default values
+    default_action = openflow.OFPAT_OUTPUT
+    default_idle = 300
+    default_hard = openflow.OFP_FLOW_PERMANENT
+    default_priority = openflow.OFP_DEFAULT_PRIORITY
+    default_etype = ethernet.IP_TYPE
+    service_ = None
+
+    cflows = convert_flows_from_index(flows)
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.request_insert(ip_src_, ip_dst_, src_port_, dst_port_,
+                                ip_proto_, vlan_id_, rbw_)
+
+        service_ = PROXY_DB.request_get_serviceID(ip_src_, ip_dst_, src_port_,
+                                               dst_port_, ip_proto_, vlan_id_)
+        WLOG.info("Service ID=%s", str(service_))
+
+        for d_in, p_in, d_out, p_out in cflows:
+            evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=d_in, port_in=p_in,
+                        dp_out=d_out, port_out=p_out, ip_src=ip_src_,
+                        ip_dst=ip_dst_, tcp_dport=dst_port_,
+                        tcp_sport=src_port_, ip_proto=ip_proto_, vid=vlan_id_,
+                        etype=default_etype, action=default_action,
+                        idle=default_idle, hard=default_hard,
+                        prio=default_priority)
+            WLOG.debug(str(evt_))
+            PROXY_POST(evt_.describe())
+
+            PROXY_DB.flow_insert(dpid=d_in, action=default_action,
+                        idle_timeout=default_idle, hard_timeout=default_hard,
+                        priority=default_priority, dl_vlan=vlan_id_,
+                        nw_src=ip_src_, nw_dst=ip_dst_, tp_src=src_port_,
+                        tp_dst=dst_port_, in_port=p_in)
+
+            secure_service_insert(service_, d_in, p_in, rbw_)
+            secure_service_insert(service_, d_out, p_out, rbw_)
+
+            if d_in != d_out:
+                secure_interswitch_link_update(d_in, p_in, d_out, p_out, rbw_)
 
         PROXY_DB.commit()
 

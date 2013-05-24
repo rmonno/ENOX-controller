@@ -432,6 +432,28 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return [(x["src_pno"], x["dst_dpid"], x["dst_pno"]) for x in rets]
 
+    def link_get_bw(self, src_dpid, src_pno, dst_dpid, dst_pno):
+        """get link bandwidth """
+        table = "links"
+
+        statement = "SELECT available_bw FROM " + table +\
+                    " WHERE src_dpid=%s AND src_pno=%s" +\
+                    " AND dst_dpid=%s AND dst_pno=%s"
+        values = (src_dpid, src_pno, dst_dpid, dst_pno)
+        ret = self.__execute_dict(statement, values, one=True)
+
+        return ret["available_bw"]
+
+    def link_update_bw(self, src_dpid, src_pno, dst_dpid, dst_pno, bandwidth):
+        """update link bandwidth """
+        table = "links"
+
+        statement = "UPDATE " + table + " set available_bw=%s" +\
+                    " WHERE src_dpid=%s AND src_pno=%s" +\
+                    " AND dst_dpid=%s AND dst_pno=%s"
+        values = (bandwidth, src_dpid, src_pno, dst_dpid, dst_pno)
+        self.__execute(statement, values)
+
     def host_insert(self, mac_addr, dpid=None, in_port=None, ip_addr=None):
         """ host insert """
         table = "hosts"

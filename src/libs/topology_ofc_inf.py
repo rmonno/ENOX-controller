@@ -211,7 +211,7 @@ class TopologyOFCBase(object):
         :param src_dpid : source datapath identifier (primary key)
         :param src_pno  : source port number (primary key)
         :param dst_dpid : destination datapath identifier
-        :param src_pno  : destination port number
+        :param dst_pno  : destination port number
         :param bandwidth: link available bandwidth
 
         :raises: DBException
@@ -245,6 +245,33 @@ class TopologyOFCBase(object):
         """Get unique indexes at links table
 
         :param src_dpid : source datapath identifier (primary key)
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def link_get_bw(self, src_dpid, src_pno, dst_dpid, dst_pno):
+        """Get bandwidth at links table
+
+        :param src_dpid : source datapath identifier (primary key)
+        :param src_pno  : source port number (primary key)
+        :param dst_dpid : destination datapath identifier
+        :param dst_pno  : destination port number
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def link_update_bw(self, src_dpid, src_pno, dst_dpid, dst_pno, bandwidth):
+        """Update bandwidth at links table
+
+        :param src_dpid : source datapath identifier (primary key)
+        :param src_pno  : source port number (primary key)
+        :param dst_dpid : destination datapath identifier
+        :param dst_pno  : destination port number
+        :param bandwidth: link available bandwidth
 
         :raises: DBException
         """
