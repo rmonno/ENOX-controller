@@ -262,8 +262,8 @@ class PathRequestButton(Button):
         self.__central = central
 
     def onClick(self):
-        params_ = {'ip_src': self.__central.cellWidget(0, 0).text(),
-                   'ip_dst': self.__central.cellWidget(0, 1).text()}
+        params_ = {'ip_src': self.__central.cellWidget(0, 0).currentText(),
+                   'ip_dst': self.__central.cellWidget(0, 1).currentText()}
 
         if self.__central.cellWidget(0, 2).text():
             src_port_ = int(self.__central.cellWidget(0, 2).text())
@@ -648,15 +648,34 @@ class GUIManager(QtGui.QMainWindow):
         self.statusBar().showMessage('Ready')
         self.show()
 
+    def __get_hosts_combo(self):
+        src_ = QtGui.QComboBox()
+        dst_ = QtGui.QComboBox()
+        try:
+            r_ = requests.get(url=self.__url + "hosts")
+            if r_.status_code == requests.codes.ok:
+                self.shell().debug("Response=%s" % r_.text)
+
+                for host_ in r_.json()['hosts']:
+                    src_.addItem(host_['ip_address'])
+                    dst_.addItem(host_['ip_address'])
+
+        except requests.exceptions.RequestException as exc:
+            self.critical(str(exc))
+
+        return (src_, dst_)
+
     def centralWidget(self):
         return self.__table
 
     def shell(self):
         return self.__shell
 
+    def warn(self, wrn_msg):
+        QtGui.QMessageBox.warning(self,'Warning',wrn_msg,QtGui.QMessageBox.Ok)
+
     def critical(self, err_msg):
-        QtGui.QMessageBox.critical(self, 'Exception', err_msg,
-                                   QtGui.QMessageBox.Ok)
+        QtGui.QMessageBox.critical(self,'Error',err_msg,QtGui.QMessageBox.Ok)
 
     def closeEvent(self, event):
         reply_ = QtGui.QMessageBox.question(self, 'Close Event',
@@ -756,7 +775,7 @@ class GUIManager(QtGui.QMainWindow):
         try:
             r_ = requests.get(url=self.__url + "hosts")
             if r_.status_code != requests.codes.ok:
-                self.critical(r_.text)
+                self.warn("Not found any active host!")
 
             else:
                 self.shell().debug("Response=%s" % r_.text)
@@ -788,11 +807,11 @@ class GUIManager(QtGui.QMainWindow):
 
         c5_ = AddHostButton(self.__url + 'pckt_host',
                             self.centralWidget(), self)
-        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('x.x.x.x'))
-        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('a:a:a:a:a:a'))
-        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit(''))
-        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit(''))
-        self.centralWidget().setCellWidget(0, 4, c5_)
+        self.centralWidget().setCellWidget(0, 0,QtGui.QLineEdit('x.x.x.x'))
+        self.centralWidget().setCellWidget(0, 1,QtGui.QLineEdit('a:a:a:a:a:a'))
+        self.centralWidget().setCellWidget(0, 2,QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 3,QtGui.QLineEdit(''))
+        self.centralWidget().setCellWidget(0, 4,c5_)
 
     def get_pckt_flows(self):
         self.shell().debug("get_pckt_flows action")
@@ -813,10 +832,12 @@ class GUIManager(QtGui.QMainWindow):
                                     'tcp/udp port_src', 'tcp/udp port_dst',
                                     'ip_proto', 'vlan_id', ''])
 
+        (combo_src_, combo_dst_) = self.__get_hosts_combo()
+
         c7_ = PathRequestButton(self.__url + 'pckt_host_path',
                                 self.centralWidget(), self)
-        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('x.x.x.x'))
-        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('y.y.y.y'))
+        self.centralWidget().setCellWidget(0, 0, combo_src_)
+        self.centralWidget().setCellWidget(0, 1, combo_dst_)
         self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('0'))
         self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit('0'))
         self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit('1'))
@@ -848,7 +869,7 @@ class GUIManager(QtGui.QMainWindow):
         try:
             r_ = requests.get(url=self.__url + "services")
             if r_.status_code != requests.codes.ok:
-                self.critical(r_.text)
+                self.warn("Not found any service!")
 
             else:
                 self.shell().debug("Response=%s" % r_.text)
