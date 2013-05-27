@@ -8,7 +8,7 @@ import sys
 import requests
 import json
 import argparse as ap
-from PySide import QtGui
+from PySide import QtGui, QtCore
 
 basepath = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
 if basepath not in [ os.path.abspath(x) for x in sys.path ]:
@@ -306,27 +306,32 @@ class PathBoDRequestButton(Button):
         self.__central = central
 
     def onClick(self):
-        params_ = {'ip_src': self.__central.cellWidget(0, 0).text(),
-                   'ip_dst': self.__central.cellWidget(0, 1).text()}
+        start_ = self.__central.cellWidget(0, 0).dateTime().toTime_t()
+        end_ = self.__central.cellWidget(0, 1).dateTime().toTime_t()
 
-        if self.__central.cellWidget(0, 2).text():
-            src_port_ = int(self.__central.cellWidget(0, 2).text())
-            params_.update({'src_port': src_port_})
-
-        if self.__central.cellWidget(0, 3).text():
-            dst_port_ = int(self.__central.cellWidget(0, 3).text())
-            params_.update({'dst_port': dst_port_})
+        params_ = {'start_time': start_,
+                   'end_time': end_,
+                   'ip_src': self.__central.cellWidget(0, 2).currentText(),
+                   'ip_dst': self.__central.cellWidget(0, 3).currentText()}
 
         if self.__central.cellWidget(0, 4).text():
-            ip_proto_ = int(self.__central.cellWidget(0, 4).text())
-            params_.update({'ip_proto': ip_proto_})
+            src_port_ = int(self.__central.cellWidget(0, 4).text())
+            params_.update({'src_port': src_port_})
 
         if self.__central.cellWidget(0, 5).text():
-            vlan_id_ = int(self.__central.cellWidget(0, 5).text())
-            params_.update({'vlan_id': vlan_id_})
+            dst_port_ = int(self.__central.cellWidget(0, 5).text())
+            params_.update({'dst_port': dst_port_})
 
         if self.__central.cellWidget(0, 6).text():
-            bw_ = int(self.__central.cellWidget(0, 6).text())
+            ip_proto_ = int(self.__central.cellWidget(0, 6).text())
+            params_.update({'ip_proto': ip_proto_})
+
+        if self.__central.cellWidget(0, 7).text():
+            vlan_id_ = int(self.__central.cellWidget(0, 7).text())
+            params_.update({'vlan_id': vlan_id_})
+
+        if self.__central.cellWidget(0, 8).text():
+            bw_ = int(self.__central.cellWidget(0, 8).text())
             if bw_ <= 0:
                 self.error("Please, specify a reserved bandwidth value (>0)!")
                 return
@@ -648,6 +653,15 @@ class GUIManager(QtGui.QMainWindow):
         self.statusBar().showMessage('Ready')
         self.show()
 
+    def __get_time_widget(self):
+        t_src_ = QtGui.QDateTimeEdit(QtCore.QDateTime.currentDateTime())
+        t_src_.setDisplayFormat('dd/MM/yyyy hh:mm:ss')
+
+        t_dst_ = QtGui.QDateTimeEdit(QtCore.QDateTime.currentDateTime())
+        t_dst_.setDisplayFormat('dd/MM/yyyy hh:mm:ss')
+
+        return (t_src_, t_dst_)
+
     def __get_hosts_combo(self):
         src_ = QtGui.QComboBox()
         dst_ = QtGui.QComboBox()
@@ -847,22 +861,28 @@ class GUIManager(QtGui.QMainWindow):
     def compute_path_bod_request(self):
         self.shell().debug("compute_path_bod_request action")
         self.centralWidget().setRowCount(1)
-        self.centralWidget().setColumnCount(8)
-        self.centralWidget().setHorizontalHeaderLabels(['ip_src', 'ip_dst',
+        self.centralWidget().setColumnCount(10)
+        self.centralWidget().setHorizontalHeaderLabels(['start', 'end',
+                                    'ip_src', 'ip_dst',
                                     'tcp/udp port_src', 'tcp/udp port_dst',
                                     'ip_proto', 'vlan_id', 'reserved bw (Kb)',
                                     ''])
 
-        c8_ = PathBoDRequestButton(self.__url + 'pckt_host_bod_path',
+        (time_start_, time_end_) = self.__get_time_widget()
+        (combo_src_, combo_dst_) = self.__get_hosts_combo()
+
+        c10_ = PathBoDRequestButton(self.__url + 'pckt_host_bod_path',
                                    self.centralWidget(), self)
-        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('x.x.x.x'))
-        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('y.y.y.y'))
-        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('0'))
-        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit('0'))
-        self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit('1'))
-        self.centralWidget().setCellWidget(0, 5, QtGui.QLineEdit('65535'))
-        self.centralWidget().setCellWidget(0, 6, QtGui.QLineEdit('0'))
-        self.centralWidget().setCellWidget(0, 7, c8_)
+        self.centralWidget().setCellWidget(0, 0, time_start_)
+        self.centralWidget().setCellWidget(0, 1, time_end_)
+        self.centralWidget().setCellWidget(0, 2, combo_src_)
+        self.centralWidget().setCellWidget(0, 3, combo_dst_)
+        self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 5, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 6, QtGui.QLineEdit('1'))
+        self.centralWidget().setCellWidget(0, 7, QtGui.QLineEdit('65535'))
+        self.centralWidget().setCellWidget(0, 8, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 9, c10_)
 
     def get_services(self):
         self.shell().debug("get_services action")
