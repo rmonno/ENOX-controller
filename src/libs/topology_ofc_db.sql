@@ -249,6 +249,8 @@ CREATE TABLE IF NOT EXISTS `requests` (
   `ip_proto` int(8) unsigned NOT NULL COMMENT 'ip protocol number',
   `vlan_id` int(16) unsigned NOT NULL COMMENT 'vlan identifier',
   `bw` bigint(20) unsigned DEFAULT NULL COMMENT 'requested bandwidth',
+  `start_time` timestamp NULL COMMENT 'service start time',
+  `end_time` timestamp NULL COMMENT 'service end time',
   `serviceID` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique service identifier',
   PRIMARY KEY (`ip_src`, `ip_dst`, `port_src`, `port_dst`, `ip_proto`, `vlan_id`),
   UNIQUE KEY (`serviceID`)

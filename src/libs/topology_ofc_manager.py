@@ -1073,8 +1073,8 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         self.__execute(statement, values)
 
     def request_insert(self, ip_src, ip_dst, port_src, port_dst, ip_proto,
-                       vlan_id, bw=None):
-        """ Request entry insert """
+                       vlan_id, bw=None, start_time=None, end_time=None):
+        """ Requests entry insert """
         table = "requests"
 
         stat_header = "INSERT INTO " + table + "(ip_src, ip_dst, port_src," +\
@@ -1087,6 +1087,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             stat_header += ", bw"
             stat_body += ", %s"
             values = values + (str(bw),)
+
+        if start_time is not None and end_time is not None:
+            stat_header += ", start_time, end_time"
+            stat_body += ", FROM_UNIXTIME(%s), FROM_UNIXTIME(%s)"
+            values = values + (str(start_time), str(end_time),)
 
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)

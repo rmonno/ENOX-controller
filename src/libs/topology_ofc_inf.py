@@ -451,16 +451,18 @@ class TopologyOFCBase(object):
 
     @abstractmethod
     def request_insert(self, ip_src, ip_dst, port_src, port_dst, ip_proto,
-                       vlan_id, bw=None):
-        """ Request entry insert
+                       vlan_id, bw=None, start_time=None, end_time=None):
+        """ Requests entry insert
 
-        :param ip_src:   source ip address (primary key)
-        :param ip_dst:   destination ip address (primary key)
-        :param port_src: sorce (tcp/udp) port number (primary key)
-        :param port_dst: destination (tcp/udp) port number (primary key)
-        :param ip_proto: ip protocol number (primary key)
-        :param vlan_id:  vlan identifier (primary key)
-        :param bw:       requested bandwidth
+        :param ip_src:     source ip address (primary key)
+        :param ip_dst:     destination ip address (primary key)
+        :param port_src:   sorce (tcp/udp) port number (primary key)
+        :param port_dst:   destination (tcp/udp) port number (primary key)
+        :param ip_proto:   ip protocol number (primary key)
+        :param vlan_id:    vlan identifier (primary key)
+        :param bw:         requested bandwidth
+        :param start_time: service start time
+        :param end_time:   service start time
 
         :raises: DBException
         """
