@@ -67,6 +67,14 @@
                 "core_manager"
             ],
             "python": "nox.coreapps.examples.flows_monitor"
+        },
+        {
+            "name": "discovery_circuit_emul" ,
+            "dependencies": [
+                "python",
+                "core_manager"
+            ],
+            "python": "nox.coreapps.examples.discovery_circuit_emul"
         }
 
     ]
