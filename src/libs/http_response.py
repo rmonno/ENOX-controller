@@ -220,8 +220,10 @@ class HTTPResponseGetSERVICESInfo(object):
         info = {'info':[]}
         for row_ in self._rows:
             info['info'].append({'service_id': row_['serviceID'],
-                                 'dpid': row_['dpid'],
-                                 'port_no': row_['port_no'],
+                                 'src_dpid': row_['src_dpid'],
+                                 'src_portno': row_['src_portno'],
+                                 'dst_dpid': row_['dst_dpid'],
+                                 'dst_portno': row_['dst_portno'],
                                  'sequence_id': row_['sequenceID'],
                                  'bw': check_value(row_['bw'])})
 

@@ -533,6 +533,10 @@ class DiscoveryPacket(Component):
         """ Handler for delete_flow_entry event """
         LOG.info("Received delete_flow_entry event: %s" % str(event.pyevent))
 
+        if event.pyevent.datapath_in != event.pyevent.datapath_out:
+            LOG.debug("Received delete-request for flow with different dpids")
+            return CONTINUE
+
         try:
             attrs = self.__extract_flow_info(event.pyevent)
             self.delete_datapath_flow(long(str(event.pyevent.datapath_in), 16),

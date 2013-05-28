@@ -73,10 +73,12 @@ class Pckt_flowEntryEvent(pyevent):
 class Pckt_delFlowEntryEvent(pyevent):
     NAME = 'pckt_delete_flow_entry_event'
 
-    def __init__(self, dpid, port_no, ip_src, ip_dst,
+    def __init__(self, dp_in, port_in, dp_out, port_out, ip_src, ip_dst,
                  tcp_dport=None, tcp_sport=None, ip_proto=None, vid=None):
-        self.datapath_in = dpid
-        self.dataport_in = port_no
+        self.datapath_in = dp_in
+        self.dataport_in = port_in
+        self.datapath_out = dp_out
+        self.dataport_out = port_out
         self.vlan_id = vid
         self.ip_src = ip_src
         self.ip_dst = ip_dst
@@ -92,10 +94,10 @@ class Pckt_delFlowEntryEvent(pyevent):
         return pyevent(Pckt_delFlowEntryEvent.NAME, self)
 
     def __str__(self):
-        msg = "dpid=%s,dport=%s,vid=%s,ip_src=%s,ip_dst=%s,"
-        msg += "ip_proto=%s,l4_port_src=%s,l4_port_dst=%s"
-        val = (self.datapath_in, self.dataport_in, self.vlan_id, self.ip_src,
-               self.ip_dst, self.ip_proto, self.tcp_udp_src_port,
-               self.tcp_udp_dst_port)
+        msg = "dp_in=%s,dport_in=%s,dp_out=%s,dport_out=%s,vid=%s,"
+        msg += "ip_src=%s,ip_dst=%s,ip_proto=%s,l4_port_src=%s,l4_port_dst=%s"
+        val = (self.datapath_in, self.dataport_in, self.datapath_out,
+               self.dataport_out, self.vlan_id, self.ip_src, self.ip_dst,
+               self.ip_proto, self.tcp_udp_src_port, self.tcp_udp_dst_port)
 
         return msg % val

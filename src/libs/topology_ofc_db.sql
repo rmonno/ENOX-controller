@@ -268,11 +268,13 @@ ALTER TABLE `requests` AUTO_INCREMENT=1;
 --
 CREATE TABLE IF NOT EXISTS `services` (
   `serviceID` smallint(5) unsigned NOT NULL COMMENT 'unique service identifier',
-  `dpid` bigint(20) unsigned NOT NULL COMMENT 'datapath identifier',
-  `port_no` smallint(8) unsigned NOT NULL COMMENT 'port number',
+  `src_dpid` bigint(20) unsigned NOT NULL COMMENT 'source datapath identifier',
+  `src_portno` smallint(8) unsigned NOT NULL COMMENT 'source port number',
+  `dst_dpid` bigint(20) unsigned NOT NULL COMMENT 'destination datapath identifier',
+  `dst_portno` smallint(8) unsigned NOT NULL COMMENT 'destination port number',
   `bw` bigint(20) unsigned DEFAULT NULL COMMENT 'bandwidth',
   `sequenceID` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT 'unique sequence identifier',
-  PRIMARY KEY (`serviceID`, `dpid`, `port_no`),
+  PRIMARY KEY (`serviceID`, `src_dpid`, `src_portno`, `dst_dpid`, `dst_portno`),
   UNIQUE KEY (`sequenceID`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='services details';
 
@@ -286,7 +288,11 @@ ALTER TABLE `services`
     REFERENCES `requests` (`serviceID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `services`
-  ADD CONSTRAINT `services_ibfk_2` FOREIGN KEY (`dpid`, `port_no`)
+  ADD CONSTRAINT `services_ibfk_2` FOREIGN KEY (`src_dpid`, `src_portno`)
+    REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `services`
+  ADD CONSTRAINT `services_ibfk_3` FOREIGN KEY (`dst_dpid`, `dst_portno`)
     REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
@@ -296,7 +302,7 @@ delimiter |
 
 CREATE TRIGGER `after_datapath_delete` AFTER DELETE ON `datapaths`
 FOR EACH ROW BEGIN
-    DELETE FROM services WHERE services.dpid=OLD.id;
+    DELETE FROM services WHERE services.src_dpid=OLD.id OR services.dst_dpid=OLD.id;
 END;
 
 CREATE TRIGGER `after_service_delete` AFTER DELETE ON `services`

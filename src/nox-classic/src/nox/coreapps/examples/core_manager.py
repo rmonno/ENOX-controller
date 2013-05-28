@@ -456,13 +456,6 @@ def pckt_host_delete():
 
 # HTTP north/south-bound interface
 #
-def secure_service_insert(service, dpid, port, bw=None):
-    try:
-        PROXY_DB.service_insert(service, dpid, port, bw)
-
-    except nxw_utils.DBException as err:
-        WLOG.warning(str(err))
-
 # POST /pckt_host_path + json params
 @bottle.post('/pckt_host_path')
 def pckt_host_path_req_create():
@@ -514,6 +507,9 @@ def pckt_host_path_req_create():
         WLOG.info("Service ID=%s", str(service_))
 
         for d_in, p_in, d_out, p_out in cflows:
+            if (d_in, p_in) == (d_out, p_out):
+                continue
+
             evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=d_in,
                                                  port_in=p_in,
                                                  dp_out=d_out,
@@ -544,8 +540,7 @@ def pckt_host_path_req_create():
                                  tp_dst=dst_port_,
                                  in_port=p_in)
 
-            secure_service_insert(service_, d_in, p_in)
-            secure_service_insert(service_, d_out, p_out)
+            PROXY_DB.service_insert(service_, d_in, p_in, d_out, p_out)
 
         PROXY_DB.commit()
 
@@ -648,8 +643,7 @@ def pckt_host_bod_path_req_create():
                         nw_src=ip_src_, nw_dst=ip_dst_, tp_src=src_port_,
                         tp_dst=dst_port_, in_port=p_in)
 
-            secure_service_insert(service_, d_in, p_in, rbw_)
-            secure_service_insert(service_, d_out, p_out, rbw_)
+            PROXY_DB.service_insert(service_, d_in, p_in, d_out, p_out, rbw_)
 
             if d_in != d_out:
                 secure_interswitch_link_update(d_in, p_in, d_out, p_out, rbw_)
@@ -1054,8 +1048,10 @@ def service_delete(id):
         ss_ = PROXY_DB.service_select(service_id=id)
 
         for s in ss_:
-            evt_ = nxw_utils.Pckt_delFlowEntryEvent(dpid=s['dpid'],
-                                                    port_no=s['port_no'],
+            evt_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=s['src_dpid'],
+                                                    port_in=s['src_portno'],
+                                                    dp_out=s['dst_dpid'],
+                                                    port_out=s['dst_portno'],
                                                     ip_src=r_['ip_src'],
                                                     ip_dst=r_['ip_dst'],
                                                     tcp_dport=r_['port_dst'],

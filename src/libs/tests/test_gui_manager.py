@@ -484,7 +484,8 @@ class ServiceInfoButton(Button):
             else:
                 self.debug("Response=%s" % r_.text)
                 infos_ = r_.json()['info']
-                lbs_ = ['service_id', 'dpid', 'port_no', 'bw (Kb)']
+                lbs_ = ['service_id', 'src_dpid', 'src_portno', 'dst_dpid',
+                        'dst_portno','bw (Kb)']
                 self.__central.setRowCount(len(infos_))
                 self.__central.setColumnCount(len(lbs_))
                 self.__central.setHorizontalHeaderLabels(lbs_)
@@ -494,10 +495,14 @@ class ServiceInfoButton(Button):
                     self.__central.setCellWidget(i, 0,
                         QtGui.QTextEdit(str(info_['service_id'])))
                     self.__central.setCellWidget(i, 1,
-                        QtGui.QTextEdit(str(info_['dpid'])))
+                        QtGui.QTextEdit(str(info_['src_dpid'])))
                     self.__central.setCellWidget(i, 2,
-                        QtGui.QTextEdit(str(info_['port_no'])))
+                        QtGui.QTextEdit(str(info_['src_portno'])))
                     self.__central.setCellWidget(i, 3,
+                        QtGui.QTextEdit(str(info_['dst_dpid'])))
+                    self.__central.setCellWidget(i, 4,
+                        QtGui.QTextEdit(str(info_['dst_portno'])))
+                    self.__central.setCellWidget(i, 5,
                         QtGui.QTextEdit(str(info_['bw'])))
                     i = i + 1
 

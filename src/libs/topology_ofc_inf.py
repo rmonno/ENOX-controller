@@ -513,12 +513,15 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
-    def service_insert(self, service_id, dpid, port_no, bw=None):
+    def service_insert(self, service_id, src_dpid, src_portno,
+                       dst_dpid, dst_portno, bw=None):
         """ Service entry insert
 
         :param service_id: unique service identifier (primary key)
-        :param dpid:       datapath identifier (primary key)
-        :param port_no:    port number (primary key)
+        :param src_dpid:   source datapath identifier (primary key)
+        :param src_portno: source port number (primary key)
+        :param dst_dpid:   destination datapath identifier (primary key)
+        :param dst_portno: destination port number (primary key)
         :param bw:         bandwidth
 
         :raises: DBException

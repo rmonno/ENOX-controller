@@ -1133,13 +1133,16 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
                     " WHERE serviceID=" + str(service_id)
         self.__execute(statement)
 
-    def service_insert(self, service_id, dpid, port_no, bw=None):
+    def service_insert(self, service_id, src_dpid, src_portno,
+                       dst_dpid, dst_portno, bw=None):
         """ Service entry insert """
         table = "services"
 
-        stat_header = "INSERT INTO " + table + "(serviceID, dpid, port_no"
-        stat_body = "VALUES (%s, %s, %s"
-        values = (str(service_id), str(dpid), str(port_no),)
+        stat_header = "INSERT INTO " + table + "(serviceID, src_dpid, " +\
+                      " src_portno, dst_dpid, dst_portno"
+        stat_body = "VALUES (%s, %s, %s, %s, %s"
+        values = (str(service_id), str(src_dpid), str(src_portno),
+                  str(dst_dpid), str(dst_portno),)
 
         if bw is not None:
             stat_header += ", bw"
