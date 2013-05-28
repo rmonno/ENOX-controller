@@ -1109,12 +1109,29 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return ret["serviceID"]
 
+    def request_get_key(self, service_id):
+        """Get key at requests table using service ID as unique parameter """
+        table = "requests"
+
+        statement = "SELECT ip_src, ip_dst, port_src, port_dst, ip_proto" +\
+                    ", vlan_id FROM " + table + " WHERE serviceID=%s"
+        values = (service_id)
+        return self.__execute_dict(statement, values, one=True)
+
     def request_select(self):
         """ requests select """
         table = "requests"
 
         statement = "SELECT * FROM " + table
         return self.__execute_dict(statement, one=False)
+
+    def request_delete(self, service_id):
+        """ Request entry deletion """
+        table = "requests"
+
+        statement = "DELETE FROM " + table +\
+                    " WHERE serviceID=" + str(service_id)
+        self.__execute(statement)
 
     def service_insert(self, service_id, dpid, port_no, bw=None):
         """ Service entry insert """

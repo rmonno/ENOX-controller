@@ -285,6 +285,10 @@ ALTER TABLE `services`
   ADD CONSTRAINT `services_ibfk_1` FOREIGN KEY (`serviceID`)
     REFERENCES `requests` (`serviceID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
+ALTER TABLE `services`
+  ADD CONSTRAINT `services_ibfk_2` FOREIGN KEY (`dpid`, `port_no`)
+    REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
+
 --
 -- Trigger for table `datapaths`
 --
@@ -298,6 +302,11 @@ END;
 CREATE TRIGGER `after_service_delete` AFTER DELETE ON `services`
 FOR EACH ROW BEGIN
     DELETE FROM requests WHERE requests.serviceID=OLD.serviceID;
+END;
+
+CREATE TRIGGER `after_request_delete` AFTER DELETE ON `requests`
+FOR EACH ROW BEGIN
+    DELETE FROM services WHERE services.serviceID=OLD.serviceID;
 END;
 |
 

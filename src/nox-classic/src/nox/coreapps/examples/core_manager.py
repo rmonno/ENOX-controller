@@ -1044,6 +1044,41 @@ def service_info(id):
         PROXY_DB.close()
 
 
+@bottle.delete('/services/<id:int>')
+def service_delete(id):
+    WLOG.info("Enter http service delete: service_id=%d", id)
+
+    try:
+        PROXY_DB.open_transaction()
+        r_ = PROXY_DB.request_get_key(service_id=id)
+        ss_ = PROXY_DB.service_select(service_id=id)
+
+        for s in ss_:
+            evt_ = nxw_utils.Pckt_delFlowEntryEvent(dpid=s['dpid'],
+                                                    port_no=s['port_no'],
+                                                    ip_src=r_['ip_src'],
+                                                    ip_dst=r_['ip_dst'],
+                                                    tcp_dport=r_['port_dst'],
+                                                    tcp_sport=r_['port_src'],
+                                                    ip_proto=r_['ip_proto'],
+                                                    vid=r_['vlan_id'])
+            WLOG.debug(str(evt_))
+            PROXY_POST(evt_.describe())
+
+        PROXY_DB.request_delete(service_id=id)
+        PROXY_DB.commit()
+        WLOG.debug("Successfull committed information!")
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("service_delete: " + str(err))
+
+    finally:
+        PROXY_DB.close()
+
+    return bottle.HTTPResponse(body='Operation completed', status=204)
+
+
 class CoreService(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)

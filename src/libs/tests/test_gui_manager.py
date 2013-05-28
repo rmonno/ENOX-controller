@@ -505,6 +505,27 @@ class ServiceInfoButton(Button):
             self.error(str(exc))
 
 
+class ServiceDeleteButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'delete', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+        self.__parent = parent
+
+    def onClick(self):
+        self.debug("delete_service action: url=%s" % self.__url)
+        try:
+            requests.delete(url=self.__url)
+            self.info_popup("Service Deleted!")
+            self.__central.clear()
+            self.__parent.get_services()
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, addr, port):
@@ -894,15 +915,18 @@ class GUIManager(QtGui.QMainWindow):
             else:
                 self.shell().debug("Response=%s" % r_.text)
                 self.centralWidget().setRowCount(len(r_.json()['services']))
-                self.centralWidget().setColumnCount(9)
+                self.centralWidget().setColumnCount(10)
                 self.centralWidget().setHorizontalHeaderLabels(['serviceID',
                                  'ip_src', 'ip_dst', 'port_src', 'port_dst',
-                                 'ip_proto', 'vlan_id', 'bw (Kb)', ''])
+                                 'ip_proto', 'vlan_id', 'bw (Kb)', '', ''])
                 i = 0
                 for info_ in r_.json()['services']:
                     c9_ = ServiceInfoButton(self.__url + 'services/' +
                                             str(info_['service_id']),
                                             self.centralWidget(), self)
+                    c10_ = ServiceDeleteButton(self.__url + 'services/' +
+                                               str(info_['service_id']),
+                                               self.centralWidget(), self)
                     self.centralWidget().setCellWidget(i, 0,
                             QtGui.QTextEdit(str(info_['service_id'])))
                     self.centralWidget().setCellWidget(i, 1,
@@ -920,6 +944,7 @@ class GUIManager(QtGui.QMainWindow):
                     self.centralWidget().setCellWidget(i, 7,
                             QtGui.QTextEdit(str(info_['bw'])))
                     self.centralWidget().setCellWidget(i, 8, c9_)
+                    self.centralWidget().setCellWidget(i, 9, c10_)
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:

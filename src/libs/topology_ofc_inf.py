@@ -493,6 +493,26 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def request_get_key(self, service_id):
+        """Get key at requests table using service ID as unique parameter
+
+        :param service_id: service identifier
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def request_delete(self, service_id):
+        """ Request entry deletion
+
+        :param service_id: service identifier
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def service_insert(self, service_id, dpid, port_no, bw=None):
         """ Service entry insert
 

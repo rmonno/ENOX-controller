@@ -91,6 +91,7 @@ class DiscoveryPacket(Component):
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
+        self.register_python_event(nxw_utils.Pckt_delFlowEntryEvent.NAME)
 
     def packet_in_handler(self, dpid, inport, reason, length, bufid, packet):
         """ Handler for packet_in event """
@@ -528,6 +529,20 @@ class DiscoveryPacket(Component):
 
         return CONTINUE
 
+    def delete_flow_entry_handler(self, event):
+        """ Handler for delete_flow_entry event """
+        LOG.info("Received delete_flow_entry event: %s" % str(event.pyevent))
+
+        try:
+            attrs = self.__extract_flow_info(event.pyevent)
+            self.delete_datapath_flow(long(str(event.pyevent.datapath_in), 16),
+                                      attrs)
+
+        except Exception, err:
+            LOG.error("Got error sent DEL_FLOW_MOD: %s" % str(err))
+
+        return CONTINUE
+
     def __extract_flow_info(self, flowevent):
         """ Returns flow attributes from the pckt_flowentry_event """
         attrs = {}
@@ -592,6 +607,8 @@ class DiscoveryPacket(Component):
                               self.host_bind_handler)
         self.register_handler(nxw_utils.Pckt_flowEntryEvent.NAME,
                               self.flow_entry_handler)
+        self.register_handler(nxw_utils.Pckt_delFlowEntryEvent.NAME,
+                              self.delete_flow_entry_handler)
 
         self.bindings = self.resolve(pybindings_storage)
         LOG.debug("%s started..." % str(self.__class__.__name__))
