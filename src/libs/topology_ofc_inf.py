@@ -451,7 +451,8 @@ class TopologyOFCBase(object):
 
     @abstractmethod
     def request_insert(self, ip_src, ip_dst, port_src, port_dst, ip_proto,
-                       vlan_id, bw=None, start_time=None, end_time=None):
+                       vlan_id, bw=None, status=None, comments=None,
+                       start_time=None, end_time=None):
         """ Requests entry insert
 
         :param ip_src:     source ip address (primary key)
@@ -461,8 +462,10 @@ class TopologyOFCBase(object):
         :param ip_proto:   ip protocol number (primary key)
         :param vlan_id:    vlan identifier (primary key)
         :param bw:         requested bandwidth
-        :param start_time: service start time
-        :param end_time:   service start time
+        :param status:     request status
+        :param comments:   request comments
+        :param start_time: request start time
+        :param end_time:   request start time
 
         :raises: DBException
         """
