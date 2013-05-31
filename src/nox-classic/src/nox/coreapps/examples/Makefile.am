@@ -13,7 +13,7 @@ EXTRA_DIST =			\
 	dnsspy.py			\
 	core_manager.py		\
 	discovery_packet.py	\
-	discovery_circuit_emul.py	\
+	service_bod.py		\
 	flows_monitor.py
 
 NOX_RUNTIMEFILES =		\
@@ -27,7 +27,7 @@ NOX_RUNTIMEFILES =		\
 	dnsspy.py			\
 	core_manager.py		\
 	discovery_packet.py	\
-	discovery_circuit_emul.py	\
+	service_bod.py		\
 	flows_monitor.py
 
 all-local: nox-all-local

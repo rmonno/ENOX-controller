@@ -556,25 +556,6 @@ def pckt_host_path_req_create():
     return bottle.HTTPResponse(body='Operation completed', status=201)
 
 
-def secure_interswitch_link_update(dpid_in, port_in, dpid_out, port_out, bw):
-    try:
-        avail_bw_ = PROXY_DB.link_get_bw(dpid_in, port_in, dpid_out, port_out)
-        bw_ = ((avail_bw_ * 1000) - bw) / 1000
-        PROXY_DB.link_update_bw(dpid_in, port_in, dpid_out, port_out, bw_)
-
-        didx_in_ = PROXY_DB.datapath_get_index(dpid_in)
-        pidx_in_ = PROXY_DB.port_get_index(dpid_in, port_in)
-        didx_out_ = PROXY_DB.datapath_get_index(dpid_out)
-        pidx_out_ = PROXY_DB.port_get_index(dpid_out, port_out)
-
-        src_node = nxw_utils.createNodeIPv4(didx_in_, pidx_in_)
-        dst_node = nxw_utils.createNodeIPv4(didx_out_, pidx_out_)
-
-        PROXY_PCE.update_link_bw_from_strings(src_node, dst_node, bw_)
-
-    except nxw_utils.DBException as err:
-        WLOG.warning(str(err))
-
 # POST /pckt_host_bod_path + json params
 @bottle.post('/pckt_host_bod_path')
 def pckt_host_bod_path_req_create():
@@ -1008,6 +989,26 @@ def service_info(id):
         PROXY_DB.close()
 
 
+def secure_delete_flows(service_id, req):
+    try:
+        for s in PROXY_DB.service_select(service_id=id):
+            evt_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=s['src_dpid'],
+                                                    port_in=s['src_portno'],
+                                                    dp_out=s['dst_dpid'],
+                                                    port_out=s['dst_portno'],
+                                                    ip_src=req['ip_src'],
+                                                    ip_dst=req['ip_dst'],
+                                                    tcp_dport=req['port_dst'],
+                                                    tcp_sport=req['port_src'],
+                                                    ip_proto=req['ip_proto'],
+                                                    vid=req['vlan_id'])
+            WLOG.debug(str(evt_))
+            PROXY_POST(evt_.describe())
+
+    except nxw_utils.DBException as err:
+        WLOG.debug("service_delete: " + str(err))
+
+
 @bottle.delete('/services/<id:int>')
 def service_delete(id):
     WLOG.info("Enter http service delete: service_id=%d", id)
@@ -1015,21 +1016,7 @@ def service_delete(id):
     try:
         PROXY_DB.open_transaction()
         r_ = PROXY_DB.request_get_key(service_id=id)
-        ss_ = PROXY_DB.service_select(service_id=id)
-
-        for s in ss_:
-            evt_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=s['src_dpid'],
-                                                    port_in=s['src_portno'],
-                                                    dp_out=s['dst_dpid'],
-                                                    port_out=s['dst_portno'],
-                                                    ip_src=r_['ip_src'],
-                                                    ip_dst=r_['ip_dst'],
-                                                    tcp_dport=r_['port_dst'],
-                                                    tcp_sport=r_['port_src'],
-                                                    ip_proto=r_['ip_proto'],
-                                                    vid=r_['vlan_id'])
-            WLOG.debug(str(evt_))
-            PROXY_POST(evt_.describe())
+        secure_delete_flows(id, r_)
 
         PROXY_DB.request_delete(service_id=id)
         PROXY_DB.commit()

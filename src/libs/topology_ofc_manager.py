@@ -1136,6 +1136,24 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         statement = "SELECT * FROM " + table
         return self.__execute_dict(statement, one=False)
 
+    def request_select_ordered(self, status, param):
+        """ requests select """
+        table = "requests"
+
+        statement = "SELECT * FROM " + table +\
+                    " WHERE status=%s order by " + str(param)
+        values = (str(status),)
+        return self.__execute_dict(statement, values, one=False)
+
+    def request_update_status(self, service_id, status, comment=''):
+        """Update status at requests table  """
+        table = "requests"
+
+        statement = "UPDATE " + table + " set status=%s," +\
+                    " comments=%s WHERE serviceID=%s"
+        values = (str(status), str(comment), str(service_id))
+        self.__execute(statement, values)
+
     def request_delete(self, service_id):
         """ Request entry deletion """
         table = "requests"

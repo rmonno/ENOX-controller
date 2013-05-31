@@ -496,11 +496,32 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def request_select_ordered(self, status, param):
+        """Select rows from requests table
+
+        :param status: request status
+        :param param: get results ordered by `param`
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def request_get_key(self, service_id):
         """Get key at requests table using service ID as unique parameter
 
         :param service_id: service identifier
 
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def request_update_status(self, service_id, status, comment=''):
+        """Update status at requests table using service ID as unique parameter
+
+        :param service_id: service identifier
+        :param status: request status
+        :param comment: status comments
         :raises: DBException
         """
         pass

@@ -47,15 +47,15 @@
             "dependencies": [
                 "python",
                 "pyauthenticator",
-                "discovery"
+                "discovery",
+                "core_manager"
             ],
             "python": "nox.coreapps.examples.discovery_packet"
         },
         {
             "name": "core_manager" ,
             "dependencies": [
-                "python",
-                "discovery_packet"
+                "python"
             ],
             "python": "nox.coreapps.examples.core_manager"
         },
@@ -69,12 +69,11 @@
             "python": "nox.coreapps.examples.flows_monitor"
         },
         {
-            "name": "discovery_circuit_emul" ,
+            "name": "service_bod" ,
             "dependencies": [
-                "python",
-                "core_manager"
+                "python"
             ],
-            "python": "nox.coreapps.examples.discovery_circuit_emul"
+            "python": "nox.coreapps.examples.service_bod"
         }
 
     ]

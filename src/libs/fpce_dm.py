@@ -10,6 +10,7 @@ import _GlobalIDL as GLOB
 
 import color_log as cl
 from conversion import indexfromUpperLower
+from pce_conn import PCEClient
 
 LOG = cl.ColorLog(logging.getLogger('fpce-dm'))
 
@@ -464,6 +465,7 @@ class FPCE(object):
         LOG.info("Try to connection-route %s -> %s with constraint bw=%s",
                  ingr, egr, bw)
 
+        fault = 'ok'
         call_id = CallID(ingr)
         try:
             cep_src = ConnectionEP(ingr)
@@ -478,23 +480,88 @@ class FPCE(object):
             # in any case flush the call
             self.routing.callFlush(call_id.ident)
 
-            return (wero, pero)
+            return (wero, pero, fault)
 
         except PCERA.CannotFetchConnEndPoint, exe:
-            LOG.error("CannotFetchConnEndPoint exception: %s", str(exe))
+            fault = self.__convert_error('CannotFetchConnEndPoint', exe)
         except PCERA.ConnectionParamsMismatch, exe:
-            LOG.error("ConnectionParamsMismatch exception: %s", str(exe))
+            fault = self.__convert_error('ConnectionParamsMismatch', exe)
         except PCERA.ConnectionEroMismatch, exe:
-            LOG.error("ConnectionEroMismatch exception: %s", str(exe))
+            fault = self.__convert_error('ConnectionEroMismatch', exe)
         except PCERA.ConnectionEroMismatch, exe:
-            LOG.error("ConnectionEroMismatch exception: %s", str(exe))
+            fault = self.__convert_error('ConnectionEroMismatch', exe)
         except PCERA.NoRoute, exe:
-            LOG.error("NoRoute exception: %s", str(exe))
+            fault = self.__convert_error('NoRoute', exe)
         except PCERA.CannotFetchCall, exe:
-            LOG.error("CannotFetchCall exception: %s", str(exe))
+            fault = self.__convert_error('CannotFetchCall', exe)
         except PCERA.InternalProblems, exe:
-            LOG.error("InternalProblems exception: %s", str(exe))
+            fault = self.__convert_error('InternalProblems', exe)
         except Exception, exe:
-            LOG.error("Generic exception: %s", str(exe))
+            fault = self.__convert_error('Generic', exe)
 
-        return (None, None)
+        return (None, None, fault)
+
+    def __convert_error(self, name, exe):
+        LOG.error("%s exception: %s" % (name, exe.what))
+        return exe.what
+
+
+class FPCEManager(FPCE):
+    def __init__(self, addr, port, size=1024):
+        super(FPCEManager, self).__init__()
+        self._ior_manager=PCEClient(pce_addr=addr,pce_port=port,tcp_size=size)
+        self._ior_manager.create()
+        self._ior_topo = False
+        self._ior_rout = False
+
+    def topology_enable(self):
+        (self._ior_topo, ior) = self.__interface_enable('topology')
+        if self._ior_topo:
+            self.ior_topology_add(ior)
+
+        return self._ior_topo
+
+    def routing_enable(self):
+        (self._ior_rout, ior) = self.__interface_enable('routing')
+        if self._ior_rout:
+            self.ior_routing_add(ior)
+
+        return self._ior_rout
+
+    def check(self, interface):
+        if interface == 'topology':
+            if not self._ior_topo and not self.topology_enable():
+                return False
+
+        elif interface == 'routing':
+            if not self._ior_rout and not self.routing_enable():
+                return False
+
+        return True
+
+    def disable(self, interface):
+        if interface == 'topology':
+            self._ior_topo = False
+
+        elif interface == 'routing':
+            self._ior_rout = False
+
+    def __interface_enable(self, interface):
+        LOG.debug("Retrieving IOR for %s requests" % interface)
+        try:
+            r_ = self._ior_manager.send_msg(interface)
+            if r_ is None:
+                return (False, None)
+
+            LOG.debug("Received the following response: %s", str(r_))
+            pr_ = self._ior_manager.decode_requests(r_)
+            if not pr_:
+                LOG.error("Got an error in response parsing...")
+                return (False, None)
+
+            LOG.info("Received the following IOR: '%s'", str(pr_))
+            return (True, pr_)
+
+        except Exception as err:
+            LOG.error("FPCE Manager Failure: %s", str(err))
+            return (False, None)
