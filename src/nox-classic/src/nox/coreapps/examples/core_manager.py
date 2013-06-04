@@ -270,6 +270,7 @@ def pckt_dpid_delete(id):
 
     try:
         PROXY_DB.open_transaction()
+        PROXY_DB.host_dpid_delete(dpid=id)
         PROXY_DB.datapath_delete(d_id=id)
         PROXY_DB.commit()
         WLOG.debug("Successfull committed information!")
@@ -587,6 +588,34 @@ def pckt_host_bod_path_req_create():
         bottle.abort(500, "End-time <= Start-time! (%s vs. %s)" %
                      (time.ctime(end_), time.ctime(start_)))
 
+    # TODO:
+    # * retrieve services in [start-time, stop-time]
+    # * calculate the bandwith for all links
+    # * update F-PCE topology
+
+    if not PROXY_PCE_CHECK('routing'):
+        PROXY_PCE.disable('routing')
+        bottle.abort(500, "Unable to contact ior-dispatcher on PCE node!")
+
+    (work_, prot_, ret_) = PROXY_PCE.connection_route_from_hosts_bw(ip_src_,
+                                                                    ip_dst_,
+                                                                    rbw_)
+    if ret_ != 'ok':
+        bottle.abort(500, ret_)
+    elif not work_:
+        bottle.abort(500, "Unable to found working ERO!")
+
+    WLOG.info("WorkingEro(%d)=%s", len(work_), str(work_))
+    WLOG.debug("ProtectedEro(%d)=%s", len(prot_), str(prot_))
+
+    flows = []
+    for idx_x, idx_y in zip(work_, work_[1:]):
+        (din_idx, pin_idx) = PROXY_PCE.decode_ero_item(idx_x)
+        (dout_idx, pout_idx) = PROXY_PCE.decode_ero_item(idx_y)
+
+        flows.append((din_idx, pin_idx, dout_idx, pout_idx))
+
+    cflows = convert_flows_from_index(flows)
     try:
         PROXY_DB.open_transaction()
         PROXY_DB.request_insert(ip_src=ip_src_,
@@ -599,6 +628,20 @@ def pckt_host_bod_path_req_create():
                                 status='pending',
                                 start_time=start_,
                                 end_time=end_)
+        service_ = PROXY_DB.request_get_serviceID(ip_src=ip_src_,
+                                                  ip_dst=ip_dst_,
+                                                  port_src=src_port_,
+                                                  port_dst=dst_port_,
+                                                  ip_proto=ip_proto_,
+                                                  vlan_id=vlan_id_)
+        WLOG.info("Service ID=%s", str(service_))
+
+        for d_in, p_in, d_out, p_out in cflows:
+            if (d_in, p_in) == (d_out, p_out):
+                continue
+
+            PROXY_DB.service_insert(service_, d_in, p_in, d_out, p_out)
+
         PROXY_DB.commit()
 
     except nxw_utils.DBException as err:
@@ -609,7 +652,8 @@ def pckt_host_bod_path_req_create():
     finally:
         PROXY_DB.close()
 
-    return bottle.HTTPResponse(body='The request was accepted', status=201)
+    body_ = 'The request was accepted and resources was reserved'
+    return bottle.HTTPResponse(body=body_, status=201)
 
 
 # HTTP northbound interface

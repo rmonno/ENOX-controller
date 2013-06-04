@@ -298,6 +298,14 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def host_dpid_delete(self, dpid):
+        """Delete an entry at hosts table using dpid as filter
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def host_select(self):
         """Select * from hosts table
 

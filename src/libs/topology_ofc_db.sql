@@ -298,7 +298,7 @@ ALTER TABLE `services`
     REFERENCES `ports` (`datapath_id`, `port_no`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Trigger for table `datapaths`
+-- Trigger for table `datapaths` + `services` + `requests`
 --
 delimiter |
 
@@ -315,6 +315,11 @@ END;
 CREATE TRIGGER `after_request_delete` AFTER DELETE ON `requests`
 FOR EACH ROW BEGIN
     DELETE FROM services WHERE services.serviceID=OLD.serviceID;
+END;
+
+CREATE TRIGGER `after_host_delete` AFTER DELETE ON `hosts`
+FOR EACH ROW BEGIN
+    DELETE FROM requests WHERE requests.ip_src=OLD.ip_addr OR requests.ip_dst=OLD.ip_addr;
 END;
 |
 

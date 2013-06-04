@@ -113,21 +113,6 @@ class ServiceBoD(Component):
                          (status, param, str(err)))
             return {}
 
-    def __secure_convert_flows_from_index(self, flows):
-        BoDLOG.debug("Flows=%s", str(flows))
-        res = []
-        for din, pin, dout, pout in flows:
-            try:
-                (d_in, p_in) = self._db.port_get_did_pno(pin)
-                (d_out, p_out) = self._db.port_get_did_pno(pout)
-
-                res.append((d_in, p_in, d_out, p_out))
-
-            except nxw_utils.DBException as err:
-                BoDLOG.warning(str(err))
-
-        return res
-
     def __secure_interswitch_link_update(self, dpid_in, port_in, dpid_out,
                                          port_out, bw):
         try:
@@ -151,27 +136,6 @@ class ServiceBoD(Component):
 
     def __manage_start(self, req):
         BoDLOG.debug("Start %s" % req)
-        if not self._fpce.check('routing'):
-            self._fpce.disable('routing')
-            return ('failed', 'Unable to contact ior-dispatcher on PCE node!')
-
-        (w_,p_,s_) = self._fpce.connection_route_from_hosts_bw(req['ip_src'],
-                                                               req['ip_dst'],
-                                                               req['bw'])
-        if s_ != 'ok':
-            return ('failed', s_)
-        elif not w_:
-            return ('failed', 'Unable to found working ERO!')
-
-        BoDLOG.info("WorkingEro(%d)=%s", len(w_), str(w_))
-        BoDLOG.debug("ProtectedEro(%d)=%s", len(p_), str(p_))
-
-        flows = []
-        for idx_x, idx_y in zip(w_, w_[1:]):
-            (din_idx, pin_idx) = self._fpce.decode_ero_item(idx_x)
-            (dout_idx, pout_idx) = self._fpce.decode_ero_item(idx_y)
-
-            flows.append((din_idx, pin_idx, dout_idx, pout_idx))
 
         default_action = openflow.OFPAT_OUTPUT
         default_idle = 300
@@ -181,27 +145,26 @@ class ServiceBoD(Component):
 
         try:
             self._db.open_transaction()
-            cflows = self.__secure_convert_flows_from_index(flows)
-            for d_in, p_in, d_out, p_out in cflows:
-                evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=d_in,
-                                                     port_in=p_in,
-                                                     dp_out=d_out,
-                                                     port_out=p_out,
-                                                     ip_src=req['ip_src'],
-                                                     ip_dst=req['ip_dst'],
-                                                     tcp_dport=req['port_dst'],
-                                                     tcp_sport=req['port_src'],
-                                                     ip_proto=req['ip_proto'],
-                                                     vid=req['vlan_id'],
-                                                     etype=default_etype,
-                                                     action=default_action,
-                                                     idle=default_idle,
-                                                     hard=default_hard,
-                                                     prio=default_priority)
-                BoDLOG.debug(str(evt_))
-                self.post(evt_.describe())
+            for flow in self._db.service_select(service_id=req['serviceID']):
+                e_ = nxw_utils.Pckt_flowEntryEvent(dp_in=flow['src_dpid'],
+                                                   port_in=flow['src_portno'],
+                                                   dp_out=flow['dst_dpid'],
+                                                   port_out=flow['dst_portno'],
+                                                   ip_src=req['ip_src'],
+                                                   ip_dst=req['ip_dst'],
+                                                   tcp_dport=req['port_dst'],
+                                                   tcp_sport=req['port_src'],
+                                                   ip_proto=req['ip_proto'],
+                                                   vid=req['vlan_id'],
+                                                   etype=default_etype,
+                                                   action=default_action,
+                                                   idle=default_idle,
+                                                   hard=default_hard,
+                                                   prio=default_priority)
+                BoDLOG.debug(str(e_))
+                self.post(e_.describe())
 
-                self._db.flow_insert(dpid=d_in,
+                self._db.flow_insert(dpid=flow['src_dpid'],
                                      action=default_action,
                                      idle_timeout=default_idle,
                                      hard_timeout=default_hard,
@@ -211,14 +174,13 @@ class ServiceBoD(Component):
                                      nw_dst=req['ip_dst'],
                                      tp_src=req['port_src'],
                                      tp_dst=req['port_dst'],
-                                     in_port=p_in)
+                                     in_port=flow['src_portno'])
 
-                self._db.service_insert(req['serviceID'], d_in, p_in,
-                                        d_out, p_out, req['bw'])
-
-                if d_in != d_out:
-                    self.__secure_interswitch_link_update(d_in, p_in,
-                                                          d_out, p_out,
+                if flow['src_dpid'] != flow['dst_dpid']:
+                    self.__secure_interswitch_link_update(flow['src_dpid'],
+                                                          flow['src_portno'],
+                                                          flow['dst_dpid'],
+                                                          flow['dst_portno'],
                                                           req['bw'])
             self._db.commit()
 
