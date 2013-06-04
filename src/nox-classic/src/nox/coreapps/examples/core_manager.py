@@ -991,7 +991,7 @@ def service_info(id):
 
 def secure_delete_flows(service_id, req):
     try:
-        for s in PROXY_DB.service_select(service_id=id):
+        for s in PROXY_DB.service_select(service_id=service_id):
             evt_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=s['src_dpid'],
                                                     port_in=s['src_portno'],
                                                     dp_out=s['dst_dpid'],
