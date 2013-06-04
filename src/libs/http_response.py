@@ -11,6 +11,9 @@ NULL_VALUE = ['null', 'NULL', None]
 def check_value(value):
     return "" if value in NULL_VALUE else value
 
+def check_time_value(value):
+    return "" if value in NULL_VALUE else value.strftime('%s')
+
 
 class HTTPResponseGetDPIDS(object):
     def __init__(self, ids):
@@ -200,13 +203,17 @@ class HTTPResponseGetSERVICES(object):
         services = {'services':[]}
         for row_ in self._rows:
             services['services'].append({'ip_src': row_['ip_src'],
-                                         'ip_dst': row_['ip_dst'],
-                                         'port_src': row_['port_src'],
-                                         'port_dst': row_['port_dst'],
-                                         'ip_proto': row_['ip_proto'],
-                                         'vlan_id': row_['vlan_id'],
-                                         'service_id': row_['serviceID'],
-                                         'bw': check_value(row_['bw'])})
+                                'ip_dst': row_['ip_dst'],
+                                'port_src': row_['port_src'],
+                                'port_dst': row_['port_dst'],
+                                'ip_proto': row_['ip_proto'],
+                                'vlan_id': row_['vlan_id'],
+                                'service_id': row_['serviceID'],
+                                'bw': check_value(row_['bw']),
+                                'status': check_value(row_['status']),
+                                'comments': check_value(row_['comments']),
+                                'start': check_time_value(row_['start_time']),
+                                'end': check_time_value(row_['end_time'])})
 
         return json.dumps(services, sort_keys=True, indent=4,
                           separators=(',', ': '))

@@ -688,6 +688,23 @@ class GUIManager(QtGui.QMainWindow):
 
         return (t_src_, t_dst_)
 
+    def __set_time_widget(self, src, dst):
+        if src != "":
+            t_src_ = QtGui.QDateTimeEdit(QtCore.QDateTime.fromTime_t(int(src)))
+            t_src_.setDisplayFormat('dd/MM/yyyy hh:mm:ss')
+
+        else:
+            t_src_ = QtGui.QTextEdit(src)
+
+        if dst != "":
+            t_dst_ = QtGui.QDateTimeEdit(QtCore.QDateTime.fromTime_t(int(dst)))
+            t_dst_.setDisplayFormat('dd/MM/yyyy hh:mm:ss')
+
+        else:
+            t_dst_ = QtGui.QTextEdit(dst)
+
+        return (t_src_, t_dst_)
+
     def __get_hosts_combo(self):
         src_ = QtGui.QComboBox()
         dst_ = QtGui.QComboBox()
@@ -920,36 +937,46 @@ class GUIManager(QtGui.QMainWindow):
             else:
                 self.shell().debug("Response=%s" % r_.text)
                 self.centralWidget().setRowCount(len(r_.json()['services']))
-                self.centralWidget().setColumnCount(10)
+                self.centralWidget().setColumnCount(14)
                 self.centralWidget().setHorizontalHeaderLabels(['serviceID',
+                                 'status', 'notes', 'start_time', 'end_time',
                                  'ip_src', 'ip_dst', 'port_src', 'port_dst',
                                  'ip_proto', 'vlan_id', 'bw (Kb)', '', ''])
                 i = 0
                 for info_ in r_.json()['services']:
-                    c9_ = ServiceInfoButton(self.__url + 'services/' +
-                                            str(info_['service_id']),
-                                            self.centralWidget(), self)
-                    c10_ = ServiceDeleteButton(self.__url + 'services/' +
+                    (start_, end_) = self.__set_time_widget(info_['start'],
+                                                            info_['end'])
+
+                    c13_ = ServiceInfoButton(self.__url + 'services/' +
+                                             str(info_['service_id']),
+                                             self.centralWidget(), self)
+                    c14_ = ServiceDeleteButton(self.__url + 'services/' +
                                                str(info_['service_id']),
                                                self.centralWidget(), self)
                     self.centralWidget().setCellWidget(i, 0,
                             QtGui.QTextEdit(str(info_['service_id'])))
                     self.centralWidget().setCellWidget(i, 1,
-                            QtGui.QTextEdit(str(info_['ip_src'])))
+                            QtGui.QTextEdit(str(info_['status'])))
                     self.centralWidget().setCellWidget(i, 2,
-                            QtGui.QTextEdit(str(info_['ip_dst'])))
-                    self.centralWidget().setCellWidget(i, 3,
-                            QtGui.QTextEdit(str(info_['port_src'])))
-                    self.centralWidget().setCellWidget(i, 4,
-                            QtGui.QTextEdit(str(info_['port_dst'])))
+                            QtGui.QTextEdit(str(info_['comments'])))
+                    self.centralWidget().setCellWidget(i, 3, start_)
+                    self.centralWidget().setCellWidget(i, 4, end_)
                     self.centralWidget().setCellWidget(i, 5,
-                            QtGui.QTextEdit(str(info_['ip_proto'])))
+                            QtGui.QTextEdit(str(info_['ip_src'])))
                     self.centralWidget().setCellWidget(i, 6,
-                            QtGui.QTextEdit(str(info_['vlan_id'])))
+                            QtGui.QTextEdit(str(info_['ip_dst'])))
                     self.centralWidget().setCellWidget(i, 7,
+                            QtGui.QTextEdit(str(info_['port_src'])))
+                    self.centralWidget().setCellWidget(i, 8,
+                            QtGui.QTextEdit(str(info_['port_dst'])))
+                    self.centralWidget().setCellWidget(i, 9,
+                            QtGui.QTextEdit(str(info_['ip_proto'])))
+                    self.centralWidget().setCellWidget(i, 10,
+                            QtGui.QTextEdit(str(info_['vlan_id'])))
+                    self.centralWidget().setCellWidget(i, 11,
                             QtGui.QTextEdit(str(info_['bw'])))
-                    self.centralWidget().setCellWidget(i, 8, c9_)
-                    self.centralWidget().setCellWidget(i, 9, c10_)
+                    self.centralWidget().setCellWidget(i, 12, c13_)
+                    self.centralWidget().setCellWidget(i, 13, c14_)
                     i = i + 1
 
         except requests.exceptions.RequestException as exc:
