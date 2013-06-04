@@ -82,8 +82,9 @@ class ServiceBoD(Component):
 
         for service in started_:
             BoDLOG.info("Started service=%s", service)
-            if int(service['end_time'].strftime('%s')) >= time.time():
-                self.__manage_stop(service)
+            if time.time() >= int(service['end_time'].strftime('%s')):
+                (status, comm) = self.__manage_stop(service)
+                operations_.append((service['serviceID'], status, comm))
 
         if len(operations_):
             self.__manage_operations(operations_)
@@ -113,12 +114,15 @@ class ServiceBoD(Component):
                          (status, param, str(err)))
             return {}
 
-    def __secure_interswitch_link_update(self, dpid_in, port_in, dpid_out,
-                                         port_out, bw):
+    def __secure_interswitch_link_update(self, action, dpid_in, port_in,
+                                         dpid_out, port_out, bw):
         try:
             avail_bw_ = self._db.link_get_bw(dpid_in, port_in,
                                              dpid_out, port_out)
-            bw_ = ((avail_bw_ * 1000) - bw) / 1000
+            if action == 'increase':
+                bw_ = ((avail_bw_ * 1000) + bw) / 1000
+            elif action == 'decrease':
+                bw_ = ((avail_bw_ * 1000) - bw) / 1000
             self._db.link_update_bw(dpid_in, port_in, dpid_out, port_out, bw_)
 
             didx_in_ = self._db.datapath_get_index(dpid_in)
@@ -177,7 +181,8 @@ class ServiceBoD(Component):
                                      in_port=flow['src_portno'])
 
                 if flow['src_dpid'] != flow['dst_dpid']:
-                    self.__secure_interswitch_link_update(flow['src_dpid'],
+                    self.__secure_interswitch_link_update('decrease',
+                                                          flow['src_dpid'],
                                                           flow['src_portno'],
                                                           flow['dst_dpid'],
                                                           flow['dst_portno'],
@@ -193,8 +198,50 @@ class ServiceBoD(Component):
 
         return ('started', '')
 
-    def __manage_stop(self, request):
-        BoDLOG.debug("Stop %s" % request)
+    def __manage_stop(self, req):
+        BoDLOG.debug("Stop %s" % req)
+
+        try:
+            self._db.open_transaction()
+            for flow in self._db.service_select(service_id=req['serviceID']):
+                e_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=flow['src_dpid'],
+                                                port_in=flow['src_portno'],
+                                                dp_out=flow['dst_dpid'],
+                                                port_out=flow['dst_portno'],
+                                                ip_src=req['ip_src'],
+                                                ip_dst=req['ip_dst'],
+                                                tcp_dport=req['port_dst'],
+                                                tcp_sport=req['port_src'],
+                                                ip_proto=req['ip_proto'],
+                                                vid=req['vlan_id'])
+                BoDLOG.debug(str(e_))
+                self.post(e_.describe())
+
+                self._db.flow_delete(dpid=flow['src_dpid'],
+                                     dl_vlan=req['vlan_id'],
+                                     nw_src=req['ip_src'],
+                                     nw_dst=req['ip_dst'],
+                                     tp_src=req['port_src'],
+                                     tp_dst=req['port_dst'],
+                                     in_port=flow['src_portno'])
+
+                if flow['src_dpid'] != flow['dst_dpid']:
+                    self.__secure_interswitch_link_update('increase',
+                                                          flow['src_dpid'],
+                                                          flow['src_portno'],
+                                                          flow['dst_dpid'],
+                                                          flow['dst_portno'],
+                                                          req['bw'])
+            self._db.commit()
+
+        except nxw_utils.DBException as err:
+            self._db.rollback()
+            return ('failed', str(err))
+
+        finally:
+            self._db.close()
+
+        return ('stopped', '')
 
     def __manage_operations(self, operations):
         try:

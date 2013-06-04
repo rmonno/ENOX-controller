@@ -417,9 +417,16 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
-    def flow_delete(self, dpid):
+    def flow_delete(self, dpid, dl_vlan=None, nw_src=None, nw_dst=None,
+                    tp_src=None, tp_dst=None, in_port=None):
         """ Flow entry deletion
-        :param dpid: datapath identifier
+        :param dpid:    datapath identifier
+        :param dl_vlan: datalink vlan value
+        :param nw_src:  network source address
+        :param nw_dst:  network destination address
+        :param tp_src:  transport source port value
+        :param tp_dst:  transport destination port value
+        :param in_port: ingress port identifier
 
         :raises: DBException
         """

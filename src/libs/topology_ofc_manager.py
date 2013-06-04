@@ -719,12 +719,39 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         statement = stat_header + ") " + stat_body + ")"
         self.__execute(statement, values)
 
-    def flow_delete(self, dpid):
-        """ Flow entry delete """
+    def flow_delete(self, dpid, dl_vlan=None, nw_src=None, nw_dst=None,
+                    tp_src=None, tp_dst=None, in_port=None):
+        """ Flow entry deletion """
         table = "flow_entries"
 
-        statement = "DELETE FROM " + table + " WHERE dpid=" + str(dpid)
-        self.__execute(statement)
+        statement = "DELETE FROM " + table + " WHERE dpid=%s"
+        values = (str(dpid),)
+
+        if dl_vlan is not None:
+            statement += " AND dl_vlan=%s"
+            values = values + (str(dl_vlan),)
+
+        if nw_src is not None:
+            statement += " AND nw_src=%s"
+            values = values + (str(nw_src),)
+
+        if nw_dst is not None:
+            statement += " AND nw_dst=%s"
+            values = values + (str(nw_dst),)
+
+        if tp_src is not None:
+            statement += " AND tp_src=%s"
+            values = values + (str(tp_src),)
+
+        if tp_dst is not None:
+            statement += " AND tp_dst=%s"
+            values = values + (str(tp_dst),)
+
+        if in_port is not None:
+            statement += " AND in_port=%s"
+            values = values + (str(in_port),)
+
+        self.__execute(statement, values)
 
     def flow_select(self, dpid=None):
         """ flow_entries select """
