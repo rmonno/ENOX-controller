@@ -161,3 +161,30 @@ class ServiceBoDConfigParser:
                     self.timeout = config.get(sect, 'timeout')
 
         LOG.debug("ServiceBoD timeout=%s", self.timeout)
+
+
+class MediaServConfigParser:
+    """Configuration File Parser Manager for MediaServer controller
+    """
+
+    def __init__(self, filename):
+        self.timeout = None
+        self.catalog_dir = None
+        self.port = None
+        self.streaming_port = None
+
+        if check_file(filename):
+            config = ConfigParser.ConfigParser()
+            config.read(filename)
+
+            sects = config.sections()
+            for sect in sects:
+                if sect == 'media-server':
+                    self.timeout = config.get(sect, 'timeout')
+                    self.catalog_dir = config.get(sect, 'catalog_dir')
+                    self.port = config.get(sect, 'port')
+                    self.streaming_port = config.get(sect, 'streaming_port')
+
+        LOG.debug("MediaServ timeout=%s, catalog_dir=%s, port=%s," +\
+                  "streaming_port=%s", self.timeout, self.catalog_dir,
+                  self.port, self.streaming_port)

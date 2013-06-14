@@ -74,6 +74,13 @@
                 "python"
             ],
             "python": "nox.coreapps.examples.service_bod"
+        },
+        {
+            "name": "media_server" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.media_server"
         }
 
     ]
