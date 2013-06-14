@@ -67,7 +67,13 @@ def media_catalog():
 
 @bottle.post('/media_play')
 def media_play():
-    MLOG.info("Enter http media_play")
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    title_ = bottle.request.json['title']
+    MLOG.info("Enter http media_play: title=%s" % title_)
+
+    bottle.abort(500, "Not implemented yet!")
 
 
 class ChangeHandler (PatternMatchingEventHandler):

@@ -531,11 +531,39 @@ class ServiceDeleteButton(Button):
             self.error(str(exc))
 
 
+class MediaPlayButton(Button):
+
+    def __init__(self, url, payload, central, parent):
+        Button.__init__(self, 'play', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__params = payload
+        self.__central = central
+        self.__parent = parent
+
+    def onClick(self):
+        self.debug("media_play action: url=%s, params=%s" %
+                   (self.__url, self.__params))
+        try:
+            r_ = requests.post(url=self.__url, data=json.dumps(self.__params),
+                               headers={'content-type': 'application/json'})
+            if r_.status_code != 201:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+                self.info_popup(r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
 class GUIManager(QtGui.QMainWindow):
 
-    def __init__(self, addr, port):
+    def __init__(self, addr, port, mport):
         QtGui.QMainWindow.__init__(self)
         self.__url = 'http://' + addr + ':' + port + '/'
+        self.__media_url = 'http://' + addr + ':' + mport + '/'
         self.__table = None
         self.__shell = None
         self.__initUI()
@@ -543,7 +571,7 @@ class GUIManager(QtGui.QMainWindow):
         self.shell().debug("GUIManager started: %s" % str(self))
 
     def __str__(self):
-        return self.__url
+        return "core_url=%s, media_url=%s" % (self.__url, self.__media_url)
 
     def __center(self):
         qr_ = self.frameGeometry()
@@ -624,6 +652,12 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.get_pckt_port_stats)
         return act_
 
+    def __getMultiMediaAction(self):
+        act_ = QtGui.QAction('Get CATALOG', self)
+        act_.setStatusTip('GET catalog request')
+        act_.triggered.connect(self.get_catalog)
+        return act_
+
     def __menuBar(self):
         mb_ = self.menuBar()
         fmenu_ = mb_.addMenu('&File')
@@ -647,6 +681,9 @@ class GUIManager(QtGui.QMainWindow):
         smenu_ = mb_.addMenu('&Statistics')
         smenu_.addAction(self.__getPcktTableStatsAction())
         smenu_.addAction(self.__getPcktPortStatsAction())
+
+        mmenu_ = mb_.addMenu('&MultiMedia')
+        mmenu_.addAction(self.__getMultiMediaAction())
 
     def __toolBar(self):
         tb_ = self.addToolBar('gui-toolbar')
@@ -1008,6 +1045,32 @@ class GUIManager(QtGui.QMainWindow):
         self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('FFFF'))
         self.centralWidget().setCellWidget(0, 2, c2_)
 
+    def get_catalog(self):
+        self.shell().debug("get_catalog action")
+        try:
+            r_ = requests.get(url=self.__media_url + "media_catalog")
+            if r_.status_code != requests.codes.ok:
+                self.warn("Not found any MultiMedia object!")
+
+            else:
+                self.shell().debug("Response=%s" % r_.text)
+                self.centralWidget().setRowCount(len(r_.json()['catalog']))
+                self.centralWidget().setColumnCount(2)
+                self.centralWidget().setHorizontalHeaderLabels(['title', ''])
+
+                i = 0
+                for info_ in r_.json()['catalog']:
+                    c2_ = MediaPlayButton(self.__media_url + 'media_play',
+                                          {'title': str(info_['title'])},
+                                          self.centralWidget(), self)
+                    self.centralWidget().setCellWidget(i, 0,
+                            QtGui.QTextEdit(str(info_['title'])))
+                    self.centralWidget().setCellWidget(i, 1, c2_)
+                    i = i + 1
+
+        except requests.exceptions.RequestException as exc:
+            self.critical(str(exc))
+
 
 def main(argv=None):
     psr_ = ap.ArgumentParser(description='Fibre GUI-manager',
@@ -1024,10 +1087,15 @@ def main(argv=None):
                       dest='port',
                       help='core-manager port number')
 
+    psr_.add_argument('-m', '--mport',
+                      default='8081',
+                      dest='mport',
+                      help='media-server port number')
+
     rets_ = psr_.parse_args()
 
     app = QtGui.QApplication(sys.argv)
-    gm_ = GUIManager(rets_.addr, rets_.port)
+    gm_ = GUIManager(rets_.addr, rets_.port, rets_.mport)
     app.exec_()
 
     return True
