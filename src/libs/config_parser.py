@@ -171,6 +171,7 @@ class MediaServConfigParser:
         self.timeout = None
         self.catalog_dir = None
         self.port = None
+        self.streaming_addr = None
         self.streaming_port = None
 
         if check_file(filename):
@@ -183,8 +184,10 @@ class MediaServConfigParser:
                     self.timeout = config.get(sect, 'timeout')
                     self.catalog_dir = config.get(sect, 'catalog_dir')
                     self.port = config.get(sect, 'port')
+                    self.streaming_addr = config.get(sect, 'streaming_address')
                     self.streaming_port = config.get(sect, 'streaming_port')
 
         LOG.debug("MediaServ timeout=%s, catalog_dir=%s, port=%s," +\
-                  "streaming_port=%s", self.timeout, self.catalog_dir,
-                  self.port, self.streaming_port)
+                  "streaming_address=%s, streaming_port=%s",
+                  self.timeout, self.catalog_dir, self.port,
+                  self.streaming_addr, self.streaming_port)

@@ -18,6 +18,7 @@
 import sys
 import os
 import logging
+import subprocess
 
 import bottle
 import threading
@@ -47,6 +48,7 @@ MLOG = nxw_utils.ColorLog(logging.getLogger('media-server'))
 CATALOG_APPEND = None
 CATALOG_REMOVE = None
 CATALOG_GET = None
+PLAY = None
 
 
 @bottle.get('/media_catalog')
@@ -73,7 +75,11 @@ def media_play():
     title_ = bottle.request.json['title']
     MLOG.info("Enter http media_play: title=%s" % title_)
 
-    bottle.abort(500, "Not implemented yet!")
+    (ret, descr) = PLAY(title_)
+    if ret != True:
+        bottle.abort(500, "Play error: %s" % descr)
+
+    return bottle.HTTPResponse(body=descr, status=201)
 
 
 class ChangeHandler (PatternMatchingEventHandler):
@@ -100,8 +106,37 @@ class ChangeHandler (PatternMatchingEventHandler):
         pass
 
 
+class MediaPlay:
+    def __init__(self, address, port, catalog_dir):
+        global PLAY
+
+        self.__address = address
+        self.__port = port
+        self.__dir = catalog_dir
+
+        self.__check_cmd_exists('cvlc')
+        PLAY = self.play
+        MLOG.debug("Configured MediaPlay: addr=%s, port=%s, dir=%s",
+                   address, port, catalog_dir)
+
+    def __check_cmd_exists(self, cmd):
+        subprocess.check_call([cmd, '--version'])
+
+    def play(self, fname):
+        f_ = self.__dir + '/' + fname
+        if not os.path.exists(f_):
+            return (False, "The path (%s) doesn't exist!" % f_)
+
+        cmd_ = "cvlc -vvv --play-and-exit \"" + f_ + "\" " +\
+               "--sout '#standard{access=%s,mux=%s,dst=%s:%s}'" %\
+               ('http', 'ogg', self.__address, self.__port)
+        MLOG.debug(cmd_)
+        os.system(cmd_)
+
+        return (True, "Operation completed")
+
 class MediaObserver:
-    def __init__ (self, directory):
+    def __init__(self, directory):
         global CATALOG_APPEND
         global CATALOG_REMOVE
         global CATALOG_GET
@@ -148,11 +183,11 @@ class MediaObserver:
             self.__mutex.release()
 
     def stop(self):
-        MLOG.info("Stopping MEDIA observer...")
+        MLOG.error("Stopping MEDIA observer...")
         self.__obs.stop()
 
     def join(self):
-        MLOG.info("Joining MEDIA observer...")
+        MLOG.error("Joining MEDIA observer...")
         self.__obs.join()
 
 
@@ -164,11 +199,14 @@ class MediaServer(Component):
         self._conf_ms = nxw_utils.MediaServConfigParser(self.CONFIG_FILE)
         self._conf_ws = nxw_utils.WebServConfigParser(self.CONFIG_FILE)
         self._media = None
+        self._play = None
 
     def configure(self, configuration):
         try:
             self._media = MediaObserver(self._conf_ms.catalog_dir)
-
+            self._play = MediaPlay(self._conf_ms.streaming_addr,
+                                   self._conf_ms.streaming_port,
+                                   self._conf_ms.catalog_dir)
         except Exception as e:
             MLOG.error(str(e))
             assert (False)
