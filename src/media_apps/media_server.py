@@ -24,7 +24,8 @@ MLOG.setLevel(logging.DEBUG)
 CATALOG_APPEND = None
 CATALOG_REMOVE = None
 CATALOG_GET = None
-PLAY = None
+PLAY_MP3 = None
+PLAY_MP4 = None
 
 
 @bottle.get('/media_catalog')
@@ -51,7 +52,14 @@ def media_play():
     title_ = bottle.request.json['title']
     MLOG.info("Enter http media_play: title=%s" % title_)
 
-    (ret, descr) = PLAY(title_)
+    if title_.endswith('mp3'):
+        (ret, descr) = PLAY_MP3(title_)
+
+    elif title_.endswith('mp4'):
+        (ret, descr) = PLAY_MP4(title_)
+    else:
+        (ret, descr) = (False, "Encoding Type is not supported!")
+
     if ret != True:
         bottle.abort(500, "Play error: %s" % descr)
 
@@ -60,27 +68,43 @@ def media_play():
 
 class MediaPlay:
     def __init__(self, address, port, catalog_dir):
-        global PLAY
+        global PLAY_MP3
+        global PLAY_MP4
 
         self.__address = address
         self.__port = port
         self.__dir = catalog_dir
 
         self.__check_cmd_exists('cvlc')
-        PLAY = self.play
+        PLAY_MP3 = self.play_mp3
+        PLAY_MP4 = self.play_mp4
         MLOG.debug("Configured MediaPlay: addr=%s, port=%s, dir=%s",
                    address, port, catalog_dir)
 
     def __check_cmd_exists(self, cmd):
         subprocess.check_call([cmd, '--version'])
 
-    def play(self, fname):
+    def play_mp3(self, fname):
         f_ = self.__dir + '/' + fname
         if not os.path.exists(f_):
             return (False, "The path (%s) doesn't exist!" % f_)
 
         cmd_ = "cvlc -vvv --play-and-exit \"" + f_ + "\" " +\
                "--sout '#standard{access=%s,mux=%s,dst=%s:%s}'" %\
+               ('http', 'ogg', self.__address, self.__port)
+        MLOG.debug(cmd_)
+        os.system(cmd_)
+
+        return (True, "Operation completed")
+
+    def play_mp4(self, fname):
+        f_ = self.__dir + '/' + fname
+        if not os.path.exists(f_):
+            return (False, "The path (%s) doesn't exist!" % f_)
+
+        cmd_ = "cvlc -vvv --play-and-exit \"" + f_ + "\" " +\
+               "--sout '#transcode{vcodec=mp4v,acodec=mpga,vb=800,ab=128" +\
+               ",deinterlace}:standard{access=%s,mux=%s,dst=%s:%s}'" %\
                ('http', 'ogg', self.__address, self.__port)
         MLOG.debug(cmd_)
         os.system(cmd_)
