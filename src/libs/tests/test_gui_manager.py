@@ -560,10 +560,10 @@ class MediaPlayButton(Button):
 
 class GUIManager(QtGui.QMainWindow):
 
-    def __init__(self, addr, port, mport):
+    def __init__(self, cmaddr, cmport, msaddr, msport):
         QtGui.QMainWindow.__init__(self)
-        self.__url = 'http://' + addr + ':' + port + '/'
-        self.__media_url = 'http://' + addr + ':' + mport + '/'
+        self.__url = 'http://' + cmaddr + ':' + cmport + '/'
+        self.__media_url = 'http://' + msaddr + ':' + msport + '/'
         self.__table = None
         self.__shell = None
         self.__initUI()
@@ -571,7 +571,8 @@ class GUIManager(QtGui.QMainWindow):
         self.shell().debug("GUIManager started: %s" % str(self))
 
     def __str__(self):
-        return "core_url=%s, media_url=%s" % (self.__url, self.__media_url)
+        return "core_manager_url=%s, media_server_url=%s" %\
+               (self.__url, self.__media_url)
 
     def __center(self):
         qr_ = self.frameGeometry()
@@ -1068,6 +1069,8 @@ class GUIManager(QtGui.QMainWindow):
                     self.centralWidget().setCellWidget(i, 1, c2_)
                     i = i + 1
 
+                self.centralWidget().resizeColumnsToContents()
+
         except requests.exceptions.RequestException as exc:
             self.critical(str(exc))
 
@@ -1077,25 +1080,22 @@ def main(argv=None):
                              epilog='Report bugs to <r.monno@nextworks.it>',
                              formatter_class=ap.ArgumentDefaultsHelpFormatter)
 
-    psr_.add_argument('-a', '--addr',
-                      default='localhost',
-                      dest='addr',
+    psr_.add_argument('--cm_addr', default='localhost',
                       help='core-manager address')
 
-    psr_.add_argument('-p', '--port',
-                      default='8080',
-                      dest='port',
+    psr_.add_argument('--cm_port', default='8080',
                       help='core-manager port number')
 
-    psr_.add_argument('-m', '--mport',
-                      default='8081',
-                      dest='mport',
+    psr_.add_argument('--ms_addr', default='localhost',
+                      help='media-server address')
+
+    psr_.add_argument('--ms_port', default='8081',
                       help='media-server port number')
 
     rets_ = psr_.parse_args()
 
     app = QtGui.QApplication(sys.argv)
-    gm_ = GUIManager(rets_.addr, rets_.port, rets_.mport)
+    gm_ = GUIManager(rets_.cm_addr,rets_.cm_port,rets_.ms_addr,rets_.ms_port)
     app.exec_()
 
     return True
