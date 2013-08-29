@@ -89,6 +89,9 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         raise tofc.DBException("Index not found!")
 
+    def __check_for_none(self, param, def_value):
+        return def_value if param is None else param
+
     # public
     def open_transaction(self):
         """ open transaction """
@@ -1112,6 +1115,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         """ Requests entry insert """
         table = "requests"
 
+        port_src = self.__check_for_none(port_src, 0)
+        port_dst = self.__check_for_none(port_dst, 0)
+        ip_proto = self.__check_for_none(ip_proto, 0)
+        vlan_id = self.__check_for_none(vlan_id, 0xffff)
+
         stat_header = "INSERT INTO " + table + "(ip_src, ip_dst, port_src," +\
                       " port_dst, ip_proto, vlan_id"
         stat_body = "VALUES (%s, %s, %s, %s, %s, %s"
@@ -1145,6 +1153,11 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
                               ip_proto, vlan_id):
         """Get unique service ID at requests table """
         table = "requests"
+
+        port_src = self.__check_for_none(port_src, 0)
+        port_dst = self.__check_for_none(port_dst, 0)
+        ip_proto = self.__check_for_none(ip_proto, 0)
+        vlan_id = self.__check_for_none(vlan_id, 0xffff)
 
         statement = "SELECT serviceID FROM " + table +\
                     " WHERE ip_src=%s AND ip_dst=%s AND port_src=%s" +\
