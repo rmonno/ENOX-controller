@@ -567,21 +567,27 @@ class HostsEnvButton(Button):
         self.__central = central
         self.__parent = parent
 
+    def header(self, central):
+        central.setColumnCount(3)
+
+        central.setHorizontalHeaderLabels(['SRC_IP', 'DST_IP', 'BW'])
+        central.setCellWidget(0, 0, QtGui.QLineEdit('a.b.c.d'))
+        central.setCellWidget(0, 1, QtGui.QLineEdit('e.f.g.h'))
+        central.setCellWidget(0, 2, QtGui.QLineEdit('0'))
+
+    def routeButton(self, url, central, parent, ports, links, hosts):
+        return HostsRouteButton(url, central, parent, ports, links, hosts)
+
     def onClick(self):
-        ports_ = self.__central.cellWidget(0, 0).text()
-        links_ = self.__central.cellWidget(0, 1).text()
-        hosts_ = self.__central.cellWidget(0, 2).text()
+        ports_ = self.__central.cellWidget(0, 0).currentText()
+        links_ = self.__central.cellWidget(0, 1).currentText()
+        hosts_ = self.__central.cellWidget(0, 2).currentText()
         self.debug("hosts-env descr: url=%s, ports=%s, links=%s, hosts=%s" %
                    (self.__url, ports_, links_, hosts_))
 
         self.__central.clear()
         self.__central.setRowCount(3+int(ports_)+2+int(links_)+2+int(hosts_)+2)
-        self.__central.setColumnCount(3)
-
-        self.__central.setHorizontalHeaderLabels(['SRC_IP', 'DST_IP', 'BW'])
-        self.__central.setCellWidget(0, 0, QtGui.QLineEdit('a.b.c.d'))
-        self.__central.setCellWidget(0, 1, QtGui.QLineEdit('e.f.g.h'))
-        self.__central.setCellWidget(0, 2, QtGui.QLineEdit('0'))
+        self.header(self.__central)
 
         self.__central.setCellWidget(2, 0, QtGui.QTextEdit('DPID'))
         self.__central.setCellWidget(2, 1, QtGui.QTextEdit('PORT-NO'))
@@ -613,7 +619,7 @@ class HostsEnvButton(Button):
             i = i + 1
 
         i = i + 1
-        c0_ = HostsRouteButton(self.__url, self.__central, self.__parent,
+        c0_ = self.routeButton(self.__url, self.__central, self.__parent,
                                ports_, links_, hosts_)
         self.__central.setCellWidget(i, 0, c0_)
         self.__central.resizeColumnsToContents()
@@ -622,7 +628,7 @@ class HostsEnvButton(Button):
 class HostsRouteButton(Button):
 
     def __init__(self, url, central, parent, ps, ls, hs):
-        Button.__init__(self, 'hosts-route', parent)
+        Button.__init__(self, 'route', parent)
         self.clicked.connect(self.onClick)
         self.__url = url
         self.__c = central
@@ -631,12 +637,106 @@ class HostsRouteButton(Button):
         self.__ls = ls
         self.__hs = hs
 
+    def endpoints(self, central):
+        return {'src_ip_addr':   central.cellWidget(0,0).text(),
+                'dst_ip_addr':   central.cellWidget(0,1).text(),
+                'bw_constraint': central.cellWidget(0,2).text()}
+
+    def dpids(self, start, params):
+        a_ = {}
+        for x_ in range(0, int(self.__ps)):
+            if a_.has_key(self.__c.cellWidget(start,0).text()):
+                a_[self.__c.cellWidget(start,0).text()].append(
+                                        self.__c.cellWidget(start,1).text())
+            else:
+                a_[self.__c.cellWidget(start,0).text()] =\
+                                        [self.__c.cellWidget(start,1).text()]
+            start = start + 1
+
+        for k_ in a_.keys():
+            tmp_ = {'dpid': k_, 'ports': []}
+            for v_ in a_[k_]:
+                tmp_['ports'].append({'port_no': v_})
+            params.append(tmp_)
+
+        return start
+
+    def links(self, start, params):
+        for x_ in range(0, int(self.__ls)):
+            params.append({'id': self.__c.cellWidget(start,0).text(),
+                           'capacity': self.__c.cellWidget(start,1).text()})
+            start = start + 1
+
+        return start
+
+    def hosts(self, start, params):
+        for x_ in range(0, int(self.__hs)):
+            params.append({'ip_addr': self.__c.cellWidget(start,0).text(),
+                           'dpid': self.__c.cellWidget(start,1).text(),
+                           'port_no': self.__c.cellWidget(start,2).text()})
+            start = start + 1
+
+        return start
+
     def onClick(self):
-        params_ = {'endpoints':{'src_ip_addr':self.__c.cellWidget(0,0).text(),
-                                'dst_ip_addr':self.__c.cellWidget(0,1).text(),
-                                'bw_constraint':self.__c.cellWidget(0,2).text()},
-                   'topology': {}}
-        self.debug("hosts-route: url=%s, params=%s" % (self.__url, params_))
+        topo_ = {'dpids': [], 'links': [], 'hosts': []}
+        params_={'endpoints': self.endpoints(self.__c),
+                 'topology':  topo_}
+        i = 3
+        i = self.dpids(i, params_['topology']['dpids'])
+
+        i = i + 2
+        i = self.links(i, params_['topology']['links'])
+
+        i = i + 2
+        i = self.hosts(i, params_['topology']['hosts'])
+
+        self.debug("route: url=%s, params=%s" % (self.__url, params_))
+        try:
+            r_ = requests.get(url=self.__url, data=json.dumps(params_),
+                              headers={'content-type': 'application/json'})
+            if r_.status_code != 200:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+                self.info_popup(r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
+class PortsEnvButton(HostsEnvButton):
+
+    def __init__(self, url, central, parent):
+        HostsEnvButton.__init__(self, url, central, parent)
+
+    def header(self, central):
+        central.setColumnCount(5)
+
+        central.setHorizontalHeaderLabels(['SRC_DPID', 'SRC_PORT',
+                                           'DST_DPID', 'DST_PORT', 'BW'])
+        central.setCellWidget(0, 0, QtGui.QLineEdit('1'))
+        central.setCellWidget(0, 1, QtGui.QLineEdit('1'))
+        central.setCellWidget(0, 2, QtGui.QLineEdit('2'))
+        central.setCellWidget(0, 3, QtGui.QLineEdit('2'))
+        central.setCellWidget(0, 4, QtGui.QLineEdit('0'))
+
+    def routeButton(self, url, central, parent, ports, links, hosts):
+        return PortsRouteButton(url, central, parent, ports, links, hosts)
+
+
+class PortsRouteButton(HostsRouteButton):
+
+    def __init__(self, url, central, parent, ps, ls, hs):
+        HostsRouteButton.__init__(self, url, central, parent, ps, ls, hs)
+
+    def endpoints(self, central):
+        return {'src_dpid':      central.cellWidget(0,0).text(),
+                'src_port_no':   central.cellWidget(0,1).text(),
+                'dst_dpid':      central.cellWidget(0,2).text(),
+                'dst_port_no':   central.cellWidget(0,3).text(),
+                'bw_constraint': central.cellWidget(0,4).text()}
 
 
 class GUIManager(QtGui.QMainWindow):
@@ -1214,16 +1314,44 @@ class GUIManager(QtGui.QMainWindow):
         self.centralWidget().setHorizontalHeaderLabels(['N. PORTs',
                                         'N. LINKs', 'N. HOSTs', ''])
 
-        c3_ = HostsEnvButton(self.__url + 'route_hosts/',
+        c3_ = HostsEnvButton(self.__url + 'route_hosts',
                              self.centralWidget(), self)
-        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('0'))
-        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('0'))
-        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('0'))
+        v_ = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        c0_ = QtGui.QComboBox()
+        c0_.addItems(v_)
+        c1_ = QtGui.QComboBox()
+        c1_.addItems(v_)
+        c2_ = QtGui.QComboBox()
+        c2_.addItems(v_)
+
+        self.centralWidget().setCellWidget(0, 0, c0_)
+        self.centralWidget().setCellWidget(0, 1, c1_)
+        self.centralWidget().setCellWidget(0, 2, c2_)
         self.centralWidget().setCellWidget(0, 3, c3_)
 
     def get_routePorts(self):
         self.shell().debug("get_routePorts action")
-        self.critical("Not implemented yet!")
+        self.centralWidget().clear()
+
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(4)
+        self.centralWidget().setHorizontalHeaderLabels(['N. PORTs',
+                                        'N. LINKs', 'N. HOSTs', ''])
+
+        c3_ = PortsEnvButton(self.__url + 'route_ports',
+                             self.centralWidget(), self)
+        v_ = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        c0_ = QtGui.QComboBox()
+        c0_.addItems(v_)
+        c1_ = QtGui.QComboBox()
+        c1_.addItems(v_)
+        c2_ = QtGui.QComboBox()
+        c2_.addItems(v_)
+
+        self.centralWidget().setCellWidget(0, 0, c0_)
+        self.centralWidget().setCellWidget(0, 1, c1_)
+        self.centralWidget().setCellWidget(0, 2, c2_)
+        self.centralWidget().setCellWidget(0, 3, c3_)
 
     def create_entry(self):
         self.shell().debug("create_entry action")
