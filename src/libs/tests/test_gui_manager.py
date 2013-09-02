@@ -739,6 +739,120 @@ class PortsRouteButton(HostsRouteButton):
                 'bw_constraint': central.cellWidget(0,4).text()}
 
 
+class EntriesEnvButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'env-describe', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__c = central
+        self.__parent = parent
+
+    def onClick(self):
+        entries_ = self.__c.cellWidget(0, 0).currentText()
+        self.debug("entries-env descr: url=%s, entries=%s" %
+                   (self.__url, entries_))
+
+        self.__c.clear()
+        self.__c.setRowCount(2+int(entries_))
+        self.__c.setColumnCount(9)
+        self.__c.setHorizontalHeaderLabels(['DPID','IN_PORT','OUT_PORT','VLAN',
+                                 'SRC_IP','DST_IP','SRC_TCP','DST_TCP','IDLE'])
+        i = 0
+        for x_ in range(0, int(entries_)):
+            self.__c.setCellWidget(i,0,QtGui.QLineEdit('dpid-'+str(x_)))
+            self.__c.setCellWidget(i,1,QtGui.QLineEdit('in-pno-'+str(x_)))
+            self.__c.setCellWidget(i,2,QtGui.QLineEdit('out-pno-'+str(x_)))
+            self.__c.setCellWidget(i,3,QtGui.QLineEdit('vlan-'+str(x_)))
+            self.__c.setCellWidget(i,4,QtGui.QLineEdit('src-ip-'+str(x_)))
+            self.__c.setCellWidget(i,5,QtGui.QLineEdit('dst-ip-'+str(x_)))
+            self.__c.setCellWidget(i,6,QtGui.QLineEdit('src-tcp-'+str(x_)))
+            self.__c.setCellWidget(i,7,QtGui.QLineEdit('dst-tcp-'+str(x_)))
+            self.__c.setCellWidget(i,8,QtGui.QLineEdit('idle-'+str(x_)))
+            i = i + 1
+
+        i = i + 1
+        c0_ = EntriesButton(self.__url, self.__c, self.__parent, entries_)
+        self.__c.setCellWidget(i, 0, c0_)
+        self.__c.resizeColumnsToContents()
+
+
+class EntriesButton(Button):
+
+    def __init__(self, url, central, parent, es):
+        Button.__init__(self, 'create', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__c = central
+        self.__parent = parent
+        self.__es = es
+
+    def routes(self, start, params):
+        for x_ in range(0, int(self.__es)):
+            tmp_ = {'dpid':self.__c.cellWidget(start,0).text(),
+                    'in_port_no':self.__c.cellWidget(start,1).text(),
+                    'out_port_no':self.__c.cellWidget(start,2).text(),
+                    'vlan_id':self.__c.cellWidget(start,3).text()}
+
+            if self.__c.cellWidget(start,4).text():
+                tmp_['src_ip_addr'] = self.__c.cellWidget(start,4).text()
+            if self.__c.cellWidget(start,5).text():
+                tmp_['dst_ip_addr'] = self.__c.cellWidget(start,5).text()
+            if self.__c.cellWidget(start,6).text():
+                tmp_['src_tcp_port'] = self.__c.cellWidget(start,6).text()
+            if self.__c.cellWidget(start,7).text():
+                tmp_['dst_tcp_port'] = self.__c.cellWidget(start,7).text()
+            if self.__c.cellWidget(start,8).text():
+                tmp_['idle_timeout'] = self.__c.cellWidget(start,8).text()
+
+            params.append(tmp_)
+            start = start + 1
+
+    def onClick(self):
+        params_ = {'routes': []}
+        self.routes(0, params_['routes'])
+
+        self.debug("create: url=%s, params=%s" % (self.__url, params_))
+        try:
+            r_ = requests.post(url=self.__url, data=json.dumps(params_),
+                               headers={'content-type': 'application/json'})
+            if r_.status_code != 201:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+                self.info_popup(r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
+class DeleteEntryButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'delete', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__c = central
+        self.__parent = parent
+
+    def onClick(self):
+        id_ = self.__c.cellWidget(0,0).text()
+
+        self.debug("delete-entry: url=%s, id=%s" % (self.__url, id_))
+        try:
+            r_ = requests.delete(url=self.__url + id_)
+            if r_.status_code != 204:
+                self.error(r_.text)
+
+            else:
+                self.debug("Response=%s" % r_.text)
+                self.info_popup(r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, cmaddr, cmport, msaddr, msport):
@@ -1355,11 +1469,34 @@ class GUIManager(QtGui.QMainWindow):
 
     def create_entry(self):
         self.shell().debug("create_entry action")
-        self.critical("Not implemented yet!")
+        self.centralWidget().clear()
+
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(2)
+        self.centralWidget().setHorizontalHeaderLabels(['N. ENTRYs', ''])
+
+        c1_ = EntriesEnvButton(self.__url + 'entry',
+                               self.centralWidget(), self)
+        v_ = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        c0_ = QtGui.QComboBox()
+        c0_.addItems(v_)
+
+        self.centralWidget().setCellWidget(0, 0, c0_)
+        self.centralWidget().setCellWidget(0, 1, c1_)
 
     def delete_entry(self):
         self.shell().debug("delete_entry action")
-        self.critical("Not implemented yet!")
+        self.centralWidget().clear()
+
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(2)
+        self.centralWidget().setHorizontalHeaderLabels(['ENTRY-ID', ''])
+
+        c1_ = DeleteEntryButton(self.__url+'entry/',self.centralWidget(),self)
+
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
+        self.centralWidget().setCellWidget(0, 1, c1_)
+
 
 def main(argv=None):
     psr_ = ap.ArgumentParser(description='Fibre GUI-manager',
