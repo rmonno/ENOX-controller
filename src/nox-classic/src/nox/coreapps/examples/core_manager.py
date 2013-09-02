@@ -1076,6 +1076,37 @@ def service_delete(id):
     return bottle.HTTPResponse(body='Operation completed', status=204)
 
 
+#
+# northbound interface: OSCARS extensions
+#
+@bottle.get('/topology')
+def get_topology():
+    WLOG.info("Enter http (extensions) get_topology")
+    bottle.abort(500, 'Sorry, not implemented yet!')
+
+@bottle.get('/route_hosts')
+def get_route_hosts():
+    WLOG.info("Enter http (extensions) get_route_hosts")
+    bottle.abort(500, 'Sorry, not implemented yet!')
+
+@bottle.get('/route_ports')
+def get_route_ports():
+    WLOG.info("Enter http (extensions) get_route_ports")
+    bottle.abort(500, 'Sorry, not implemented yet!')
+
+@bottle.post('/entry')
+def post_entry():
+    WLOG.info("Enter http (extensions) post_entry")
+    bottle.abort(500, 'Sorry, not implemented yet!')
+
+@bottle.delete('/entry/<id:int>')
+def delete_entry(id):
+    WLOG.info("Enter http (extensions) delete_entry: entry_id=%d", id)
+    bottle.abort(500, 'Sorry, not implemented yet!')
+
+# end of OSCARS extensions
+
+
 class CoreService(threading.Thread):
     def __init__(self, name, host, port, debug):
         threading.Thread.__init__(self, name=name)

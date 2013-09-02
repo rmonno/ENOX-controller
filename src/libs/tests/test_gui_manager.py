@@ -558,6 +558,87 @@ class MediaPlayButton(Button):
             self.error(str(exc))
 
 
+class HostsEnvButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'env-describe', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__central = central
+        self.__parent = parent
+
+    def onClick(self):
+        ports_ = self.__central.cellWidget(0, 0).text()
+        links_ = self.__central.cellWidget(0, 1).text()
+        hosts_ = self.__central.cellWidget(0, 2).text()
+        self.debug("hosts-env descr: url=%s, ports=%s, links=%s, hosts=%s" %
+                   (self.__url, ports_, links_, hosts_))
+
+        self.__central.clear()
+        self.__central.setRowCount(3+int(ports_)+2+int(links_)+2+int(hosts_)+2)
+        self.__central.setColumnCount(3)
+
+        self.__central.setHorizontalHeaderLabels(['SRC_IP', 'DST_IP', 'BW'])
+        self.__central.setCellWidget(0, 0, QtGui.QLineEdit('a.b.c.d'))
+        self.__central.setCellWidget(0, 1, QtGui.QLineEdit('e.f.g.h'))
+        self.__central.setCellWidget(0, 2, QtGui.QLineEdit('0'))
+
+        self.__central.setCellWidget(2, 0, QtGui.QTextEdit('DPID'))
+        self.__central.setCellWidget(2, 1, QtGui.QTextEdit('PORT-NO'))
+
+        i = 3
+        for x_ in range(0, int(ports_)):
+            self.__central.setCellWidget(i,0,QtGui.QLineEdit('dpid-'+str(x_)))
+            self.__central.setCellWidget(i,1,QtGui.QLineEdit('pno-'+str(x_)))
+            i = i + 1
+
+        i = i + 1
+        self.__central.setCellWidget(i, 0, QtGui.QTextEdit('LINK-ID'))
+        self.__central.setCellWidget(i, 1, QtGui.QTextEdit('CAPACITY'))
+        i = i + 1
+        for x_ in range(0, int(links_)):
+            self.__central.setCellWidget(i,0,QtGui.QLineEdit('lid-'+str(x_)))
+            self.__central.setCellWidget(i,1,QtGui.QLineEdit('cap-'+str(x_)))
+            i = i + 1
+
+        i = i + 1
+        self.__central.setCellWidget(i, 0, QtGui.QTextEdit('IP-ADDRESS'))
+        self.__central.setCellWidget(i, 1, QtGui.QTextEdit('DPID'))
+        self.__central.setCellWidget(i, 2, QtGui.QTextEdit('PORT_NO'))
+        i = i + 1
+        for x_ in range(0, int(hosts_)):
+            self.__central.setCellWidget(i,0,QtGui.QLineEdit('ip-'+str(x_)))
+            self.__central.setCellWidget(i,1,QtGui.QLineEdit('dpid-'+str(x_)))
+            self.__central.setCellWidget(i,2,QtGui.QLineEdit('pno-'+str(x_)))
+            i = i + 1
+
+        i = i + 1
+        c0_ = HostsRouteButton(self.__url, self.__central, self.__parent,
+                               ports_, links_, hosts_)
+        self.__central.setCellWidget(i, 0, c0_)
+        self.__central.resizeColumnsToContents()
+
+
+class HostsRouteButton(Button):
+
+    def __init__(self, url, central, parent, ps, ls, hs):
+        Button.__init__(self, 'hosts-route', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__c = central
+        self.__parent = parent
+        self.__ps = ps
+        self.__ls = ls
+        self.__hs = hs
+
+    def onClick(self):
+        params_ = {'endpoints':{'src_ip_addr':self.__c.cellWidget(0,0).text(),
+                                'dst_ip_addr':self.__c.cellWidget(0,1).text(),
+                                'bw_constraint':self.__c.cellWidget(0,2).text()},
+                   'topology': {}}
+        self.debug("hosts-route: url=%s, params=%s" % (self.__url, params_))
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, cmaddr, cmport, msaddr, msport):
@@ -659,6 +740,36 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.get_catalog)
         return act_
 
+    def __getTopologyAction(self):
+        act_ = QtGui.QAction('Get Topology', self)
+        act_.setStatusTip('GET topology request')
+        act_.triggered.connect(self.get_topology)
+        return act_
+
+    def __getRouteHostsAction(self):
+        act_ = QtGui.QAction('Get RouteHosts', self)
+        act_.setStatusTip('GET route-hosts request')
+        act_.triggered.connect(self.get_routeHosts)
+        return act_
+
+    def __getRoutePortsAction(self):
+        act_ = QtGui.QAction('Get RoutePorts', self)
+        act_.setStatusTip('GET route-ports request')
+        act_.triggered.connect(self.get_routePorts)
+        return act_
+
+    def __createEntryAction(self):
+        act_ = QtGui.QAction('Post entry', self)
+        act_.setStatusTip('POST entry request')
+        act_.triggered.connect(self.create_entry)
+        return act_
+
+    def __deleteEntryAction(self):
+        act_ = QtGui.QAction('Delete entry', self)
+        act_.setStatusTip('DELETE entry request')
+        act_.triggered.connect(self.delete_entry)
+        return act_
+
     def __menuBar(self):
         mb_ = self.menuBar()
         fmenu_ = mb_.addMenu('&File')
@@ -685,6 +796,13 @@ class GUIManager(QtGui.QMainWindow):
 
         mmenu_ = mb_.addMenu('&MultiMedia')
         mmenu_.addAction(self.__getMultiMediaAction())
+
+        exmenu_ = mb_.addMenu('&OscarsExtensions')
+        exmenu_.addAction(self.__getTopologyAction())
+        exmenu_.addAction(self.__getRouteHostsAction())
+        exmenu_.addAction(self.__getRoutePortsAction())
+        exmenu_.addAction(self.__createEntryAction())
+        exmenu_.addAction(self.__deleteEntryAction())
 
     def __toolBar(self):
         tb_ = self.addToolBar('gui-toolbar')
@@ -1074,6 +1192,46 @@ class GUIManager(QtGui.QMainWindow):
         except requests.exceptions.RequestException as exc:
             self.critical(str(exc))
 
+    def get_topology(self):
+        self.shell().debug("get_topology action")
+        try:
+            r_ = requests.get(url=self.__url + "topology")
+            if r_.status_code != requests.codes.ok:
+                self.warn("Error code returned!")
+
+            else:
+                self.shell().debug("Response=%s" % r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            self.critical(str(exc))
+
+    def get_routeHosts(self):
+        self.shell().debug("get_routeHosts action")
+        self.centralWidget().clear()
+
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(4)
+        self.centralWidget().setHorizontalHeaderLabels(['N. PORTs',
+                                        'N. LINKs', 'N. HOSTs', ''])
+
+        c3_ = HostsEnvButton(self.__url + 'route_hosts/',
+                             self.centralWidget(), self)
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('0'))
+        self.centralWidget().setCellWidget(0, 3, c3_)
+
+    def get_routePorts(self):
+        self.shell().debug("get_routePorts action")
+        self.critical("Not implemented yet!")
+
+    def create_entry(self):
+        self.shell().debug("create_entry action")
+        self.critical("Not implemented yet!")
+
+    def delete_entry(self):
+        self.shell().debug("delete_entry action")
+        self.critical("Not implemented yet!")
 
 def main(argv=None):
     psr_ = ap.ArgumentParser(description='Fibre GUI-manager',
