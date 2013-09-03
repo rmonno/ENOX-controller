@@ -1406,6 +1406,51 @@ class GUIManager(QtGui.QMainWindow):
         except requests.exceptions.RequestException as exc:
             self.critical(str(exc))
 
+    def __show_topology(self, r):
+        c_ = self.centralWidget
+        c_().clear()
+        len_ = 1 + len(r.json()['topology']['dpids']) +\
+               2 + len(r.json()['topology']['links']) +\
+               2 + len(r.json()['topology']['hosts'])
+        c_().setRowCount(len_)
+        c_().setColumnCount(3)
+
+        c_().setCellWidget(0, 0, QtGui.QLineEdit('DPIDs'))
+        c_().setCellWidget(0, 1, QtGui.QLineEdit('PORTs'))
+        i = 1
+        for d_ in r.json()['topology']['dpids']:
+            c_().setCellWidget(i,0,QtGui.QTextEdit(str(d_['dpid'])))
+            cb_ = QtGui.QComboBox()
+            for p_ in d_['ports']:
+                cb_.addItem(str(p_['port_no']))
+
+            c_().setCellWidget(i,1,cb_)
+            i = i + 1
+
+        i = i + 1
+        c_().setCellWidget(i, 0, QtGui.QLineEdit('LINKs-ID'))
+        c_().setCellWidget(i, 1, QtGui.QLineEdit('CAPACITY'))
+
+        i = i + 1
+        for l_ in r.json()['topology']['links']:
+            c_().setCellWidget(i, 0, QtGui.QTextEdit(str(l_['id'])))
+            c_().setCellWidget(i, 1, QtGui.QTextEdit(str(l_['capacity'])))
+            i = i + 1
+
+        i = i + 1
+        c_().setCellWidget(i, 0, QtGui.QLineEdit('HOSTs-IP'))
+        c_().setCellWidget(i, 1, QtGui.QLineEdit('DPID'))
+        c_().setCellWidget(i, 2, QtGui.QLineEdit('PORT-No'))
+
+        i = i + 1
+        for h_ in r.json()['topology']['hosts']:
+            c_().setCellWidget(i, 0, QtGui.QTextEdit(str(h_['ip_addr'])))
+            c_().setCellWidget(i, 1, QtGui.QTextEdit(str(h_['dpid'])))
+            c_().setCellWidget(i, 2, QtGui.QTextEdit(str(h_['port_no'])))
+            i = i + 1
+
+        c_().resizeColumnsToContents()
+
     def get_topology(self):
         self.shell().debug("get_topology action")
         try:
@@ -1415,6 +1460,7 @@ class GUIManager(QtGui.QMainWindow):
 
             else:
                 self.shell().debug("Response=%s" % r_.text)
+                self.__show_topology(r_)
 
         except requests.exceptions.RequestException as exc:
             self.critical(str(exc))

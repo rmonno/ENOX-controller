@@ -236,3 +236,52 @@ class HTTPResponseGetSERVICESInfo(object):
 
         return json.dumps(info, sort_keys=True, indent=4,
                           separators=(',', ': '))
+
+
+class HTTPResponseGetTOPOLOGY(object):
+    def __init__(self, ports, links, hosts):
+        self._ports = ports
+        self._links = links
+        self._hosts = hosts
+
+    def __link_info(self, r):
+        # bw stored in [kb/s], need conversion in [b/s]
+        return (str(r['src_dpid']) + ':' + str(r['src_pno']) + '-' +\
+                str(r['dst_dpid']) + ':' + str(r['dst_pno']),
+                long(r['available_bw']) * 1000)
+
+    def __host_info(self, r):
+        return (r['ip_addr'], r['dpid'], r['in_port'])
+
+    def __dpid_info(self, rs):
+        info_ = {}
+        for r_ in rs:
+            if info_.has_key(r_['datapath_id']):
+                info_[r_['datapath_id']].append(r_['port_no'])
+            else:
+                info_[r_['datapath_id']] = [r_['port_no']]
+
+        return info_
+
+    def body(self):
+        info = {'topology':{'dpids':[], 'links':[], 'hosts':[]}}
+        dpid_ = self.__dpid_info(self._ports)
+        for k_ in dpid_.keys():
+            tmp_ = {'dpid': k_, 'ports': []}
+            for pno_ in dpid_[k_]:
+                tmp_['ports'].append({'port_no': pno_})
+            info['topology']['dpids'].append(tmp_)
+
+        for l_ in self._links:
+            (id_, bw_) = self.__link_info(l_)
+            info['topology']['links'].append({'id': id_,
+                                              'capacity': bw_})
+
+        for h_ in self._hosts:
+            (ip_, dpid_, pno_) = self.__host_info(h_)
+            info['topology']['hosts'].append({'ip_addr': ip_,
+                                              'dpid': dpid_,
+                                              'port_no': pno_})
+
+        return json.dumps(info, sort_keys=True, indent=4,
+                          separators=(',', ': '))

@@ -1082,7 +1082,23 @@ def service_delete(id):
 @bottle.get('/topology')
 def get_topology():
     WLOG.info("Enter http (extensions) get_topology")
-    bottle.abort(500, 'Sorry, not implemented yet!')
+    try:
+        PROXY_DB.open_transaction()
+        ports_ = PROXY_DB.port_select()
+        links_ = PROXY_DB.link_select()
+        hosts_ = PROXY_DB.host_select()
+
+        WLOG.info("PORTS=%s, LINKS=%s, HOSTS=%s" % (ports_, links_, hosts_))
+
+        resp_ = nxw_utils.HTTPResponseGetTOPOLOGY(ports_, links_, hosts_)
+        return resp_.body()
+
+    except nxw_utils.DBException as err:
+        WLOG.error("topology: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
 
 @bottle.get('/route_hosts')
 def get_route_hosts():
