@@ -1455,6 +1455,7 @@ class GUIManager(QtGui.QMainWindow):
         self.shell().debug("get_topology action")
         try:
             r_ = requests.get(url=self.__url + "topology")
+            self.shell().debug("Response obj=%s" % r_)
             if r_.status_code != requests.codes.ok:
                 self.warn("Error code returned!")
 

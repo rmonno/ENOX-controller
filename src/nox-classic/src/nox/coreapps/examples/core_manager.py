@@ -1079,14 +1079,28 @@ def service_delete(id):
 #
 # northbound interface: OSCARS extensions
 #
+def secure_select(action):
+    try:
+        if action == 'port':
+            return PROXY_DB.port_select()
+        elif action == 'link':
+            return PROXY_DB.link_select()
+        elif action == 'host':
+            return PROXY_DB.host_select()
+
+    except nxw_utils.DBException as err:
+        WLOG.warning("%s: %s" % (action, err))
+
+    return []
+
 @bottle.get('/topology')
 def get_topology():
     WLOG.info("Enter http (extensions) get_topology")
     try:
         PROXY_DB.open_transaction()
-        ports_ = PROXY_DB.port_select()
-        links_ = PROXY_DB.link_select()
-        hosts_ = PROXY_DB.host_select()
+        ports_ = secure_select('port')
+        links_ = secure_select('link')
+        hosts_ = secure_select('host')
 
         WLOG.info("PORTS=%s, LINKS=%s, HOSTS=%s" % (ports_, links_, hosts_))
 
