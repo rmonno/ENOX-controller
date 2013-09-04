@@ -550,10 +550,13 @@ class DiscoveryPacket(Component):
     def __extract_flow_info(self, flowevent):
         """ Returns flow attributes from the pckt_flowentry_event """
         attrs = {}
-
         attrs[IN_PORT] = flowevent.dataport_in
-        attrs[NW_SRC] = str(flowevent.ip_src)
-        attrs[NW_DST] = str(flowevent.ip_dst)
+
+        if flowevent.ip_src:
+            attrs[NW_SRC] = str(flowevent.ip_src)
+
+        if flowevent.ip_dst:
+            attrs[NW_DST] = str(flowevent.ip_dst)
 
         if flowevent.ether_source:
             attrs[core.DL_SRC] = flowevent.ether_source
@@ -564,20 +567,11 @@ class DiscoveryPacket(Component):
         if flowevent.ether_type:
             attrs[core.DL_TYPE] = flowevent.ether_type
 
-        attrs[core.DL_VLAN] = 0xffff # XXX should be written OFP_VLAN_NONE
-        attrs[core.DL_VLAN_PCP] = 0
-
         if flowevent.vlan_id:
             attrs[core.DL_VLAN] = flowevent.vlan_id
 
         if flowevent.vlan_priority:
             attrs[core.DL_VLAN_PCP] = flowevent.vlan_priority
-
-        attrs[core.NW_SRC] = 0
-        attrs[core.NW_DST] = 0
-        attrs[core.NW_PROTO] = 0
-        attrs[core.TP_SRC] = 0
-        attrs[core.TP_DST] = 0
 
         if flowevent.ip_src:
             attrs[core.NW_SRC] = str(flowevent.ip_src)

@@ -1127,7 +1127,67 @@ def get_route_ports():
 @bottle.post('/entry')
 def post_entry():
     WLOG.info("Enter http (extensions) post_entry")
-    bottle.abort(500, 'Sorry, not implemented yet!')
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    try:
+        PROXY_DB.open_transaction()
+        resp_ = nxw_utils.HTTPResponsePostENTRY()
+
+        for r_ in bottle.request.json['routes']:
+            src_ip_  = r_.get('src_ip_addr', None)
+            dst_ip_  = r_.get('dst_ip_addr', None)
+            src_tcp_ = int(r_.get('src_tcp_port', 0xffff))
+            dst_tcp_ = int(r_.get('dst_tcp_port', 0xffff))
+            idle_    = int(r_.get('idle_timeout', 300))
+
+            evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=long(r_['dpid']),
+                                    port_in=int(r_['in_port_no']),
+                                    dp_out=long(r_['dpid']),
+                                    port_out=int(r_['out_port_no']),
+                                    vid=int(r_['vlan_id']),
+                                    ip_src=src_ip_,
+                                    ip_dst=dst_ip_,
+                                    tcp_sport=src_tcp_,
+                                    tcp_dport=dst_tcp_,
+                                    idle=idle_,
+                                    hard=openflow.OFP_FLOW_PERMANENT,
+                                    prio=openflow.OFP_DEFAULT_PRIORITY,
+                                    action=openflow.OFPAT_OUTPUT)
+            WLOG.info(str(evt_))
+            PROXY_POST(evt_.describe())
+
+            PROXY_DB.flow_insert(dpid=r_['dpid'],
+                                 in_port=r_['in_port_no'],
+                                 dl_vlan=r_['vlan_id'],
+                                 nw_src=src_ip_,
+                                 nw_dst=dst_ip_,
+                                 tp_src=src_tcp_,
+                                 tp_dst=dst_tcp_,
+                                 idle_timeout=idle_,
+                                 hard_timeout=openflow.OFP_FLOW_PERMANENT,
+                                 priority=openflow.OFP_DEFAULT_PRIORITY,
+                                 action=openflow.OFPAT_OUTPUT)
+            fid_ = PROXY_DB.flow_get_index(dpid=r_['dpid'],
+                                           nw_src=src_ip_,
+                                           nw_dst=dst_ip_,
+                                           tp_src=src_tcp_,
+                                           tp_dst=dst_tcp_,
+                                           dl_vlan=r_['vlan_id'],
+                                           in_port=r_['in_port_no'])
+            resp_.update(r_, fid_)
+
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body=resp_.body(), status=201)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("post_entry: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
 
 @bottle.delete('/entry/<id:int>')
 def delete_entry(id):

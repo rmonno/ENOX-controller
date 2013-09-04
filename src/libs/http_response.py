@@ -285,3 +285,16 @@ class HTTPResponseGetTOPOLOGY(object):
 
         return json.dumps(info, sort_keys=True, indent=4,
                           separators=(',', ': '))
+
+
+class HTTPResponsePostENTRY(object):
+    def __init__(self):
+        self._info = []
+
+    def update(self, entry, entry_id):
+        entry['entry_id'] = entry_id
+        self._info.append(entry)
+
+    def body(self):
+        return json.dumps({'routes': self._info}, sort_keys=True, indent=4,
+                          separators=(',', ': '))

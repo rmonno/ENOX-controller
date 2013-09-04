@@ -808,6 +808,24 @@ class EntriesButton(Button):
             params.append(tmp_)
             start = start + 1
 
+    def __show_route(self, l, info):
+        src_ip_ = str(info.get('src_ip_addr', ''))
+        dst_ip_ = str(info.get('dst_ip_addr', ''))
+        src_tcp_ = str(info.get('src_tcp_port', ''))
+        dst_tcp_ = str(info.get('dst_tcp_port', ''))
+        idle_ = str(info.get('idle_timeout', ''))
+
+        self.__c.setCellWidget(l,0,QtGui.QTextEdit(str(info['entry_id'])))
+        self.__c.setCellWidget(l,1,QtGui.QTextEdit(str(info['dpid'])))
+        self.__c.setCellWidget(l,2,QtGui.QTextEdit(str(info['in_port_no'])))
+        self.__c.setCellWidget(l,3,QtGui.QTextEdit(str(info['out_port_no'])))
+        self.__c.setCellWidget(l,4,QtGui.QTextEdit(str(info['vlan_id'])))
+        self.__c.setCellWidget(l,5,QtGui.QTextEdit(src_ip_))
+        self.__c.setCellWidget(l,6,QtGui.QTextEdit(dst_ip_))
+        self.__c.setCellWidget(l,7,QtGui.QTextEdit(src_tcp_))
+        self.__c.setCellWidget(l,8,QtGui.QTextEdit(dst_tcp_))
+        self.__c.setCellWidget(l,9,QtGui.QTextEdit(idle_))
+
     def onClick(self):
         params_ = {'routes': []}
         self.routes(0, params_['routes'])
@@ -816,12 +834,23 @@ class EntriesButton(Button):
         try:
             r_ = requests.post(url=self.__url, data=json.dumps(params_),
                                headers={'content-type': 'application/json'})
+            self.debug("Response obj=%s" % (r_))
             if r_.status_code != 201:
                 self.error(r_.text)
 
             else:
                 self.debug("Response=%s" % r_.text)
-                self.info_popup(r_.text)
+                self.__c.clear()
+                self.__c.setRowCount(len(r_.json()['routes']))
+                self.__c.setColumnCount(10)
+                ls_ = ['ENTRY-ID','DPID','IN-PORT','OUT-PORT','VLAN-ID',
+                       'SRC-IP','DST-IP','SRC-TCP-PORT','DST-TCP-PORT','IDLE']
+                self.__c.setHorizontalHeaderLabels(ls_)
+
+                i = 0
+                for r_ in r_.json()['routes']:
+                    self.__show_route(i, r_)
+                    i = i + 1
 
         except requests.exceptions.RequestException as exc:
             self.error(str(exc))
