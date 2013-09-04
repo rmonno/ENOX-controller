@@ -1192,7 +1192,40 @@ def post_entry():
 @bottle.delete('/entry/<id:int>')
 def delete_entry(id):
     WLOG.info("Enter http (extensions) delete_entry: entry_id=%d", id)
-    bottle.abort(500, 'Sorry, not implemented yet!')
+    try:
+        PROXY_DB.open_transaction()
+        info_ = PROXY_DB.flow_id_select(flowid=id)
+
+        src_ip_ = info_['nw_src'] if info_['nw_src'] else None
+        dst_ip_ = info_['nw_dst'] if info_['nw_dst'] else None
+        src_tp_ = info_['tp_src'] if info_['tp_src'] else 0xffff
+        dst_tp_ = info_['tp_dst'] if info_['tp_dst'] else 0xffff
+        proto_ = info_['nw_proto'] if info_['nw_proto'] else 0xffff
+
+        evt_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=long(info_['dpid']),
+                                                port_in=int(info_['in_port']),
+                                                dp_out=long(info_['dpid']),
+                                                port_out=None,
+                                                vid=int(info_['dl_vlan']),
+                                                ip_src=src_ip_,
+                                                ip_dst=dst_ip_,
+                                                tcp_sport=src_tp_,
+                                                tcp_dport=dst_tp_,
+                                                ip_proto=proto_)
+        WLOG.info(str(evt_))
+        PROXY_POST(evt_.describe())
+
+        PROXY_DB.flow_id_delete(flowid=id)
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed!', status=204)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("delete_entry: " + str(err))
+        bottle.abort(404, str(err))
+
+    finally:
+        PROXY_DB.close()
 
 # end of OSCARS extensions
 

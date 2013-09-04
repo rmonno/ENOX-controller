@@ -756,6 +756,15 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         self.__execute(statement, values)
 
+    def flow_id_delete(self, flowid):
+        """ Flow entry deletion """
+        table = "flow_entries"
+
+        statement = "DELETE FROM " + table + " WHERE flow_id=%s"
+        values = (str(flowid),)
+
+        self.__execute(statement, values)
+
     def flow_select(self, dpid=None):
         """ flow_entries select """
         table = "flow_entries"
@@ -767,6 +776,15 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
             values = values + (str(dpid),)
 
         return self.__execute_dict(statement, values, one=False)
+
+    def flow_id_select(self, flowid):
+        """ flow_entries select """
+        table = "flow_entries"
+
+        statement = "SELECT * FROM " + table + " WHERE flow_id=%s"
+        values = (str(flowid),)
+
+        return self.__execute_dict(statement, values, one=True)
 
     def flow_get_index(self, dpid, table_id=None, dl_src=None, dl_dst=None,
                        nw_src=None, nw_dst=None, tp_src=None, tp_dst=None,

@@ -871,12 +871,12 @@ class DeleteEntryButton(Button):
         self.debug("delete-entry: url=%s, id=%s" % (self.__url, id_))
         try:
             r_ = requests.delete(url=self.__url + id_)
+            self.debug("Response obj=%s" % (r_))
             if r_.status_code != 204:
                 self.error(r_.text)
 
             else:
-                self.debug("Response=%s" % r_.text)
-                self.info_popup(r_.text)
+                self.info_popup('Successfully deleted!')
 
         except requests.exceptions.RequestException as exc:
             self.error(str(exc))

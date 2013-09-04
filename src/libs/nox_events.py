@@ -74,8 +74,9 @@ class Pckt_flowEntryEvent(pyevent):
 class Pckt_delFlowEntryEvent(pyevent):
     NAME = 'pckt_delete_flow_entry_event'
 
-    def __init__(self, dp_in, port_in, dp_out, port_out, ip_src, ip_dst,
-                 tcp_dport=None, tcp_sport=None, ip_proto=None, vid=None):
+    def __init__(self, dp_in, port_in, dp_out, port_out,
+                 ip_src=None, ip_dst=None, tcp_dport=0xffff, tcp_sport=0xffff,
+                 ip_proto=0xffff, vid=None):
         self.datapath_in = dp_in
         self.dataport_in = port_in
         self.datapath_out = dp_out
@@ -83,9 +84,9 @@ class Pckt_delFlowEntryEvent(pyevent):
         self.vlan_id = vid
         self.ip_src = ip_src
         self.ip_dst = ip_dst
-        self.ip_proto = ip_proto
-        self.tcp_udp_src_port = tcp_sport
-        self.tcp_udp_dst_port = tcp_dport
+        self.ip_proto = ip_proto if ip_proto != 0xffff else None
+        self.tcp_udp_src_port = tcp_sport if tcp_sport != 0xffff else None
+        self.tcp_udp_dst_port = tcp_dport if tcp_dport != 0xffff else None
         self.ether_source = None
         self.ether_dst = None
         self.ether_type = None

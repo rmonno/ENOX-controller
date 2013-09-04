@@ -433,8 +433,26 @@ class TopologyOFCBase(object):
         pass
 
     @abstractmethod
+    def flow_id_delete(self, flowid):
+        """ Flow entry deletion
+        :param flowid: flow identifier
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
     def flow_select(self, dpid=None):
         """Select * from flow_entries table
+
+        :raises: DBException
+        """
+        pass
+
+    @abstractmethod
+    def flow_id_select(self, flowid):
+        """Select * from flow_entries table
+        :param flowid: flow identifier
 
         :raises: DBException
         """
