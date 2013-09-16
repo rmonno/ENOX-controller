@@ -1114,14 +1114,131 @@ def get_topology():
     finally:
         PROXY_DB.close()
 
-@bottle.get('/route_hosts')
-def get_route_hosts():
-    WLOG.info("Enter http (extensions) get_route_hosts")
-    bottle.abort(500, 'Sorry, not implemented yet!')
+def decode_link_id(l_id):
+    id1_ = l_id.find('-')
+    id2_ = l_id.find(':', 0, id1_)
+    id3_ = l_id.find(':', id1_, len(l_id))
 
-@bottle.get('/route_ports')
-def get_route_ports():
-    WLOG.info("Enter http (extensions) get_route_ports")
+    if id1_ == -1 or id2_ == -1 or id3_ == -1:
+        return (None, None, None, None)
+
+    return (int(l_id[:id2_]), int(l_id[id2_+1:id1_]),
+            int(l_id[id1_+1:id3_]), int(l_id[id3_+1:]))
+
+def check_pce_topology(topology):
+    ports_ = {}
+    for ds_ in topology['dpids']:
+        ports_[int(ds_['dpid'])] = []
+        for ps_ in ds_['ports']:
+            ports_[int(ds_['dpid'])].append(int(ps_['port_no']))
+
+    WLOG.info("PORTs=%s" % (ports_,))
+
+    links_ = []
+    for ls_ in topology['links']:
+        in_out_ = decode_link_id(ls_['id'])
+        if in_out_[0] not in ports_.keys():
+            return "src_dpid Bad Argument: %s" % in_out_[0], None, None, None
+
+        if in_out_[1] not in ports_[in_out_[0]]:
+            return "src_port Bad Argument: %s" % in_out_[1], None, None, None
+
+        if in_out_[2] not in ports_.keys():
+            return "dst_dpid Bad Argument: %s" % in_out_[2], None, None, None
+
+        if in_out_[3] not in ports_[in_out_[2]]:
+            return "dst_port Bad Argument: %s" % in_out_[3], None, None, None
+
+        links_.append((in_out_, long(ls_['capacity'])))
+
+    WLOG.info("LINKs=%s" % (links_,))
+
+    hosts_ = []
+    for hs_ in topology['hosts']:
+        if int(hs_['dpid']) not in ports_.keys():
+            return "host_dpid Bad Argument: %s" % hs_['dpid'], None, None, None
+
+        if int(hs_['port_no']) not in ports_[int(hs_['dpid'])]:
+            return "host_port Bad Argument: %s" % hs_['port_no'],\
+                    None, None, None
+
+        hosts_.append((hs_['ip_addr'], int(hs_['dpid']), int(hs_['port_no'])))
+
+    WLOG.info("HOSTs=%s" % (hosts_,))
+    return 'ok', ports_, links_, hosts_
+
+def create_pce_topology(ports, links, hosts):
+    for dp_ in ports.keys():
+        PROXY_PCE.add_node(dp_)
+
+    for lid_, bw_ in links:
+        PROXY_PCE.add_link(lid_[0], lid_[1], lid_[2], lid_[3], bw_)
+
+    for ip_, dp_, p_ in hosts:
+        PROXY_PCE.add_host(ip_, dp_, p_)
+
+
+def delete_pce_topology(ports, links, hosts):
+    for ip_, dp_, p_ in hosts:
+        PROXY_PCE.del_host(ip_, dp_, p_)
+
+    for lid_, bw_ in links:
+        PROXY_PCE.del_link(lid_[0], lid_[1], lid_[2], lid_[3])
+
+    for dp_ in ports.keys():
+        PROXY_PCE.del_node(dp_)
+
+@bottle.post('/route_hosts')
+def post_route_hosts():
+    WLOG.info("Enter http (extensions) post_route_hosts")
+
+    if bottle.request.headers['content-type'] != 'application/json':
+        bottle.abort(500, 'Application Type must be json!')
+
+    if not PROXY_PCE_CHECK('topology'):
+        PROXY_PCE.disable('topology')
+        bottle.abort(500, "Unable to contact ior-dispatcher (topology)!")
+
+    if not PROXY_PCE_CHECK('routing'):
+        PROXY_PCE.disable('routing')
+        bottle.abort(500, "Unable to contact ior-dispatcher (routing)!")
+
+    err, ps, ls, hs = check_pce_topology(bottle.request.json['topology'])
+    if err != 'ok':
+        bottle.abort(500, str(err))
+
+    try:
+        create_pce_topology(ps, ls, hs)
+
+        s_ = bottle.request.json['endpoints']['src_ip_addr']
+        d_ = bottle.request.json['endpoints']['dst_ip_addr']
+        bw_ = int(bottle.request.json['endpoints']['bw_constraint'])
+
+        (w_, p_, ret_) = PROXY_PCE.connection_route_from_hosts_bw(s_, d_, bw_)
+        if ret_ != 'ok':
+            bottle.abort(500, ret_)
+        elif not w_:
+            bottle.abort(500, "Unable to found working ERO!")
+
+        WLOG.info("WorkingEro(%d)=%s", len(w_), str(w_))
+        WLOG.debug("ProtectedEro(%d)=%s", len(p_), str(p_))
+
+        flows = []
+        for idx_x, idx_y in zip(w_, w_[1:]):
+            (din_idx, pin_idx) = PROXY_PCE.decode_ero_item(idx_x)
+            (dout_idx, pout_idx) = PROXY_PCE.decode_ero_item(idx_y)
+
+            flows.append((din_idx, pin_idx, dout_idx, pout_idx))
+
+        cflows = convert_flows_from_index(flows)
+        WLOG.error("xxxxxxxxxxxxxxxx %s" % cflows)
+
+    finally:
+        delete_pce_topology(ps, ls, hs)
+
+@bottle.post('/route_ports')
+def post_route_ports():
+    WLOG.info("Enter http (extensions) post_route_ports")
     bottle.abort(500, 'Sorry, not implemented yet!')
 
 @bottle.post('/entry')

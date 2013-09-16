@@ -66,6 +66,12 @@ class NetNode(object):
                                             GLOB.gmplsTypes.ADMINSTATE_ENABLED)
         return GLOB.gmplsTypes.netNodeParams(False, states, 0, [], 0)
 
+class EnhNetNode(NetNode):
+    def __init__(self, node_id):
+        self.nid = node_id
+        self.ident = GLOB.gmplsTypes.nodeIdent(self.nid,
+                                              GLOB.gmplsTypes.NODETYPE_NETWORK)
+
 
 class NetLink(object):
     """ Net-Link object """
@@ -108,6 +114,18 @@ class NetLink(object):
         states = GLOB.gmplsTypes.statesBundle(GLOB.gmplsTypes.OPERSTATE_UP,
                                           GLOB.gmplsTypes.ADMINSTATE_ENABLED)
         return states
+
+class EnhNetLink(NetLink):
+    def __init__(self, a_dpid, a_port, b_dpid, b_port):
+        lnid = a_dpid
+        lid = GLOB.gmplsTypes.linkId(GLOB.gmplsTypes.LINKIDTYPE_UNNUM, a_port)
+        rnid = b_dpid
+        rid = GLOB.gmplsTypes.linkId(GLOB.gmplsTypes.LINKIDTYPE_UNNUM, b_port)
+        rcid = convert_ipv4_to_int("0.0.0.0")
+
+        self.ident = GLOB.gmplsTypes.teLinkIdent(lnid, lid, rnid, rid,
+                                        GLOB.gmplsTypes.LINKMODE_P2P_NUMBERED,
+                                                 rcid, rcid)
 
 
 class ConnectionEP(object):
@@ -505,6 +523,129 @@ class FPCE(object):
         LOG.error("%s exception: %s" % (name, exe.what))
         return exe.what
 
+    def add_node(self, node_id):
+        """ add node from id """
+        assert(node_id is not None)
+        LOG.info("Try to add node=%d" % node_id)
+
+        try:
+            enet = EnhNetNode(node_id)
+            self.info.nodeAdd(enet.ident)
+            # update net-params (enabled + up)
+            self.info.netNodeUpdate(enet.nid, enet.net_params())
+            LOG.debug("Successfully added node: %s", str(enet))
+
+        except TOPOLOGY.NodeAlreadyExists, exe:
+            LOG.error("NodeAlreadyExists exception: %s", str(exe))
+        except TOPOLOGY.InternalProblems, exe:
+            LOG.error("InternalProblems exception: %s", str(exe))
+        except TOPOLOGY.InvocationNotAllowed, exe:
+            LOG.error("InvocationNotAllowed exception: %s", str(exe))
+        except Exception, exe:
+            LOG.error("Generic exception: %s", str(exe))
+
+    def del_node(self, node_id):
+        """ delete node from id """
+        assert(node_id is not None)
+        LOG.info("Try to del node=%d" % node_id)
+
+        try:
+            enet = EnhNetNode(node_id)
+            self.info.nodeDel(enet.ident)
+            LOG.debug("Successfully deleted node: %s", str(enet))
+
+        except TOPOLOGY.CannotFetchNode, exe:
+            LOG.error("CannotFetchNode exception: %s", str(exe))
+        except TOPOLOGY.InternalProblems, exe:
+            LOG.error("InternalProblems exception: %s", str(exe))
+        except TOPOLOGY.InvocationNotAllowed, exe:
+            LOG.error("InvocationNotAllowed exception: %s", str(exe))
+        except Exception, exe:
+            LOG.error("Generic exception: %s", str(exe))
+
+    def add_link(self, dpid_a, port_a, dpid_b, port_b, available_bw=None):
+        """ add link from id """
+        assert(dpid_a is not None)
+        assert(dpid_b is not None)
+        assert(port_a is not None)
+        assert(port_b is not None)
+        LOG.info("Try to add link=(%d:%d) -> (%d:%d), BW=%s",
+                 dpid_a, port_a, dpid_b, port_b, str(available_bw))
+        try:
+            lnk = EnhNetLink(dpid_a, port_a, dpid_b, port_b)
+            self.info.linkAdd(lnk.ident)
+            # update common link-params
+            self.info.teLinkUpdateCom(lnk.ident, lnk.com_params(available_bw))
+            # update available bandwidth
+            self.info.teLinkUpdateGenBw(lnk.ident, lnk.avail_bw(available_bw))
+            # append isc gen
+            self.info.teLinkAppendIsc(lnk.ident, lnk.isc_gen(available_bw))
+            # update states
+            self.info.teLinkUpdateStates(lnk.ident, lnk.states())
+            LOG.debug("Successfully added link: %s", str(lnk))
+
+        except TOPOLOGY.CannotFetchNode, exe:
+            LOG.error("CannotFetchNode exception: %s", str(exe))
+        except TOPOLOGY.CannotFetchLink, exe:
+            LOG.error("CannotFetchLink exception: %s", str(exe))
+        except TOPOLOGY.LinkAlreadyExists, exe:
+            LOG.error("LinkAlreadyExists exception: %s", str(exe))
+        except TOPOLOGY.LinkParamsMismatch, exe:
+            LOG.error("LinkParamsMismatch exception: %s", str(exe))
+        except TOPOLOGY.InternalProblems, exe:
+            LOG.error("InternalProblems exception: %s", str(exe))
+        except TOPOLOGY.InvocationNotAllowed, exe:
+            LOG.error("InvocationNotAllowed exception: %s", str(exe))
+        except Exception, exe:
+            LOG.error("Generic exception: %s", str(exe))
+
+    def del_link(self, dpid_a, port_a, dpid_b, port_b):
+        """ delete link from string """
+        assert(dpid_a is not None)
+        assert(dpid_b is not None)
+        assert(port_a is not None)
+        assert(port_b is not None)
+        LOG.info("Try to del link=(%d:%d) -> (%d:%d)",
+                 dpid_a, port_a, dpid_b, port_b)
+        try:
+            lnk = EnhNetLink(dpid_a, port_a, dpid_b, port_b)
+            self.info.linkDel(lnk.ident)
+            LOG.debug("Successfully deleted link: %s", str(lnk))
+
+        except TOPOLOGY.CannotFetchNode, exe:
+            LOG.error("CannotFetchNode exception: %s", str(exe))
+        except TOPOLOGY.CannotFetchLink, exe:
+            LOG.error("CannotFetchLink exception: %s", str(exe))
+        except TOPOLOGY.InternalProblems, exe:
+            LOG.error("InternalProblems exception: %s", str(exe))
+        except TOPOLOGY.InvocationNotAllowed, exe:
+            LOG.error("InvocationNotAllowed exception: %s", str(exe))
+        except Exception, exe:
+            LOG.error("Generic exception: %s", str(exe))
+
+    def add_host(self, ipv4, rem_dpid, rem_port):
+        """ add host from id """
+        assert(ipv4 is not None)
+        assert(rem_dpid is not None)
+        assert(rem_port is not None)
+        LOG.info("Try to add host=%s -> (%d:%d)" % (ipv4, rem_dpid, rem_port))
+
+        ip_ = convert_ipv4_to_int(ipv4)
+        self.add_node(ip_)
+        self.add_link(ip_, 0, rem_dpid, rem_port)
+        self.add_link(rem_dpid, rem_port, ip_, 0)
+
+    def del_host(self, ipv4, rem_dpid, rem_port):
+        """ delete host from id """
+        assert(ipv4 is not None)
+        assert(rem_dpid is not None)
+        assert(rem_port is not None)
+        LOG.info("Try to del host=%s -> (%d:%d)" % (ipv4, rem_dpid, rem_port))
+
+        ip_ = convert_ipv4_to_int(ipv4)
+        self.del_link(ip_, 0, rem_dpid, rem_port)
+        self.del_link(rem_dpid, rem_port, ip_, 0)
+        self.del_node(ip_)
 
 class FPCEManager(FPCE):
     def __init__(self, addr, port, size=1024):

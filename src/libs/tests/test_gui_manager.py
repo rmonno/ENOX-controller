@@ -693,8 +693,8 @@ class HostsRouteButton(Button):
 
         self.debug("route: url=%s, params=%s" % (self.__url, params_))
         try:
-            r_ = requests.get(url=self.__url, data=json.dumps(params_),
-                              headers={'content-type': 'application/json'})
+            r_ = requests.post(url=self.__url, data=json.dumps(params_),
+                               headers={'content-type': 'application/json'})
             if r_.status_code != 200:
                 self.error(r_.text)
 
