@@ -311,6 +311,17 @@ class FPCE(object):
         portno = indexfromUpperLower(nid[2], nid[3])
         return (dpid, portno)
 
+    def decode_ero_item_nodelink(self, ero_item):
+        if ero_item._d != GLOB.gmplsTypes.EROSUBOBJTYPE_PUBLIC:
+            LOG.warning("Not managed ERO-TYPE!")
+            return (None, None)
+
+        if ero_item.hop.teLink._d != GLOB.gmplsTypes.LINKIDTYPE_UNNUM:
+            LOG.warning("Not managed LINK-ID-TYPE!")
+            return (None, None)
+
+        return (ero_item.hop.node, ero_item.hop.teLink.unnum)
+
     def add_node_from_string(self, node):
         """ add node from string """
         assert(node is not None)

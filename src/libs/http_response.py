@@ -298,3 +298,17 @@ class HTTPResponsePostENTRY(object):
     def body(self):
         return json.dumps({'routes': self._info}, sort_keys=True, indent=4,
                           separators=(',', ': '))
+
+
+class HTTPResponsePostROUTE(object):
+    def __init__(self):
+        self._info = []
+
+    def update(self, dpid, in_port, out_port):
+        self._info.append({'dpid': dpid,
+                           'in_port_no': in_port,
+                           'out_port_no': out_port})
+
+    def body(self):
+        return json.dumps({'routes': self._info}, sort_keys=True, indent=4,
+                          separators=(',', ': '))
