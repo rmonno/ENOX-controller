@@ -445,28 +445,12 @@ class DiscoveryPacket(Component):
     def flow_mod_handler(self, ingress):
         """ Handler for Flow_mod event """
         assert(ingress is not None)
-        try:
-            data = ingress.__dict__
-            LOG.debug("Received flow_mod_ev with the following data: %s" % \
-                       str(data))
-            return CONTINUE
-
-        except Exception, err:
-            LOG.error("Got error in flow_mod_handler (%s)" % str(err))
-            return CONTINUE
+        LOG.debug("Received flow_mod_ev: %s" % (ingress,))
 
     def flow_removed_handler(self, ingress):
         """ Handler for Flow_removed event """
         assert(ingress is not None)
-        try:
-            data = ingress.__dict__
-            LOG.debug("Received flow_rem_ev with the following data: %s" % \
-                       str(data))
-            return CONTINUE
-
-        except Exception, err:
-            LOG.error("Got error in flow_removed_handler (%s)" % str(err))
-            return CONTINUE
+        LOG.debug("Received flow_rem_ev: %s" % (ingress,))
 
     def __host_leave(self, dladdr):
         """ Handler for host_leave event """
