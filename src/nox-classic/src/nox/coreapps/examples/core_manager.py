@@ -26,6 +26,8 @@ import logging
 import bottle
 import threading
 import time
+import requests
+import json
 
 from nox.lib.core import Component
 from nox.lib.packet.ethernet import ethernet
@@ -52,6 +54,7 @@ PROXY_POST = None
 PROXY_DB = None
 PROXY_PCE_CHECK = None
 PROXY_PCE = None
+PROXY_OSCARS_PUSH_ALARM = None
 
 
 # utilities
@@ -282,6 +285,7 @@ def pckt_dpid_delete(id):
     finally:
         PROXY_DB.close()
 
+    PROXY_OSCARS_PUSH_ALARM({'type': 'Switch-failure', 'dpid': id})
     return bottle.HTTPResponse(body='Operation completed', status=204)
 
 
@@ -1400,6 +1404,38 @@ def delete_entry(id):
     finally:
         PROXY_DB.close()
 
+
+class OscarsService(object):
+    def __init__(self, host, port):
+        self.__mutex = threading.Lock()
+        self.__alarms = []
+        self.__url = 'http://' + host + ':' + port + '/'
+
+    def push_alarm(self, alarm):
+        try:
+            self.__mutex.acquire()
+            self.__alarms.append(alarm)
+
+        finally:
+            self.__mutex.release()
+
+    def pull_alarms(self):
+        als_ = []
+        try:
+            self.__mutex.acquire()
+            als_ = list(self.__alarms)
+            del self.__alarms[:]
+
+        finally:
+            self.__mutex.release()
+
+        if len(als_):
+            WLOG.info("Pull-alarms=%s" % als_)
+            r_ = requests.post(url=self.__url, data=json.dumps(als_),
+                               headers={'content-type': 'application/json'})
+            if r_.status_code != 201:
+                WLOG.error("Pull-alarms error: %s" % r_.text)
+
 # end of OSCARS extensions
 
 
@@ -1428,6 +1464,7 @@ class CoreManager(Component):
         self._conf_pce = nxw_utils.NoxConfigParser(CoreManager.CONFIG_FILE)
         self._fpce = nxw_utils.FPCE()
         self._server = None
+        self._oscars = None
 
         self._ior_topo = False
         self._ior_rout = False
@@ -1495,9 +1532,15 @@ class CoreManager(Component):
         global PROXY_DB
         global PROXY_PCE_CHECK
         global PROXY_PCE
+        global PROXY_OSCARS_PUSH_ALARM
         self._server = CoreService('core-service', self._conf_ws.host,
                                    self._conf_ws.port, self._conf_ws.debug)
         self.post_callback(int(self._conf_ws.timeout), self.timer_handler)
+
+        self._oscars = OscarsService(self._conf_ws.oscars_host,
+                                     self._conf_ws.oscars_port)
+        self.post_callback(int(self._conf_ws.oscars_timeout),
+                           self.oscars_timer_handler)
 
         PROXY_POST = self.post
         PROXY_DB = nxw_utils.TopologyOFCManager(host=self._conf_db.host,
@@ -1507,6 +1550,7 @@ class CoreManager(Component):
                                                 logger=WLOG)
         PROXY_PCE_CHECK = self.pce_check
         PROXY_PCE = self._fpce
+        PROXY_OSCARS_PUSH_ALARM = self._oscars.push_alarm
         return CONTINUE
 
     def getInterface(self):
@@ -1520,6 +1564,15 @@ class CoreManager(Component):
         else:
             WLOG.error('CoreManager is not running!')
 
+    def oscars_timer_handler(self):
+        WLOG.debug("OscarsManager timeout fired")
+        try:
+            self._oscars.pull_alarms()
+        except Exception as e:
+            WLOG.error("OscarsManager error: %s" % str(e))
+
+        self.post_callback(int(self._conf_ws.oscars_timeout),
+                           self.oscars_timer_handler)
 
 def getFactory():
     """ Get factory """

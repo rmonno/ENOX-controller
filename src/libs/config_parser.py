@@ -55,6 +55,9 @@ class WebServConfigParser:
         self.port = None
         self.timeout = None
         self.debug = None
+        self.oscars_host = None
+        self.oscars_port = None
+        self.oscars_timeout = None
 
         if check_file(filename):
             config = ConfigParser.ConfigParser()
@@ -67,9 +70,14 @@ class WebServConfigParser:
                     self.port = config.get(sect, 'port')
                     self.timeout = config.get(sect, 'timeout')
                     self.debug = config.get(sect, 'debug')
+                    self.oscars_host = config.get(sect, 'oscars_host')
+                    self.oscars_port = config.get(sect, 'oscars_port')
+                    self.oscars_timeout = config.get(sect, 'oscars_timeout')
 
-        LOG.debug("WebServ host=%s, port=%s, timeout=%s, debug=%s",
-                  self.host, self.port, self.timeout, self.debug)
+        LOG.debug("WebServ host=%s, port=%s, timeout=%s, debug=%s, " +\
+                  "oscars_host=%s, oscars_port=%s, oscars_timeout=%s",
+                  self.host, self.port, self.timeout, self.debug,
+                  self.oscars_host, self.oscars_port, self.oscars_timeout)
 
 
 class DBConfigParser:
