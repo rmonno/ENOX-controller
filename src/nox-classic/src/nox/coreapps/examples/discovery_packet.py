@@ -56,6 +56,18 @@ import libs as nxw_utils
 LOG = nxw_utils.ColorLog(logging.getLogger('discovery_packet'))
 
 
+def dpid_from_host(dpid):
+    try:
+        dpid_ = datapathid.from_host(dpid).string()
+        LOG.debug("dpid_from_host: type=%s, dpid=%d, dpid_=%s" %
+                  (type(dpid), dpid, dpid_,))
+        return dpid_
+
+    except Exception as e:
+        LOG.error("dpid_from_host failed: %s" % (str(e,)))
+        return None
+
+
 class DiscoveryPacket(Component):
     """ Discovery Packet Class """
     FCONFIG = LIBS_PATH + "/libs/" + "nox_topologymgr.cfg"
@@ -105,7 +117,9 @@ class DiscoveryPacket(Component):
         if packet.type == ethernet.LLDP_TYPE:
             return CONTINUE
 
-        dpid_ = str(datapathid.from_host(long(str(dpid))))
+        dpid_ = dpid_from_host(dpid)
+        if not dpid_: return CONTINUE
+
         LOG.debug("dpid=%s, inport=%s, reason=%s, len=%s, bufid=%s, p=%s",
                   dpid_, inport, reason, length, str(bufid), str(packet))
 
@@ -203,8 +217,8 @@ class DiscoveryPacket(Component):
         assert (dpid  is not None)
         assert (stats is not None)
 
-        dpid_ = str(datapathid.from_host(long(str(dpid))))
-        LOG.debug("Received datapath_join event for DPID '%s'" % dpid_)
+        dpid_ = dpid_from_host(dpid)
+        if not dpid_: return CONTINUE
 
         try:
             ports = []
@@ -242,7 +256,9 @@ class DiscoveryPacket(Component):
         """ Handler for datapath_leave event """
         assert (dpid is not None)
 
-        dpid_ = str(datapathid.from_host(long(str(dpid))))
+        dpid_ = dpid_from_host(dpid)
+        if not dpid_: return CONTINUE
+
         LOG.debug("Received datapath_leave ev for DPID '%s'" % dpid_)
 
         try:
@@ -264,8 +280,10 @@ class DiscoveryPacket(Component):
     def link_add(self, data):
         """ Add a detected link """
         assert(data is not None)
-        dpsrc_ = str(datapathid.from_host(long(str(data['dpsrc']))))
-        dpdst_ = str(datapathid.from_host(long(str(data['dpdst']))))
+        dpsrc_ = dpid_from_host(data['dpsrc'])
+        dpdst_ = dpid_from_host(data['dpdst'])
+
+        if not dpsrc_ or not dpdst_: return CONTINUE
 
         link_key = self.link_key_build(dpsrc_, dpdst_)
         if link_key in self.links:
@@ -292,8 +310,10 @@ class DiscoveryPacket(Component):
     def link_del(self, data):
         """ Delete links """
         assert(data is not None)
-        dpsrc_ = str(datapathid.from_host(long(str(data['dpsrc']))))
-        dpdst_ = str(datapathid.from_host(long(str(data['dpdst']))))
+        dpsrc_ = dpid_from_host(data['dpsrc'])
+        dpdst_ = dpid_from_host(data['dpdst'])
+
+        if not dpsrc_ or not dpdst_: return CONTINUE
 
         link_key = self.link_key_build(dpsrc_, dpdst_)
         if link_key in self.links:
@@ -352,7 +372,8 @@ class DiscoveryPacket(Component):
                           " multiple inter-switch links)")
                 return CONTINUE
 
-            r_ = str(datapathid.from_host(long(str(auth_data['datapath_id']))))
+            r_ = dpid_from_host(auth_data['datapath_id'])
+            if not r_: return CONTINUE
 
             self.hosts[dladdr]          = nxw_utils.Host(dladdr)
             self.hosts[dladdr].rem_dpid = r_
