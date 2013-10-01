@@ -1252,6 +1252,8 @@ def post_route_hosts():
         bottle.abort(500, 'Application Type must be json!')
 
     check_pce_corba()
+    if PROXY_PCE.flush_topology() == False:
+        bottle.abort(500, 'Unable to flush FPCE topology')
 
     err, ps, ls, hs = check_pce_topology(bottle.request.json['topology'])
     if err != 'ok':
@@ -1278,6 +1280,8 @@ def post_route_ports():
         bottle.abort(500, 'Application Type must be json!')
 
     check_pce_corba()
+    if PROXY_PCE.flush_topology() == False:
+        bottle.abort(500, 'Unable to flush FPCE topology')
 
     err, ps, ls, hs = check_pce_topology(bottle.request.json['topology'])
     if err != 'ok':

@@ -491,6 +491,8 @@ class FPCE(object):
         assert(ingr is not None)
         assert(egr  is not None)
         assert(bw is not None)
+
+        bw = int(bw / 1000)
         LOG.info("Try to connection-route %s -> %s with constraint bw=%s",
                  ingr, egr, bw)
 
@@ -531,8 +533,12 @@ class FPCE(object):
         return (None, None, fault)
 
     def __convert_error(self, name, exe):
-        LOG.error("%s exception: %s" % (name, exe.what))
-        return exe.what
+        if name == 'Generic':
+            LOG.error("%s exception: %s" % (name, str(exe)))
+            return str(exe)
+        else:
+            LOG.error("%s exception: %s" % (name, exe.what))
+            return exe.what
 
     def add_node(self, node_id):
         """ add node from id """
@@ -580,6 +586,10 @@ class FPCE(object):
         assert(dpid_b is not None)
         assert(port_a is not None)
         assert(port_b is not None)
+
+        if available_bw:
+            available_bw = int(available_bw / 1000)
+
         LOG.info("Try to add link=(%d:%d) -> (%d:%d), BW=%s",
                  dpid_a, port_a, dpid_b, port_b, str(available_bw))
         try:
@@ -657,6 +667,23 @@ class FPCE(object):
         self.del_link(ip_, 0, rem_dpid, rem_port)
         self.del_link(rem_dpid, rem_port, ip_, 0)
         self.del_node(ip_)
+
+    def flush_topology(self):
+        """ reset topology """
+        LOG.info("Try to reset f-pce topology")
+        try:
+            self.info.flushTopology()
+            LOG.debug("Successfully flushed f-pce topology")
+            return True
+
+        except TOPOLOGY.InternalProblems, exe:
+            LOG.error("InternalProblems exception: %s", str(exe))
+        except TOPOLOGY.InvocationNotAllowed, exe:
+            LOG.error("InvocationNotAllowed exception: %s", str(exe))
+        except Exception, exe:
+            LOG.error("Generic exception: %s", str(exe))
+
+        return False
 
 class FPCEManager(FPCE):
     def __init__(self, addr, port, size=1024):
