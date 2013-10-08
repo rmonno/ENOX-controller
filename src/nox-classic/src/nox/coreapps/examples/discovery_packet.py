@@ -24,7 +24,7 @@ from nox.lib.util                                     import extract_flow
 from nox.lib.packet.ipv4                              import ipv4
 from nox.netapps.authenticator.pyauth                 import Host_auth_event, \
                                                              Host_bind_event
-from nox.netapps.bindings_storage.pybindings_storage  import pybindings_storage
+from nox.netapps.spanning_tree.spanning_tree          import Spanning_Tree
 from nox.coreapps.pyrt.pycomponent                    import CONTINUE
 from nox.lib.netinet.netinet                          import *
 
@@ -100,6 +100,7 @@ class DiscoveryPacket(Component):
         discovery_ = nxw_utils.DiscoveryConfigParser(DiscoveryPacket.FCONFIG)
         self.region = discovery_.packet_region
         self.allow_ping = discovery_.allow_ping
+        self.spanning_ = None
 
     def configure(self, configuration):
         self.register_python_event(nxw_utils.Pckt_flowEntryEvent.NAME)
@@ -190,7 +191,8 @@ class DiscoveryPacket(Component):
         if not ord(dstaddr[0]) & 1 and dstaddr in self.switches[dpid]:
             prt = self.switches[dpid][dstaddr]
             if prt[0] == inport:
-                LOG.err("**WARNING** Learned port = inport")
+                LOG.error("Learned(%s) == inport(%s)? Loop in the net?" %\
+                            (str(prt[0]), str(inport),))
                 self.send_openflow(long(str(dpid), 16), bufid, buf,
                                    openflow.OFPP_FLOOD,
                                    inport)
@@ -345,8 +347,8 @@ class DiscoveryPacket(Component):
                 self.link_add(link_data)
 
             elif link_data['action'] == "remove":
-                LOG.debug("Removing link...")
-                self.link_del(link_data)
+                LOG.warning("Skipping REMOVING-LINK event!")
+                #self.link_del(link_data)
 
             else:
                 LOG.error("Cannot handle the following action: '%s'" % \
@@ -516,7 +518,7 @@ class DiscoveryPacket(Component):
             actions = [[event.pyevent.action,
                         [0, event.pyevent.dataport_out]]]
 
-            self.install_datapath_flow(long(str(event.pyevent.datapath_in), 16),
+            self.install_datapath_flow(long(str(event.pyevent.datapath_in),16),
                                        attrs,
                                        event.pyevent.idle_timeout,
                                        event.pyevent.hard_timeout,
@@ -528,6 +530,11 @@ class DiscoveryPacket(Component):
 
             LOG.info("Sent FLOW_MOD to dpid %s: Entry=%s, actions=%s",
                      event.pyevent.datapath_in, str(attrs), str(actions))
+
+            if self.spanning_ and event.pyevent.ip_dst:
+                self.spanning_.add_ip_bypass(event.pyevent.ip_dst)
+                LOG.debug("Spanning-Tree: added bypass to dstIP=%s" %\
+                          (event.pyevent.ip_dst,))
 
         except Exception, err:
             LOG.error("Got error sent FLOW_MOD: %s" % str(err))
@@ -546,6 +553,11 @@ class DiscoveryPacket(Component):
             attrs = self.__extract_flow_info(event.pyevent)
             self.delete_datapath_flow(long(str(event.pyevent.datapath_in), 16),
                                       attrs)
+
+            if self.spanning_ and event.pyevent.ip_dst:
+                self.spanning_.del_ip_bypass(event.pyevent.ip_dst)
+                LOG.debug("Spanning-Tree: deleted bypass to dstIP=%s" %\
+                          (event.pyevent.ip_dst,))
 
         except Exception, err:
             LOG.error("Got error sent DEL_FLOW_MOD: %s" % str(err))
@@ -613,7 +625,7 @@ class DiscoveryPacket(Component):
         self.register_handler(nxw_utils.Pckt_delFlowEntryEvent.NAME,
                               self.delete_flow_entry_handler)
 
-        self.bindings = self.resolve(pybindings_storage)
+        self.spanning_ = self.resolve(Spanning_Tree)
         LOG.debug("%s started..." % str(self.__class__.__name__))
 
     def getInterface(self):

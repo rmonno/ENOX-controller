@@ -64,11 +64,11 @@ ACI_PACKAGE([coreapps],[core application set],
 		],
                [yes])
 ACI_PACKAGE([netapps],[misc network apps],
-               [storage authenticator 
-               	routing user_event_log tests topology discovery 
+               [storage authenticator
+               	routing user_event_log tests topology discovery
                	bindings_storage switchstats flow_fetcher data
-               	switch_management networkstate hoststate tablog 
-               	route lavi
+               	switch_management networkstate hoststate tablog
+               	route lavi spanning_tree
                 #add netapps component here
 		],
                [TURN_ON_NETAPPS])
@@ -80,9 +80,9 @@ ACI_PACKAGE([webapps],[misc ui apps],
                [TURN_ON_WEBAPPS])
 
 AC_SUBST(ACTIVE_PACKAGES)
-AC_SUBST(MODULES_coreapps)               
-AC_SUBST(MODULES_netapps)               
-AC_SUBST(MODULES_webapps)               
+AC_SUBST(MODULES_coreapps)
+AC_SUBST(MODULES_netapps)
+AC_SUBST(MODULES_webapps)
 
 AM_CONDITIONAL([HAVE_NETAPPS], [test -n "$MODULES_netapps"])
 AM_CONDITIONAL([HAVE_WEBAPPS], [test -n "$MODULES_webapps"])
@@ -101,7 +101,7 @@ if test "$HAVE_coreapps" = "yes"; then
         fi
         SWIG_ENABLE_CXX
         SWIG_PYTHON
-    fi    
+    fi
 fi
 
 if test "$HAVE_netapps" = "yes"; then

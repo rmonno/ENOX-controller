@@ -46,6 +46,7 @@
             "name": "discovery_packet" ,
             "dependencies": [
                 "python",
+                "spanning_tree",
                 "pyauthenticator",
                 "discovery",
                 "core_manager"

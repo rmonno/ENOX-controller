@@ -31,6 +31,7 @@
             "Packet_in_event": [
                 "trackhost_pktin",
                 "hostip",
+                "spanning_tree",
                 "authenticator",
                 "dwh",
                 "noop",
@@ -77,7 +78,7 @@
                 ],
             "JSONMsg_event": [
                 "jsonmessenger",
-                "lavi_switches",  
+                "lavi_switches",
 		"lavi_hosts",
                 "lavi_swlinks",
                 "lavi_host2sw",
@@ -106,7 +107,7 @@
 	    "Host_location_event": [
 	    	"lavi_hosts",
 		"lavi_host2sw"
-	        ]        
+	        ]
 	    }
     }
 }
