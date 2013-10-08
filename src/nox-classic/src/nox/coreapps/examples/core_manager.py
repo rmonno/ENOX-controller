@@ -1408,6 +1408,22 @@ def delete_entry(id):
     finally:
         PROXY_DB.close()
 
+@bottle.delete('/topology_db')
+def delete_topology_db():
+    WLOG.info("Enter http (extensions) delete_topology_db")
+    try:
+        PROXY_DB.open_transaction()
+        PROXY_DB.clean_database()
+        PROXY_DB.commit()
+        return bottle.HTTPResponse(body='Operation completed!', status=204)
+
+    except nxw_utils.DBException as err:
+        PROXY_DB.rollback()
+        WLOG.error("delete_topology_db: " + str(err))
+        bottle.abort(500, str(err))
+
+    finally:
+        PROXY_DB.close()
 
 class OscarsService(object):
     def __init__(self, host, port):

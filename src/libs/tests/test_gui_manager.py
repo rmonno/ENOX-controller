@@ -882,6 +882,30 @@ class DeleteEntryButton(Button):
             self.error(str(exc))
 
 
+class DeleteDBTopologyButton(Button):
+
+    def __init__(self, url, central, parent):
+        Button.__init__(self, 'delete topology db', parent)
+        self.clicked.connect(self.onClick)
+        self.__url = url
+        self.__c = central
+        self.__parent = parent
+
+    def onClick(self):
+        self.debug("delete-topology-db: url=%s" % (self.__url,))
+        try:
+            r_ = requests.delete(url=self.__url)
+            self.debug("Response obj=%s" % (r_))
+            if r_.status_code != 204:
+                self.error(r_.text)
+
+            else:
+                self.info_popup('Successfully deleted!')
+
+        except requests.exceptions.RequestException as exc:
+            self.error(str(exc))
+
+
 class GUIManager(QtGui.QMainWindow):
 
     def __init__(self, cmaddr, cmport, msaddr, msport):
@@ -1013,6 +1037,12 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.delete_entry)
         return act_
 
+    def __deleteDBAction(self):
+        act_ = QtGui.QAction('Delete DB topology', self)
+        act_.setStatusTip('DELETE db-topology request')
+        act_.triggered.connect(self.delete_db_topology)
+        return act_
+
     def __menuBar(self):
         mb_ = self.menuBar()
         fmenu_ = mb_.addMenu('&File')
@@ -1046,6 +1076,7 @@ class GUIManager(QtGui.QMainWindow):
         exmenu_.addAction(self.__getRoutePortsAction())
         exmenu_.addAction(self.__createEntryAction())
         exmenu_.addAction(self.__deleteEntryAction())
+        exmenu_.addAction(self.__deleteDBAction())
 
     def __toolBar(self):
         tb_ = self.addToolBar('gui-toolbar')
@@ -1572,6 +1603,18 @@ class GUIManager(QtGui.QMainWindow):
 
         self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
         self.centralWidget().setCellWidget(0, 1, c1_)
+
+    def delete_db_topology(self):
+        self.shell().debug("delete_db_topology action")
+        self.centralWidget().clear()
+
+        self.centralWidget().setRowCount(1)
+        self.centralWidget().setColumnCount(1)
+        self.centralWidget().setHorizontalHeaderLabels([''])
+
+        c1_ = DeleteDBTopologyButton(self.__url + 'topology_db',
+                                     self.centralWidget(), self)
+        self.centralWidget().setCellWidget(0, 0, c1_)
 
 
 def main(argv=None):

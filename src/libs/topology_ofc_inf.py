@@ -592,3 +592,8 @@ class TopologyOFCBase(object):
         :raises: DBException
         """
         pass
+
+    @abstractmethod
+    def clean_database(self):
+        """Delete all data from supported tables"""
+        pass

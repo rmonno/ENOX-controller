@@ -1235,3 +1235,17 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         statement += " order by sequenceID"
         return self.__execute_dict(statement, values, one=False)
+
+    def clean_database(self):
+        """ Delete all data from supported tables """
+        statement = "DELETE FROM "
+        self.__execute(statement + "services")
+        self.__execute(statement + "requests")
+        self.__execute(statement + "table_stats")
+        self.__execute(statement + "port_stats")
+        self.__execute(statement + "flow_entries")
+        self.__execute(statement + "links")
+        self.__execute(statement + "hosts")
+        self.__execute(statement + "cports_bandwidth")
+        self.__execute(statement + "ports")
+        self.__execute(statement + "datapaths")
