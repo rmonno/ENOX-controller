@@ -1264,7 +1264,7 @@ def post_route_hosts():
 
         s_ = bottle.request.json['endpoints']['src_ip_addr']
         d_ = bottle.request.json['endpoints']['dst_ip_addr']
-        bw_ = int(bottle.request.json['endpoints']['bw_constraint'])
+        bw_ = bottle.request.json['endpoints']['bw_constraint']
 
         resp_ = route_calc_from_hosts_bw(s_, d_, bw_, ls, hs)
         return bottle.HTTPResponse(body=resp_.body(), status=201)
@@ -1292,7 +1292,7 @@ def post_route_ports():
         s_port_ = long(bottle.request.json['endpoints']['src_port_no'])
         d_dpid_ = long(bottle.request.json['endpoints']['dst_dpid'])
         d_port_ = long(bottle.request.json['endpoints']['dst_port_no'])
-        bw_ = int(bottle.request.json['endpoints']['bw_constraint'])
+        bw_ = bottle.request.json['endpoints']['bw_constraint']
 
         hs.append(('255.0.0.1', s_dpid_, s_port_))
         hs.append(('255.0.0.2', d_dpid_, d_port_))

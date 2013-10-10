@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import struct
 
 from omniORB import CORBA
 import TOPOLOGY
@@ -23,6 +24,11 @@ def convert_ipv4_to_int(n_str):
 def convert_ipv4_to_str(n_int):
     """Convert 32-bit integer to dotted IPv4 address."""
     return ".".join([str(n_int >> n & 0xFF) for n in [24, 16, 8, 0]])
+
+
+def str2ieee754(fs):
+    p_ = struct.pack('f', float(fs))
+    return struct.unpack('I', p_)[0]
 
 
 class Node(object):
@@ -75,7 +81,7 @@ class EnhNetNode(NetNode):
 
 class NetLink(object):
     """ Net-Link object """
-    maxBW = 1318388473
+    maxBW = 1371161527
 
     def __init__(self, a_str, b_str):
         lnid = convert_ipv4_to_int(a_str)
@@ -93,13 +99,13 @@ class NetLink(object):
 
     def com_params(self, available_bw=None):
         """ Common parameters """
-        mbw = NetLink.maxBW if not available_bw else (available_bw * 1000)
+        mbw = NetLink.maxBW if not available_bw else (available_bw)
         return GLOB.gmplsTypes.teLinkComParams(10, 1, 0, chr(0),
                                                mbw, mbw, 0, [])
 
     def avail_bw(self, available_bw=None):
         """ available bandwidth """
-        mbw = NetLink.maxBW if not available_bw else (available_bw * 1000)
+        mbw = NetLink.maxBW if not available_bw else (available_bw)
         return [mbw] * 8
 
     def isc_gen(self, available_bw=None):
@@ -167,7 +173,7 @@ class LspParams(object):
         act = GLOB.gmplsTypes.LSPRESOURCEACTION_XCONNECT
         tinfo = GLOB.gmplsTypes.timeInfo(0, 0)
         qos = GLOB.gmplsTypes.qosParams(0, 0, 0)
-        bw = 0 if not bandwidth else (bandwidth * 1000)
+        bw = 0 if not bandwidth else (bandwidth)
 
         self.ident = GLOB.gmplsTypes.lspParams(tlsp, rlsp, sw_cap, enc, gpid,
                                                bw, 0, 0, 0, 0, 0,
@@ -492,9 +498,12 @@ class FPCE(object):
         assert(egr  is not None)
         assert(bw is not None)
 
-        bw = int(bw / 1000)
-        LOG.info("Try to connection-route %s -> %s with constraint bw=%s",
+        LOG.info("Connection-route %s -> %s with constraint bw=%s",
                  ingr, egr, bw)
+        # need conversion from str(b/s) to ieee754 format
+        bw = str2ieee754(bw)
+
+        LOG.debug("Ieee754 bw format=%d", bw)
 
         fault = 'ok'
         call_id = CallID(ingr)
@@ -587,11 +596,14 @@ class FPCE(object):
         assert(port_a is not None)
         assert(port_b is not None)
 
-        if available_bw:
-            available_bw = int(available_bw / 1000)
-
         LOG.info("Try to add link=(%d:%d) -> (%d:%d), BW=%s",
-                 dpid_a, port_a, dpid_b, port_b, str(available_bw))
+                 dpid_a, port_a, dpid_b, port_b, available_bw)
+
+        if available_bw:
+            # need conversion from str(b/s) to ieee754 format
+            available_bw = str2ieee754(available_bw)
+            LOG.debug("Ieee754 bw format=%d", available_bw)
+
         try:
             lnk = EnhNetLink(dpid_a, port_a, dpid_b, port_b)
             self.info.linkAdd(lnk.ident)
