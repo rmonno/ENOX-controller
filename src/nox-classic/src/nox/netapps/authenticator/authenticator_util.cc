@@ -32,7 +32,7 @@
 #endif
 
 #define TIMER_INTERVAL         30
-#define DEFAULT_IDLE_TIMEOUT   300     // 5 min idle timeout
+#define DEFAULT_IDLE_TIMEOUT   1800    // 30 min idle timeout
 #define DEFAULT_HARD_TIMEOUT   18000   // 5 hr hard timeout
 
 namespace vigil {

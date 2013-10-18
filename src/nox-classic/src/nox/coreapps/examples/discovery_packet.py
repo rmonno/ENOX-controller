@@ -58,7 +58,7 @@ LOG = nxw_utils.ColorLog(logging.getLogger('discovery_packet'))
 
 def dpid_from_host(dpid):
     try:
-        dpid_ = datapathid.from_host(dpid).string()
+        dpid_ = str(dpid)
         LOG.debug("dpid_from_host: type=%s, dpid=%d, dpid_=%s" %
                   (type(dpid), dpid, dpid_,))
         return dpid_
@@ -193,15 +193,15 @@ class DiscoveryPacket(Component):
             if prt[0] == inport:
                 LOG.error("Learned(%s) == inport(%s)? Loop in the net?" %\
                             (str(prt[0]), str(inport),))
-                self.send_openflow(long(str(dpid), 16), bufid, buf,
-                                   openflow.OFPP_FLOOD,
-                                   inport)
+                #self.send_openflow(long(str(dpid), 16), bufid, buf,
+                #                   openflow.OFPP_FLOOD,
+                #                   inport)
             else:
                 # We know the outport, set up a flow
                 LOG.debug("Installing flow for %s" % str(packet))
                 flow = extract_flow(packet)
                 actions = [[openflow.OFPAT_OUTPUT, [0, prt[0]]]]
-                self.install_datapath_flow(long(str(dpid), 16), flow, 5,
+                self.install_datapath_flow(long(dpid), flow, 5,
                                            openflow.OFP_FLOW_PERMANENT,
                                            actions, bufid,
                                            openflow.OFP_DEFAULT_PRIORITY,
@@ -210,7 +210,7 @@ class DiscoveryPacket(Component):
                           (dpid, str(flow)))
         else:
             # haven't learned destination MAC. Flood
-            self.send_openflow(long(str(dpid), 16), bufid, buf,
+            self.send_openflow(long(dpid), bufid, buf,
                                openflow.OFPP_FLOOD, inport)
             LOG.debug("Flooding received packet...")
 
@@ -518,7 +518,7 @@ class DiscoveryPacket(Component):
             actions = [[event.pyevent.action,
                         [0, event.pyevent.dataport_out]]]
 
-            self.install_datapath_flow(long(str(event.pyevent.datapath_in),16),
+            self.install_datapath_flow(long(event.pyevent.datapath_in),
                                        attrs,
                                        event.pyevent.idle_timeout,
                                        event.pyevent.hard_timeout,
@@ -551,8 +551,7 @@ class DiscoveryPacket(Component):
 
         try:
             attrs = self.__extract_flow_info(event.pyevent)
-            self.delete_datapath_flow(long(str(event.pyevent.datapath_in), 16),
-                                      attrs)
+            self.delete_datapath_flow(long(event.pyevent.datapath_in), attrs)
 
             if self.spanning_ and event.pyevent.ip_dst:
                 self.spanning_.del_ip_bypass(event.pyevent.ip_dst)
