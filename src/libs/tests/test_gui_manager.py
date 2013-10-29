@@ -1043,6 +1043,18 @@ class GUIManager(QtGui.QMainWindow):
         act_.triggered.connect(self.delete_db_topology)
         return act_
 
+    def __getRouteHostsFromTopoAction(self):
+        act_ = QtGui.QAction('Post RouteHosts (from Topo)', self)
+        act_.setStatusTip('POST route-hosts (from discovered topo) request')
+        act_.triggered.connect(self.get_routeHostsFromTopo)
+        return act_
+
+    def __getRoutePortsFromTopoAction(self):
+        act_ = QtGui.QAction('Post RoutePorts (from Topo)', self)
+        act_.setStatusTip('POST route-ports (from discovered topo) request')
+        act_.triggered.connect(self.get_routePortsFromTopo)
+        return act_
+
     def __menuBar(self):
         mb_ = self.menuBar()
         fmenu_ = mb_.addMenu('&File')
@@ -1077,6 +1089,8 @@ class GUIManager(QtGui.QMainWindow):
         exmenu_.addAction(self.__createEntryAction())
         exmenu_.addAction(self.__deleteEntryAction())
         exmenu_.addAction(self.__deleteDBAction())
+        exmenu_.addAction(self.__getRouteHostsFromTopoAction())
+        exmenu_.addAction(self.__getRoutePortsFromTopoAction())
 
     def __toolBar(self):
         tb_ = self.addToolBar('gui-toolbar')
@@ -1466,53 +1480,63 @@ class GUIManager(QtGui.QMainWindow):
         except requests.exceptions.RequestException as exc:
             self.critical(str(exc))
 
-    def __show_topology(self, r):
+    def __show_topology(self, r, start, columns):
         c_ = self.centralWidget
-        c_().clear()
-        len_ = 1 + len(r.json()['topology']['dpids']) +\
+
+        if not start: c_().clear()
+
+        start_ = start if start else 0
+        columns_ = columns if columns else 3
+
+        dpid_ports_ = []
+        for d_ in r.json()['topology']['dpids']:
+            for p_ in d_['ports']:
+                dpid_ports_.append((str(d_['dpid']), str(p_['port_no'])))
+
+        len_ = 1 + len(dpid_ports_) +\
                2 + len(r.json()['topology']['links']) +\
                2 + len(r.json()['topology']['hosts'])
-        c_().setRowCount(len_)
-        c_().setColumnCount(3)
+        c_().setRowCount(len_ + start_)
+        c_().setColumnCount(columns_)
 
-        c_().setCellWidget(0, 0, QtGui.QLineEdit('DPIDs'))
-        c_().setCellWidget(0, 1, QtGui.QLineEdit('PORTs'))
-        i = 1
-        for d_ in r.json()['topology']['dpids']:
-            c_().setCellWidget(i,0,QtGui.QTextEdit(str(d_['dpid'])))
-            cb_ = QtGui.QComboBox()
-            for p_ in d_['ports']:
-                cb_.addItem(str(p_['port_no']))
+        c_().setCellWidget(start_, 0, QtGui.QTextEdit('DPIDs'))
+        c_().setCellWidget(start_, 1, QtGui.QTextEdit('PORTs'))
 
-            c_().setCellWidget(i,1,cb_)
+        i = 1 + start_
+        for d_, p_ in dpid_ports_:
+            c_().setCellWidget(i,0,QtGui.QLineEdit(d_))
+            c_().setCellWidget(i,1,QtGui.QLineEdit(p_))
             i = i + 1
 
         i = i + 1
-        c_().setCellWidget(i, 0, QtGui.QLineEdit('LINKs-ID'))
-        c_().setCellWidget(i, 1, QtGui.QLineEdit('CAPACITY'))
+        c_().setCellWidget(i, 0, QtGui.QTextEdit('LINKs-ID'))
+        c_().setCellWidget(i, 1, QtGui.QTextEdit('CAPACITY'))
 
         i = i + 1
         for l_ in r.json()['topology']['links']:
-            c_().setCellWidget(i, 0, QtGui.QTextEdit(str(l_['id'])))
-            c_().setCellWidget(i, 1, QtGui.QTextEdit(str(l_['capacity'])))
+            c_().setCellWidget(i, 0, QtGui.QLineEdit(str(l_['id'])))
+            c_().setCellWidget(i, 1, QtGui.QLineEdit(str(l_['capacity'])))
             i = i + 1
 
         i = i + 1
-        c_().setCellWidget(i, 0, QtGui.QLineEdit('HOSTs-IP'))
-        c_().setCellWidget(i, 1, QtGui.QLineEdit('DPID'))
-        c_().setCellWidget(i, 2, QtGui.QLineEdit('PORT-No'))
+        c_().setCellWidget(i, 0, QtGui.QTextEdit('HOSTs-IP'))
+        c_().setCellWidget(i, 1, QtGui.QTextEdit('DPID'))
+        c_().setCellWidget(i, 2, QtGui.QTextEdit('PORT-No'))
 
         i = i + 1
         for h_ in r.json()['topology']['hosts']:
-            c_().setCellWidget(i, 0, QtGui.QTextEdit(str(h_['ip_addr'])))
-            c_().setCellWidget(i, 1, QtGui.QTextEdit(str(h_['dpid'])))
-            c_().setCellWidget(i, 2, QtGui.QTextEdit(str(h_['port_no'])))
+            c_().setCellWidget(i, 0, QtGui.QLineEdit(str(h_['ip_addr'])))
+            c_().setCellWidget(i, 1, QtGui.QLineEdit(str(h_['dpid'])))
+            c_().setCellWidget(i, 2, QtGui.QLineEdit(str(h_['port_no'])))
             i = i + 1
 
         c_().resizeColumnsToContents()
+        return len(dpid_ports_), len(r.json()['topology']['links']),\
+               len(r.json()['topology']['hosts'])
 
-    def get_topology(self):
-        self.shell().debug("get_topology action")
+    def get_topology(self, start=None, columns=None):
+        self.shell().debug("get_topology action: start=%s, columns=%s" %\
+                           (start, columns,))
         try:
             r_ = requests.get(url=self.__url + "topology")
             self.shell().debug("Response obj=%s" % r_)
@@ -1521,7 +1545,7 @@ class GUIManager(QtGui.QMainWindow):
 
             else:
                 self.shell().debug("Response=%s" % r_.text)
-                self.__show_topology(r_)
+                return self.__show_topology(r_, start, columns)
 
         except requests.exceptions.RequestException as exc:
             self.critical(str(exc))
@@ -1615,6 +1639,58 @@ class GUIManager(QtGui.QMainWindow):
         c1_ = DeleteDBTopologyButton(self.__url + 'topology_db',
                                      self.centralWidget(), self)
         self.centralWidget().setCellWidget(0, 0, c1_)
+
+    def get_routeHostsFromTopo(self):
+        self.shell().debug("get_routeHosts (from topo) action")
+        self.centralWidget().clear()
+
+        self.centralWidget().setColumnCount(3)
+
+        self.centralWidget().setHorizontalHeaderLabels(['SRC_IP', 'DST_IP',
+                                                        'BW'])
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('a.b.c.d'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('e.f.g.h'))
+        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('0'))
+
+        ports_, links_, hosts_ = self.get_topology(start=2)
+        self.shell().debug("ports=%s, links=%s, hosts=%s" %\
+                           (ports_, links_, hosts_,))
+
+        c0_ = HostsRouteButton(self.__url + 'route_hosts',
+                               self.centralWidget(), self,
+                               ports_, links_, hosts_)
+
+        i = self.centralWidget().rowCount()
+        self.centralWidget().setRowCount(i+2)
+        self.centralWidget().setCellWidget(i+1, 0, c0_)
+        self.centralWidget().resizeColumnsToContents()
+
+    def get_routePortsFromTopo(self):
+        self.shell().debug("get_routePorts (from topo) action")
+        self.centralWidget().clear()
+
+        self.centralWidget().setColumnCount(5)
+
+        self.centralWidget().setHorizontalHeaderLabels(['SRC_DPID', 'SRC_PORT',
+                                                 'DST_DPID', 'DST_PORT', 'BW'])
+        self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('1'))
+        self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('1'))
+        self.centralWidget().setCellWidget(0, 2, QtGui.QLineEdit('2'))
+        self.centralWidget().setCellWidget(0, 3, QtGui.QLineEdit('2'))
+        self.centralWidget().setCellWidget(0, 4, QtGui.QLineEdit('0'))
+
+        ports_, links_, hosts_ = self.get_topology(start=2, columns=5)
+        self.shell().debug("ports=%s, links=%s, hosts=%s" %\
+                           (ports_, links_, hosts_,))
+
+        c0_ = PortsRouteButton(self.__url + 'route_ports',
+                               self.centralWidget(), self,
+                               ports_, links_, hosts_)
+
+        i = self.centralWidget().rowCount()
+        self.centralWidget().setRowCount(i+2)
+        self.centralWidget().setCellWidget(i+1, 0, c0_)
+        self.centralWidget().resizeColumnsToContents()
 
 
 def main(argv=None):
