@@ -1,0 +1,6 @@
+==============================================================================
+
+* topology_sql.db:
+    * Use ENUM for actions in the flow_entries table
+    * [Opt] Definition of the acceptable values range (e.g. for the fields in
+      the flow_entry table)

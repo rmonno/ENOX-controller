@@ -1,0 +1,18 @@
+#!/bin/bash
+case ${1} in
+    "pep8")
+        echo "---> pep8"
+        pep8 ${2}
+    ;;
+
+    "lint")
+        disable_r="--disable-msg=R0903,R0902,R0913,R0201,R0904,R0914"
+        disable_w="--disable-msg=W0142,W0212,F0401,W0703"
+        echo "---> pylint ${disable_r} ${disable_w}"
+        pylint ${disable_r} ${disable_w} ${2}
+    ;;
+
+    *)
+        echo "Usage ${0} [pep8|lint] <file>"
+    ;;
+esac

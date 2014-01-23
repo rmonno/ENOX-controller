@@ -1,0 +1,3 @@
+Topology Manager
+
+* Delete all DB entries and F-PCE topology when NOX is stopped (necessary?)

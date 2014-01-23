@@ -1,0 +1,88 @@
+{
+    "components": [
+        {
+            "name": "monitor" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.monitor"
+        },
+        {
+            "name": "countdown" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.countdown"
+        },
+        {
+            "name": "packetdump" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.packetdump"
+        },
+        {
+            "name": "pyloop" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.pyloop"
+        },
+        {
+            "name": "pyswitch" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.pyswitch"
+        },
+        {
+            "name": "dnsspy" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.dnsspy"
+        },
+        {
+            "name": "discovery_packet" ,
+            "dependencies": [
+                "python",
+                "spanning_tree",
+                "pyauthenticator",
+                "discovery",
+                "core_manager"
+            ],
+            "python": "nox.coreapps.examples.discovery_packet"
+        },
+        {
+            "name": "core_manager" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.core_manager"
+        },
+        {
+            "name": "flows_monitor" ,
+            "dependencies": [
+                "python",
+                "python_flow_fetcher",
+                "core_manager"
+            ],
+            "python": "nox.coreapps.examples.flows_monitor"
+        },
+        {
+            "name": "service_bod" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.service_bod"
+        },
+        {
+            "name": "media_server" ,
+            "dependencies": [
+                "python"
+            ],
+            "python": "nox.coreapps.examples.media_server"
+        }
+
+    ]
+}
