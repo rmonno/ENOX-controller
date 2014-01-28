@@ -82,7 +82,14 @@
                 "python"
             ],
             "python": "nox.coreapps.examples.media_server"
+        },
+        {
+            "name": "discovery_circuit" ,
+            "dependencies": [
+                "python",
+                "core_manager"
+            ],
+            "python": "nox.coreapps.examples.discovery_circuit"
         }
-
     ]
 }

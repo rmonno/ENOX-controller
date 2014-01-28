@@ -15,7 +15,8 @@ EXTRA_DIST =			\
 	discovery_packet.py	\
 	service_bod.py		\
 	media_server.py		\
-	flows_monitor.py
+	flows_monitor.py	\
+	discovery_circuit.py
 
 NOX_RUNTIMEFILES =		\
 	meta.json			\
@@ -30,7 +31,8 @@ NOX_RUNTIMEFILES =		\
 	discovery_packet.py	\
 	service_bod.py		\
 	media_server.py		\
-	flows_monitor.py
+	flows_monitor.py	\
+	discovery_circuit.py
 
 all-local: nox-all-local
 install-exec-hook: nox-install-local
