@@ -128,6 +128,32 @@ class DiscoveryConfigParser:
                   self.packet_region, self.allow_ping)
 
 
+class CircuitConfigParser:
+    """Configuration File Parser Manager for Circuit controller
+    """
+
+    def __init__(self, filename):
+        self.circuit_region = None
+        self.address = None
+        self.port = None
+        self.timeout = None
+
+        if check_file(filename):
+            config = ConfigParser.ConfigParser()
+            config.read(filename)
+
+            sects = config.sections()
+            for sect in sects:
+                if sect == 'circuit':
+                    self.circuit_region = config.get(sect, 'circuit_region')
+                    self.address = config.get(sect, 'address')
+                    self.port = config.get(sect, 'port')
+                    self.timeout = config.get(sect, 'timeout')
+
+        LOG.debug("Circuit region=%s, address=%s, port=%s, timeout=%s",
+                  self.circuit_region, self.address, self.port, self.timeout)
+
+
 class FlowsMonitorConfigParser:
     """Configuration File Parser Manager for FlowsMonitoring controller
     """
