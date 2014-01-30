@@ -18,13 +18,13 @@
 """ Discovey Circuit NOX application """
 
 from nox.lib.core import Component
-from nox.coreapps.pyrt.pycomponent import CONTINUE
 
 import sys
 import os
 #import json
 #import requests
 import logging
+from fysom import Fysom
 
 # update sys python path
 KEY = 'nox-classic'
@@ -44,17 +44,81 @@ import libs as nxw_utils
 LOG = nxw_utils.ColorLog(logging.getLogger('discovery_circuit'))
 
 
+class FSM(Fysom):
+    def __init__(self, address, port, region):
+        self.url = "http://%s:%s/" % (address, port)
+        self.hs = {'content-type': 'application/json'}
+        self.region = region
+        self.dpids = []
+        self.ports = []
+        self.links = []
+
+        super(FSM, self).__init__({
+            'initial': 'init',
+            'events': [{'name': 'click', 'src': 'init', 'dst': 'get'},
+                       {'name': 'click', 'src': 'get', 'dst': 'update'},
+                       {'name': 'click', 'src': 'update', 'dst': 'clean'},
+                       {'name': 'click', 'src': 'clean', 'dst': 'get'}]
+        })
+
+    def onbeforeclick(self, e):
+        if e.src == 'get' and (not len(self.dpids) and
+                               not len(self.ports) and not len(self.links)):
+            LOG.info("Do not leave GET, not information are available!")
+            self.onget(e)
+            return False
+
+        if e.src == 'update' and (len(self.dpids) or
+                                  len(self.ports) or len(self.links)):
+            LOG.info("Do not leave UPDATE, ongoing db-update procedure!")
+            self.onupdate(e)
+            return False
+
+        return True
+
+    def onget(self, e):
+        LOG.info("FSM-get: src=%s, dst=%s" % (e.src, e.dst,))
+
+    def onupdate(self, e):
+        LOG.info("FSM-update: src=%s, dst=%s" % (e.src, e.dst,))
+
+        if len(self.dpids):
+            LOG.debug("Missing dpids=%d" % (len(self.dpids),))
+
+        elif len(self.ports):
+            LOG.debug("Missing ports=%d" % (len(self.ports),))
+
+        elif len(self.links):
+            LOG.debug("Missing links=%d" % (len(self.links),))
+
+    def onclean(self, e):
+        LOG.info("FSM-clean: src=%s, dst=%s" % (e.src, e.dst,))
+
+        del self.dpids[:]
+        del self.ports[:]
+        del self.links[:]
+
+
 class DiscoveryCircuit(Component):
     FCONFIG = LIBS_PATH + "/libs/" + "nox_topologymgr.cfg"
 
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
+        self.ccp_ = nxw_utils.CircuitConfigParser(DiscoveryCircuit.FCONFIG)
+        self.timeout = self.ccp_.timeout
+        self.fsm_ = FSM(self.ccp_.address, self.ccp_.port,
+                        self.ccp_.circuit_region)
 
     def configure(self, configuration):
         LOG.debug('configuring %s' % str(self.__class__.__name__))
 
     def install(self):
-        LOG.debug("%s started..." % str(self.__class__.__name__))
+        self.post_callback(int(self.timeout), self.timer_handler)
+
+    def timer_handler(self):
+        LOG.debug("%s timeout fired" % str(self.__class__.__name__))
+        self.fsm_.click()
+        self.post_callback(int(self.timeout), self.timer_handler)
 
     def getInterface(self):
         return str(DiscoveryCircuit)
