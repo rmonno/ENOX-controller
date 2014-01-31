@@ -21,8 +21,8 @@ from nox.lib.core import Component
 
 import sys
 import os
-#import json
-#import requests
+import json
+import requests
 import logging
 from fysom import Fysom
 
@@ -62,25 +62,96 @@ class FSM(Fysom):
         })
 
     def onbeforeclick(self, e):
-        if e.src == 'get' and (not len(self.dpids) and
-                               not len(self.ports) and not len(self.links)):
-            LOG.info("Do not leave GET, not information are available!")
+        if e.src == 'get' and (not len(self.dpids) or
+                               not len(self.ports) or not len(self.links)):
+            LOG.debug("Do not leave GET, info incompleted!")
             self.onget(e)
             return False
 
         if e.src == 'update' and (len(self.dpids) or
                                   len(self.ports) or len(self.links)):
-            LOG.info("Do not leave UPDATE, ongoing db-update procedure!")
+            LOG.debug("Do not leave UPDATE, ongoing db-update procedure!")
             self.onupdate(e)
             return False
 
         return True
 
+    def seq_val(self, obj, i):
+        if i in range(len(obj)):
+            return obj[i]
+
+        return None
+
+    def __get_dpids(self):
+        try:
+            r_ = requests.get(url=self.url + 'get_topology')
+            if r_.status_code != requests.codes.ok:
+                LOG.error(r_.text)
+                return
+
+            LOG.debug("Response=%s" % r_.text)
+            for dpid, values in r_.json()['switches'].items():
+                info_ = (dpid,
+                         self.seq_val(values, 0),
+                         self.seq_val(values, 1),
+                         self.seq_val(values, 2),
+                         self.seq_val(values, 3))
+                self.dpids.append(info_)
+
+        except Exception as e:
+            LOG.error('get_dpid exec: %s', (e,))
+
+        LOG.debug('dpids=%s', self.dpids)
+
+    def __get_ports(self):
+        for dpid_ in self.dpids:
+            self.__get_dpid_ports(self.seq_val(dpid_, 0))
+
+        LOG.debug('ports=%s', self.ports)
+
+    def __get_dpid_ports(self, dpid):
+        try:
+            r_ = requests.get(url=self.url +
+                              'get_topology_ports/' + dpid)
+            if r_.status_code != requests.codes.ok:
+                LOG.error(r_.text)
+                return
+
+            LOG.debug("Response=%s" % r_.text)
+            for values in r_.json()['nodes']:
+                info_ = (dpid,
+                         self.seq_val(values, 0),
+                         self.seq_val(values, 1),
+                         self.seq_val(values, 2),
+                         self.seq_val(values, 3),
+                         self.seq_val(values, 4),
+                         self.seq_val(values, 5),
+                         self.seq_val(values, 6))
+                self.ports.append(info_)
+
+        except Exception as e:
+            LOG.error('get_dpid_ports exec: %s', (e,))
+
+    def __get_links(self):
+        for dpid, num, name, conf, cap, pdpid, ppno, bw in self.ports:
+            info_ = (dpid, num, pdpid, ppno, bw)
+            self.links.append(info_)
+
+        LOG.debug('links=%s', self.links)
+
     def onget(self, e):
-        LOG.info("FSM-get: src=%s, dst=%s" % (e.src, e.dst,))
+        LOG.debug("FSM-get: src=%s, dst=%s" % (e.src, e.dst,))
+        if not len(self.dpids):
+            self.__get_dpids()
+
+        elif not len(self.ports):
+            self.__get_ports()
+
+        else:
+            self.__get_links()
 
     def onupdate(self, e):
-        LOG.info("FSM-update: src=%s, dst=%s" % (e.src, e.dst,))
+        LOG.debug("FSM-update: src=%s, dst=%s" % (e.src, e.dst,))
 
         if len(self.dpids):
             LOG.debug("Missing dpids=%d" % (len(self.dpids),))
@@ -92,7 +163,7 @@ class FSM(Fysom):
             LOG.debug("Missing links=%d" % (len(self.links),))
 
     def onclean(self, e):
-        LOG.info("FSM-clean: src=%s, dst=%s" % (e.src, e.dst,))
+        LOG.debug("FSM-clean: src=%s, dst=%s" % (e.src, e.dst,))
 
         del self.dpids[:]
         del self.ports[:]
