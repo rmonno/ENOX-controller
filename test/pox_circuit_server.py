@@ -19,11 +19,10 @@ def hello():
 def get_topology():
     INFO('Enter (http) get_topology method!')
 
-    info_ = {"switches": [
-             {"00-10":[3,"circuit",25165831,"2011-10-01 15:26"]},
-             {"00-11":[3,"circuit",25165831,"2011-10-01 15:26"]},
-             {"00-12":[2,"circuit",25165831,"2011-10-01 15:26"]},
-            ]}
+    info_ = {"switches":
+             {"00-10":[3,"circuit",25165831,"2011-10-01 15:26"],
+              "00-11":[3,"circuit",25165831,"2011-10-01 15:26"],
+              "00-12":[2,"circuit",25165831,"2011-10-01 15:26"],}}
 
     return json.dumps(info_, sort_keys=True, indent=4, separators=(',', ': '))
 
