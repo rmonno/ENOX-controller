@@ -21,7 +21,7 @@ from nox.lib.core import Component
 
 import sys
 import os
-import json
+#import json
 import requests
 import logging
 from fysom import Fysom
@@ -42,6 +42,7 @@ for (root, dirs, names) in os.walk(IDL_FIND_PATH):
 import libs as nxw_utils
 
 LOG = nxw_utils.ColorLog(logging.getLogger('discovery_circuit'))
+PROXY_DB = None
 
 
 class FSM(Fysom):
@@ -150,17 +151,75 @@ class FSM(Fysom):
         else:
             self.__get_links()
 
+    def __update(self, values, types, func):
+        try:
+            PROXY_DB.open_transaction()
+            ret = False
+            for info in values:
+                ret = func(info)
+
+            if ret is True:
+                PROXY_DB.commit()
+                LOG.debug("Successfull committed information (%s)!" % (types,))
+
+            del values[:]
+
+        finally:
+            PROXY_DB.close()
+
+    def __insert_dpid_db(self, info):
+        try:
+            PROXY_DB.datapath_insert(d_id=self.seq_val(info, 0),
+                            d_name=self.region + '-' + self.seq_val(info, 2),
+                            caps=self.seq_val(info, 3),
+                            cports=self.seq_val(info, 1))
+            return True
+
+        except nxw_utils.DBException as err:
+            LOG.warning("(insert_dpid_db) %s" % (err,))
+            return False
+
+    def __insert_port_db(self, info):
+        try:
+            PROXY_DB.port_insert(d_id=self.seq_val(info, 0),
+                                 port_no=self.seq_val(info, 1),
+                                 name=self.seq_val(info, 2),
+                                 curr=self.seq_val(info, 3),
+                                 supported=self.seq_val(info, 4),
+                                 peer_dpath_id=self.seq_val(info, 5),
+                                 peer_port_no=self.seq_val(info, 6))
+            return True
+
+        except nxw_utils.DBException as err:
+            LOG.warning("(insert_port_db) %s" % (err,))
+            return False
+
+    def __insert_link_db(self, info):
+        try:
+            # default value: 1000 - 1 Gb half/full-duplex
+            bw = self.seq_val(info, 4) if self.seq_val(info, 4) else 1000
+            PROXY_DB.link_insert(src_dpid=self.seq_val(info, 0),
+                                 src_pno=self.seq_val(info, 1),
+                                 dst_dpid=self.seq_val(info, 2),
+                                 dst_pno=self.seq_val(info, 3),
+                                 bandwidth=bw)
+            return True
+
+        except nxw_utils.DBException as err:
+            LOG.warning("(insert_link_db) %s" % (err,))
+            return False
+
     def onupdate(self, e):
         LOG.debug("FSM-update: src=%s, dst=%s" % (e.src, e.dst,))
 
         if len(self.dpids):
-            LOG.debug("Missing dpids=%d" % (len(self.dpids),))
+            self.__update(self.dpids, "dpids", self.__insert_dpid_db)
 
         elif len(self.ports):
-            LOG.debug("Missing ports=%d" % (len(self.ports),))
+            self.__update(self.ports, "ports", self.__insert_port_db)
 
         elif len(self.links):
-            LOG.debug("Missing links=%d" % (len(self.links),))
+            self.__update(self.links, "links", self.__insert_link_db)
 
     def onclean(self, e):
         LOG.debug("FSM-clean: src=%s, dst=%s" % (e.src, e.dst,))
@@ -175,6 +234,7 @@ class DiscoveryCircuit(Component):
 
     def __init__(self, ctxt):
         Component.__init__(self, ctxt)
+        self.db_ = nxw_utils.DBConfigParser(DiscoveryCircuit.FCONFIG)
         self.ccp_ = nxw_utils.CircuitConfigParser(DiscoveryCircuit.FCONFIG)
         self.timeout = self.ccp_.timeout
         self.fsm_ = FSM(self.ccp_.address, self.ccp_.port,
@@ -184,6 +244,11 @@ class DiscoveryCircuit(Component):
         LOG.debug('configuring %s' % str(self.__class__.__name__))
 
     def install(self):
+        global PROXY_DB
+        PROXY_DB = nxw_utils.TopologyOFCManager(host=self.db_.host,
+                            user=self.db_.user, pswd=self.db_.pswd,
+                            database=self.db_.name, logger=LOG)
+
         self.post_callback(int(self.timeout), self.timer_handler)
 
     def timer_handler(self):
