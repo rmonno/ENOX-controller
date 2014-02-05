@@ -246,9 +246,9 @@ def pckt_dpid_create():
 
 
 # DELETE /pckt_dpid/<id>
-@bottle.delete('/pckt_dpid/<id:int>')
+@bottle.delete('/pckt_dpid/<id>')
 def pckt_dpid_delete(id):
-    WLOG.info("Enter http pckt_dpid_delete: id=%d", id)
+    WLOG.info("Enter http pckt_dpid_delete: id=%s", id)
     if PROXY_PCE_CHECK('topology'):
         (nodes, links, hosts) = datapath_leave_db_actions(id)
 
@@ -686,9 +686,9 @@ def dpids():
         PROXY_DB.close()
 
 
-@bottle.get('/dpids/<dpid:int>')
+@bottle.get('/dpids/<dpid>')
 def dpid_info(dpid):
-    WLOG.info("Enter http dpid_info: dpid=%d", dpid)
+    WLOG.info("Enter http dpid_info: dpid=%s", dpid)
     try:
         PROXY_DB.open_transaction()
         rows_ = PROXY_DB.datapath_select(d_id=dpid)
@@ -787,9 +787,9 @@ def hosts():
         PROXY_DB.close()
 
 
-@bottle.get('/pckt_flows/<id:int>')
+@bottle.get('/pckt_flows/<id>')
 def pckt_flows(id):
-    WLOG.info("Enter http pckt_flows: dpid=%d", id)
+    WLOG.info("Enter http pckt_flows: dpid=%s", id)
     try:
         PROXY_DB.open_transaction()
         ids_ = PROXY_DB.flow_select(dpid=id)
@@ -804,7 +804,7 @@ def pckt_flows(id):
         PROXY_DB.close()
 
 
-@bottle.delete('/pckt_flows/<id:int>')
+@bottle.delete('/pckt_flows/<id>')
 def pckt_flow_delete(id):
     WLOG.info("Enter http pckt_flow_delete: dpid=%d", id)
     try:
@@ -985,9 +985,9 @@ def pckt_table_stats_info():
     finally:
         PROXY_DB.close()
 
-@bottle.delete('/pckt_table_stats/<id:int>')
+@bottle.delete('/pckt_table_stats/<id>')
 def pckt_table_stats_delete(id):
-    WLOG.info("Enter http pckt_table_stats_delete: dpid=%d", id)
+    WLOG.info("Enter http pckt_table_stats_delete: dpid=%s", id)
     try:
         PROXY_DB.open_transaction()
         PROXY_DB.table_stats_delete(dpid=id)
