@@ -19,10 +19,13 @@ def hello():
 def get_topology():
     INFO('Enter (http) get_topology method!')
 
-    info_ = {"switches":
-             {"10":[3,"circuit",25165831,"2011-10-01 15:26"],
-              "11":[3,"circuit",25165831,"2011-10-01 15:26"],
-              "12":[2,"circuit",25165831,"2011-10-01 15:26"],}}
+    info_ = {"switches": [
+                {"swtype":"circuit","swcap":25165831,
+                 "id":"00-00-00-00-03-10","noofports":3},
+                {"swtype":"circuit","swcap":25165831,
+                 "id":"00-00-00-00-03-11","noofports":3},
+                {"swtype":"circuit","swcap":25165831,
+                 "id":"00-00-00-00-03-12","noofports":2},]}
 
     return json.dumps(info_, sort_keys=True, indent=4, separators=(',', ': '))
 
@@ -32,22 +35,38 @@ def get_ports(dpid):
 
     info_ = {}
 
-    if "10" in dpid:
-        info_ = {"nodes": [
-                    [1,"POL1",111,1048576,"6",3],
-                    [2,"POL2",111,1048576,"11",1],
-                    [3,"POL3",111,1048576,"12",1] ]}
+    if "03-10" in dpid:
+        info_ = {"switches": [
+                    {"portnum":1,"peerportnum":3,"portbw":72057594037927936,
+                     "peerdpid":"00-00-00-00-02-06","portname":"POL1",
+                     "portconfig":111,"peercap":1048576},
+                    {"portnum":2,"peerportnum":1,"portbw":72057594037927936,
+                     "peerdpid":"00-00-00-00-03-11","portname":"POL2",
+                     "portconfig":111,"peercap":1048576},
+                    {"portnum":3,"peerportnum":1,"portbw":72057594037927936,
+                     "peerdpid":"00-00-00-00-03-12","portname":"POL1",
+                     "portconfig":111,"peercap":1048576},]}
 
-    elif "11" in dpid:
-        info_ = {"nodes": [
-                    [1,"POL1",111,1048576,"10",2],
-                    [2,"POL2",111,1048576,"12",2],
-                    [3,"POL3",111,1048576,"h3",1] ]}
+    elif "03-11" in dpid:
+        info_ = {"switches": [
+                    {"portnum":1,"peerportnum":2,"portbw":72057594037927936,
+                     "peerdpid":"00-00-00-00-03-10","portname":"POL1",
+                     "portconfig":111,"peercap":1048576},
+                    {"portnum":2,"peerportnum":2,"portbw":72057594037927936,
+                     "peerdpid":"00-00-00-00-03-12","portname":"POL2",
+                     "portconfig":111,"peercap":1048576},
+                    {"portnum":3,"peerportnum":1,"portbw":72057594037927936,
+                     "peerdpid":"h3","portname":"POL1",
+                     "portconfig":111,"peercap":1048576},]}
 
-    elif "12" in dpid:
-        info_ = {"nodes": [
-                    [1,"POL1",111,1048576,"10",3],
-                    [2,"POL2",111,1048576,"11",2] ]}
+    elif "03-12" in dpid:
+        info_ = {"switches": [
+                    {"portnum":1,"peerportnum":3,"portbw":72057594037927936,
+                     "peerdpid":"00-00-00-00-03-10","portname":"POL1",
+                     "portconfig":111,"peercap":1048576},
+                    {"portnum":2,"peerportnum":2,"portbw":72057594037927936,
+                     "peerdpid":"00-00-00-00-03-11","portname":"POL2",
+                     "portconfig":111,"peercap":1048576},]}
 
     return json.dumps(info_, sort_keys=True, indent=4, separators=(',', ': '))
 
@@ -56,24 +75,26 @@ def get_flows(dpid):
     INFO('Enter (http) get_flows method: %s!', (dpid,))
     bottle.abort(500, 'Not implemented yet!')
 
-@bottle.post('/cflow_mod')
+@bottle.put('/cflow_mod')
 def cflow_mod():
     INFO('Enter (http) cflow_mod method!')
 
     if bottle.request.headers['content-type'] != 'application/json':
         bottle.abort(500, 'Application Type must be json!')
 
-    inport_ = bottle.request.json['inport']
-    outport_ = bottle.request.json['outport']
-    hard_ = bottle.request.json['hardtime']
-    wild_ = bottle.request.json['wildcards']
-    command_ = bottle.request.json['command']
-    bw_ = bottle.request.json['bandwidth']
+    flowid_ = bottle.request.json['flow_id']
+    dpid_ = bottle.request.json['dpid']
+    inport_ = bottle.request.json['flow']['inport']
+    outport_ = bottle.request.json['flow']['outport']
+    hard_ = bottle.request.json['flow']['hardtime']
+    wild_ = bottle.request.json['flow']['wildcards']
+    command_ = bottle.request.json['flow']['command']
+    bw_ = bottle.request.json['flow']['bandwidth']
 
-    INFO('in=%s, out=%s, hard=%s, wild=%s, comm=%s, bw=%s',
-         (inport_, outport_, hard_, wild_, command_, bw_))
+    INFO('fid=%s, dpid=%s, in=%s, out=%s, hard=%s, wild=%s, comm=%s, bw=%s' %
+         (flowid_, dpid_, inport_, outport_, hard_, wild_, command_, bw_,))
 
-    return bottle.HTTPResponse(body='Operation completed', status=201)
+    return "success:True"
 
 @bottle.get('/get_graph')
 def get_graph():
