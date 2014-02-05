@@ -91,24 +91,20 @@ class FSM(Fysom):
                 return
 
             LOG.debug("Response=%s" % r_.text)
-            for dpid, values in r_.json()['switches'].items():
-                info_ = (dpid,
-                         self.seq_val(values, 0),
-                         self.seq_val(values, 1),
-                         self.seq_val(values, 2),
-                         self.seq_val(values, 3))
-                self.dpids.append(info_)
+            self.dpids = [(v_.get('id'), v_.get('noofports'), v_.get('swtype'),
+                           v_.get('swcap'), v_.get('regtime', None))
+                          for v_ in r_.json()['switches']]
 
         except Exception as e:
             LOG.error('get_dpid exec: %s', (e,))
 
-        LOG.debug('dpids=%s', self.dpids)
+        LOG.debug('dpids(%d)=%s', len(self.dpids), self.dpids)
 
     def __get_ports(self):
         for dpid_ in self.dpids:
             self.__get_dpid_ports(self.seq_val(dpid_, 0))
 
-        LOG.debug('ports=%s', self.ports)
+        LOG.debug('ports(%d)=%s', len(self.ports), self.ports)
 
     def __get_dpid_ports(self, dpid):
         try:
@@ -119,26 +115,22 @@ class FSM(Fysom):
                 return
 
             LOG.debug("Response=%s" % r_.text)
-            for values in r_.json()['nodes']:
-                info_ = (dpid,
-                         self.seq_val(values, 0),
-                         self.seq_val(values, 1),
-                         self.seq_val(values, 2),
-                         self.seq_val(values, 3),
-                         self.seq_val(values, 4),
-                         self.seq_val(values, 5),
-                         self.seq_val(values, 6))
-                self.ports.append(info_)
+            info_ = [(dpid, v_.get('portnum'), v_.get('portname'),
+                      v_.get('portconfig'), v_.get('peercap', None),
+                      v_.get('peerdpid', None), v_.get('peerportnum', None),
+                      v_.get('portbw', None))
+                     for v_ in r_.json()['switches']]
+
+            self.ports.extend(info_)
 
         except Exception as e:
             LOG.error('get_dpid_ports exec: %s', (e,))
 
     def __get_links(self):
-        for dpid, num, name, conf, cap, pdpid, ppno, bw in self.ports:
-            info_ = (dpid, num, pdpid, ppno, bw)
-            self.links.append(info_)
+        self.links = [(dpid, num, pdpid, ppno, bw)
+                for dpid, num, name, conf, caps, pdpid, ppno, bw in self.ports]
 
-        LOG.debug('links=%s', self.links)
+        LOG.debug('links(%d)=%s', len(self.links), self.links)
 
     def onget(self, e):
         LOG.debug("FSM-get: src=%s, dst=%s" % (e.src, e.dst,))
