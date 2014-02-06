@@ -162,7 +162,7 @@ class FSM(Fysom):
     def __insert_dpid_db(self, info):
         try:
             PROXY_DB.datapath_insert(d_id=self.seq_val(info, 0),
-                            d_name=self.region + '-' + self.seq_val(info, 2),
+                            d_name=self.seq_val(info, 2) + '_' + self.region,
                             caps=self.seq_val(info, 3),
                             cports=self.seq_val(info, 1))
             return True
