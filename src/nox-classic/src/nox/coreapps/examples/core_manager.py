@@ -1180,18 +1180,20 @@ def delete_pce_topology(ports, links, hosts):
     for dp_ in ports.keys():
         PROXY_PCE.del_node(dp_)
 
-def convert_flows_from_link(flows, links, hosts):
-    WLOG.debug("FLOWs=%s, LiNKs=%s, HOSTs=%s" % (flows, links, hosts))
+def convert_flows_from_link(flows, dpids, links, hosts):
+    WLOG.debug("FLOWs=%s, DPIDs=%s, LiNKs=%s, HOSTs=%s" %\
+               (flows, dpids, links, hosts))
     tmp_ = {}
     for (l_, bw_) in links:
         tmp_[(l_[2], l_[3])] = (l_[0], l_[1])
 
     for (ip_, dp_, po_) in hosts:
-       tmp_[(nxw_utils.convert_ipv4_to_int(ip_), 0)] = (dp_, po_)
+        tmp_[(nxw_utils.convert_ipv4_to_int(ip_), 0)] = (dp_, po_)
 
-    return [(fs_[0], fs_[1]) + tmp_[(fs_[2], fs_[3])] for fs_ in flows]
+    flows_ = [(fs_[0], fs_[1]) + tmp_[(fs_[2], fs_[3])] for fs_ in flows]
+    return [(dpids[f[0]], f[1], dpids[f[2]], f[3]) for f in flows_]
 
-def route_calc_from_hosts_bw(source, dest, bw, links, hosts):
+def route_calc_from_hosts_bw(source, dest, bw, dpids, ports, links, hosts):
     (w_, p_, ret_) = PROXY_PCE.connection_route_from_hosts_bw(source, dest, bw)
     if ret_ != 'ok':
         bottle.abort(500, ret_)
@@ -1208,7 +1210,7 @@ def route_calc_from_hosts_bw(source, dest, bw, links, hosts):
 
         flows.append((din_idx, pin_idx, dout_idx, pout_idx))
 
-    cflows = convert_flows_from_link(flows, links, hosts)
+    cflows = convert_flows_from_link(flows, dpids, links, hosts)
     WLOG.info("CFlows=%s" % (cflows))
 
     resp = nxw_utils.HTTPResponsePostROUTE()
@@ -1220,6 +1222,24 @@ def route_calc_from_hosts_bw(source, dest, bw, links, hosts):
             resp.update(cf_[0], cf_[1], cf_[3])
 
     return resp
+
+def transform_pce_topology(ports, links, hosts):
+    dpids_ = [x for x in ports]
+    WLOG.debug("dpids=%s" % (dpids_,))
+
+    ports_ = {}
+    for x in ports:
+        ports_[dpids_.index(x)] = ports[x]
+    WLOG.debug("ports=%s" % (ports_,))
+
+    links_ = [((dpids_.index(x[0]), x[1], dpids_.index(x[2]), x[3]), bw)
+              for x, bw in links]
+    WLOG.debug("links=%s" % (links_,))
+
+    hosts_ = [(x[0], dpids_.index(x[1]), x[2]) for x in hosts]
+    WLOG.debug("hosts=%s" % (hosts_,))
+
+    return dpids_, ports_, links_, hosts_
 
 # webservices methods
 #
@@ -1259,18 +1279,21 @@ def post_route_hosts():
     if err != 'ok':
         bottle.abort(500, str(err))
 
+    dpids, ports, links, hosts = transform_pce_topology(ps, ls, hs)
+
     try:
-        create_pce_topology(ps, ls, hs)
+        create_pce_topology(ports, links, hosts)
 
         s_ = bottle.request.json['endpoints']['src_ip_addr']
         d_ = bottle.request.json['endpoints']['dst_ip_addr']
         bw_ = bottle.request.json['endpoints']['bw_constraint']
 
-        resp_ = route_calc_from_hosts_bw(s_, d_, bw_, ls, hs)
+        resp_ = route_calc_from_hosts_bw(s_, d_, bw_,
+                                         dpids, ports, links, hosts)
         return bottle.HTTPResponse(body=resp_.body(), status=201)
 
     finally:
-        delete_pce_topology(ps, ls, hs)
+        delete_pce_topology(ports, links, hosts)
 
 @bottle.post('/route_ports')
 def post_route_ports():
@@ -1287,6 +1310,8 @@ def post_route_ports():
     if err != 'ok':
         bottle.abort(500, str(err))
 
+    dpids, ports, links, hosts = transform_pce_topology(ps, ls, hs)
+
     try:
         s_dpid_ = bottle.request.json['endpoints']['src_dpid']
         s_port_ = long(bottle.request.json['endpoints']['src_port_no'])
@@ -1294,16 +1319,17 @@ def post_route_ports():
         d_port_ = long(bottle.request.json['endpoints']['dst_port_no'])
         bw_ = bottle.request.json['endpoints']['bw_constraint']
 
-        hs.append(('255.0.0.1', s_dpid_, s_port_))
-        hs.append(('255.0.0.2', d_dpid_, d_port_))
+        hosts.append(('255.0.0.1', dpids.index(s_dpid_), s_port_))
+        hosts.append(('255.0.0.2', dpids.index(d_dpid_), d_port_))
 
-        create_pce_topology(ps, ls, hs)
+        create_pce_topology(ports, links, hosts)
 
-        resp_ = route_calc_from_hosts_bw('255.0.0.1', '255.0.0.2', bw_, ls, hs)
+        resp_ = route_calc_from_hosts_bw('255.0.0.1', '255.0.0.2', bw_,
+                                         dpids, ports, links, hosts)
         return bottle.HTTPResponse(body=resp_.body(), status=201)
 
     finally:
-        delete_pce_topology(ps, ls, hs)
+        delete_pce_topology(ports, links, hosts)
 
 @bottle.post('/entry')
 def post_entry():
