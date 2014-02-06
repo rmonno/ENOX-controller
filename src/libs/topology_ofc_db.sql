@@ -131,6 +131,7 @@ CREATE TABLE IF NOT EXISTS `links` (
   `dst_dpid` varchar(25) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'destination datapath identifier',
   `dst_pno` smallint(8) unsigned DEFAULT NULL COMMENT 'destination port number',
   `available_bw` bigint(20) unsigned DEFAULT NULL COMMENT 'available bandwidth',
+  `domain` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL COMMENT 'domain',
   PRIMARY KEY (`src_dpid`,`src_pno`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='links info';
 

@@ -377,15 +377,15 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
         return (ret["datapath_id"], ret["port_no"])
 
     def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno,
-                    bandwidth=None):
+                    bandwidth=None, domain="packet"):
         """ link insert """
         table = "links"
 
         stat_header = "INSERT INTO " + table +\
-                      "(src_dpid, src_pno, dst_dpid, dst_pno"
-        stat_body = "VALUES (%s, %s, %s, %s"
+                      "(src_dpid, src_pno, dst_dpid, dst_pno, domain"
+        stat_body = "VALUES (%s, %s, %s, %s, %s"
         values = (str(src_dpid), str(src_pno),
-                  str(dst_dpid), str(dst_pno))
+                  str(dst_dpid), str(dst_pno), str(domain))
 
         if bandwidth is not None:
             stat_header += ", available_bw"

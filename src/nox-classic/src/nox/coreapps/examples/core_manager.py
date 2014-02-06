@@ -1115,15 +1115,15 @@ def decode_link_id(l_id):
     if id1_ == -1 or id2_ == -1 or id3_ == -1:
         return (None, None, None, None)
 
-    return (long(l_id[:id2_]), long(l_id[id2_+1:id1_]),
-            long(l_id[id1_+1:id3_]), long(l_id[id3_+1:]))
+    return (l_id[:id2_], long(l_id[id2_+1:id1_]),
+            l_id[id1_+1:id3_], long(l_id[id3_+1:]))
 
 def check_pce_topology(topology):
     ports_ = {}
     for ds_ in topology['dpids']:
-        ports_[long(ds_['dpid'])] = []
+        ports_[ds_['dpid']] = []
         for ps_ in ds_['ports']:
-            ports_[long(ds_['dpid'])].append(long(ps_['port_no']))
+            ports_[ds_['dpid']].append(long(ps_['port_no']))
 
     WLOG.info("PORTs=%s" % (ports_,))
 
@@ -1148,14 +1148,14 @@ def check_pce_topology(topology):
 
     hosts_ = []
     for hs_ in topology['hosts']:
-        if long(hs_['dpid']) not in ports_.keys():
+        if hs_['dpid'] not in ports_.keys():
             return "host_dpid Bad Argument: %s" % hs_['dpid'], None, None, None
 
-        if long(hs_['port_no']) not in ports_[long(hs_['dpid'])]:
+        if long(hs_['port_no']) not in ports_[hs_['dpid']]:
             return "host_port Bad Argument: %s" % hs_['port_no'],\
                     None, None, None
 
-        hosts_.append((hs_['ip_addr'],long(hs_['dpid']),long(hs_['port_no'])))
+        hosts_.append((hs_['ip_addr'],hs_['dpid'],long(hs_['port_no'])))
 
     WLOG.info("HOSTs=%s" % (hosts_,))
     return 'ok', ports_, links_, hosts_
@@ -1288,9 +1288,9 @@ def post_route_ports():
         bottle.abort(500, str(err))
 
     try:
-        s_dpid_ = long(bottle.request.json['endpoints']['src_dpid'])
+        s_dpid_ = bottle.request.json['endpoints']['src_dpid']
         s_port_ = long(bottle.request.json['endpoints']['src_port_no'])
-        d_dpid_ = long(bottle.request.json['endpoints']['dst_dpid'])
+        d_dpid_ = bottle.request.json['endpoints']['dst_dpid']
         d_port_ = long(bottle.request.json['endpoints']['dst_port_no'])
         bw_ = bottle.request.json['endpoints']['bw_constraint']
 

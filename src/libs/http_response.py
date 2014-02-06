@@ -245,10 +245,11 @@ class HTTPResponseGetTOPOLOGY(object):
         self._hosts = hosts
 
     def __link_info(self, r):
+        bw_ = long(r['available_bw']) if "circuit" in r['domain']\
+                else long(r['available_bw']) * 1000 * 1000
         # bw stored in [Mb/s], need conversion in [b/s]
         return (str(r['src_dpid']) + ':' + str(r['src_pno']) + '-' +\
-                str(r['dst_dpid']) + ':' + str(r['dst_pno']),
-                long(r['available_bw']) * 1000 * 1000)
+                str(r['dst_dpid']) + ':' + str(r['dst_pno']), bw_)
 
     def __host_info(self, r):
         return (r['ip_addr'], r['dpid'], r['in_port'])

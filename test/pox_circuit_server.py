@@ -21,11 +21,11 @@ def get_topology():
 
     info_ = {"switches": [
                 {"swtype":"circuit","swcap":25165831,
-                 "id":"00-00-00-00-03-10","noofports":3},
+                 "id":"000000000310","noofports":3},
                 {"swtype":"circuit","swcap":25165831,
-                 "id":"00-00-00-00-03-11","noofports":3},
+                 "id":"000000000311","noofports":3},
                 {"swtype":"circuit","swcap":25165831,
-                 "id":"00-00-00-00-03-12","noofports":2},]}
+                 "id":"000000000312","noofports":2},]}
 
     return json.dumps(info_, sort_keys=True, indent=4, separators=(',', ': '))
 
@@ -35,37 +35,37 @@ def get_ports(dpid):
 
     info_ = {}
 
-    if "03-10" in dpid:
+    if "0310" in dpid:
         info_ = {"switches": [
                     {"portnum":1,"peerportnum":3,"portbw":72057594037927936,
-                     "peerdpid":"00-00-00-00-02-06","portname":"POL1",
+                     "peerdpid":"000000000206","portname":"POL1",
                      "portconfig":111,"peercap":1048576},
                     {"portnum":2,"peerportnum":1,"portbw":72057594037927936,
-                     "peerdpid":"00-00-00-00-03-11","portname":"POL2",
+                     "peerdpid":"000000000311","portname":"POL2",
                      "portconfig":111,"peercap":1048576},
                     {"portnum":3,"peerportnum":1,"portbw":72057594037927936,
-                     "peerdpid":"00-00-00-00-03-12","portname":"POL1",
+                     "peerdpid":"000000000312","portname":"POL1",
                      "portconfig":111,"peercap":1048576},]}
 
-    elif "03-11" in dpid:
+    elif "0311" in dpid:
         info_ = {"switches": [
                     {"portnum":1,"peerportnum":2,"portbw":72057594037927936,
-                     "peerdpid":"00-00-00-00-03-10","portname":"POL1",
+                     "peerdpid":"000000000310","portname":"POL1",
                      "portconfig":111,"peercap":1048576},
                     {"portnum":2,"peerportnum":2,"portbw":72057594037927936,
-                     "peerdpid":"00-00-00-00-03-12","portname":"POL2",
+                     "peerdpid":"000000000312","portname":"POL2",
                      "portconfig":111,"peercap":1048576},
                     {"portnum":3,"peerportnum":1,"portbw":72057594037927936,
                      "peerdpid":"h3","portname":"POL1",
                      "portconfig":111,"peercap":1048576},]}
 
-    elif "03-12" in dpid:
+    elif "0312" in dpid:
         info_ = {"switches": [
                     {"portnum":1,"peerportnum":3,"portbw":72057594037927936,
-                     "peerdpid":"00-00-00-00-03-10","portname":"POL1",
+                     "peerdpid":"000000000310","portname":"POL1",
                      "portconfig":111,"peercap":1048576},
                     {"portnum":2,"peerportnum":2,"portbw":72057594037927936,
-                     "peerdpid":"00-00-00-00-03-11","portname":"POL2",
+                     "peerdpid":"000000000311","portname":"POL2",
                      "portconfig":111,"peercap":1048576},]}
 
     return json.dumps(info_, sort_keys=True, indent=4, separators=(',', ': '))
@@ -101,12 +101,10 @@ def get_graph():
     INFO('Enter (http) get_graph method!')
 
     info_ = {"connexions": [
-                {"00-00-00-00-03-55":["circuit",3,"00-00-00-00-03-5E",
-                                      13,4294966303,"2011-10-01 15:46"]},
-                {"00-00-00-00-03-44":["circuit",3,"00-00-00-00-03-5E",
-                                      13,4294966303,"2011-10-01 15:46"]},
-                ]
-            }
+                {"000000000355":["circuit",3,"00000000035E",
+                                 13,4294966303,"2011-10-01 15:46"]},
+                {"000000000344":["circuit",3,"00000000035E",
+                                 13,4294966303,"2011-10-01 15:46"]},]}
 
     return json.dumps(info_, sort_keys=True, indent=4, separators=(',', ': '))
 

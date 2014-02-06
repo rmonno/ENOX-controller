@@ -205,7 +205,7 @@ class TopologyOFCBase(object):
 
     @abstractmethod
     def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno,
-                    bandwidth=None):
+                    bandwidth=None, domain="packet"):
         """Insert a new entry at links table
 
         :param src_dpid : source datapath identifier (primary key)
@@ -213,6 +213,7 @@ class TopologyOFCBase(object):
         :param dst_dpid : destination datapath identifier
         :param dst_pno  : destination port number
         :param bandwidth: link available bandwidth
+        :param domain:    domain
 
         :raises: DBException
         """

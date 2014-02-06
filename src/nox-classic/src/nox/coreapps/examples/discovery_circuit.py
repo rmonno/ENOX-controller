@@ -194,7 +194,8 @@ class FSM(Fysom):
                                  src_pno=self.seq_val(info, 1),
                                  dst_dpid=self.seq_val(info, 2),
                                  dst_pno=self.seq_val(info, 3),
-                                 bandwidth=bw)
+                                 bandwidth=bw,
+                                 domain="circuit")
             return True
 
         except nxw_utils.DBException as err:

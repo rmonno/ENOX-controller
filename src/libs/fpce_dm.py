@@ -552,7 +552,7 @@ class FPCE(object):
     def add_node(self, node_id):
         """ add node from id """
         assert(node_id is not None)
-        LOG.info("Try to add node=%d" % node_id)
+        LOG.info("Try to add node=%s" % node_id)
 
         try:
             enet = EnhNetNode(node_id)
@@ -573,7 +573,7 @@ class FPCE(object):
     def del_node(self, node_id):
         """ delete node from id """
         assert(node_id is not None)
-        LOG.info("Try to del node=%d" % node_id)
+        LOG.info("Try to del node=%s" % node_id)
 
         try:
             enet = EnhNetNode(node_id)
@@ -596,7 +596,7 @@ class FPCE(object):
         assert(port_a is not None)
         assert(port_b is not None)
 
-        LOG.info("Try to add link=(%d:%d) -> (%d:%d), BW=%s",
+        LOG.info("Try to add link=(%s:%d) -> (%s:%d), BW=%s",
                  dpid_a, port_a, dpid_b, port_b, available_bw)
 
         if available_bw:
@@ -638,7 +638,7 @@ class FPCE(object):
         assert(dpid_b is not None)
         assert(port_a is not None)
         assert(port_b is not None)
-        LOG.info("Try to del link=(%d:%d) -> (%d:%d)",
+        LOG.info("Try to del link=(%s:%d) -> (%s:%d)",
                  dpid_a, port_a, dpid_b, port_b)
         try:
             lnk = EnhNetLink(dpid_a, port_a, dpid_b, port_b)
@@ -661,7 +661,7 @@ class FPCE(object):
         assert(ipv4 is not None)
         assert(rem_dpid is not None)
         assert(rem_port is not None)
-        LOG.info("Try to add host=%s -> (%d:%d)" % (ipv4, rem_dpid, rem_port))
+        LOG.info("Try to add host=%s -> (%s:%d)" % (ipv4, rem_dpid, rem_port))
 
         ip_ = convert_ipv4_to_int(ipv4)
         self.add_node(ip_)
@@ -673,7 +673,7 @@ class FPCE(object):
         assert(ipv4 is not None)
         assert(rem_dpid is not None)
         assert(rem_port is not None)
-        LOG.info("Try to del host=%s -> (%d:%d)" % (ipv4, rem_dpid, rem_port))
+        LOG.info("Try to del host=%s -> (%s:%d)" % (ipv4, rem_dpid, rem_port))
 
         ip_ = convert_ipv4_to_int(ipv4)
         self.del_link(ip_, 0, rem_dpid, rem_port)
