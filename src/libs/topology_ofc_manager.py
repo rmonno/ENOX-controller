@@ -209,6 +209,16 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return self.__execute_dict(statement, values, one=False)
 
+
+    def datapath_update(self, d_id, caps, cports):
+        """update datapath info """
+        table = "datapaths"
+
+        statement = "UPDATE " + table + " SET ofp_capabilities=%s," +\
+                    " cports=%s WHERE id=%s"
+        values = (str(caps), str(cports), str(d_id))
+        self.__execute(statement, values)
+
     def port_insert(self, d_id, port_no, hw_addr=None, name=None,
                     config=None, state=None, curr=None, advertised=None,
                     supported=None, peer=None, sw_tdm_gran=None,
@@ -376,6 +386,18 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return (ret["datapath_id"], ret["port_no"])
 
+    def port_update(self, d_id, port_no, name, curr, supported,
+                    peer_dpath_id, peer_port_no):
+        """update port info """
+        table = "ports"
+
+        statement = "UPDATE " + table + " SET name=%s, curr=%s," +\
+                    " supported=%s, peer_dpath_id=%s, peer_port_no=%s" +\
+                    " WHERE datapath_id=%s AND port_no=%s"
+        values = (str(name), str(curr), str(supported), str(peer_dpath_id),
+                  str(peer_port_no), str(d_id), str(port_no))
+        self.__execute(statement, values)
+
     def link_insert(self, src_dpid, src_pno, dst_dpid, dst_pno,
                     bandwidth=None, domain="packet"):
         """ link insert """
@@ -455,6 +477,16 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
                     " WHERE src_dpid=%s AND src_pno=%s" +\
                     " AND dst_dpid=%s AND dst_pno=%s"
         values = (bandwidth, src_dpid, src_pno, dst_dpid, dst_pno)
+        self.__execute(statement, values)
+
+    def link_update(self, src_dpid, src_pno, dst_dpid, dst_pno, bandwidth):
+        """update link info """
+        table = "links"
+
+        statement = "UPDATE " + table + " SET dst_dpid=%s, dst_pno=%s," +\
+                    " available_bw=%s WHERE src_dpid=%s AND src_pno=%s"
+        values = (str(dst_dpid), str(dst_pno), str(bandwidth),
+                  str(src_dpid), str(src_pno))
         self.__execute(statement, values)
 
     def host_insert(self, mac_addr, dpid=None, in_port=None, ip_addr=None):

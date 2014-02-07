@@ -255,16 +255,45 @@ class FSM(Fysom):
             return False
 
     def __update_dpid_db(self, info):
-        LOG.error('Not supported yet!')
-        return False
+        try:
+            PROXY_DB.datapath_update(d_id=self.seq_val(info, 0),
+                                     caps=self.seq_val(info, 3),
+                                     cports=self.seq_val(info, 1))
+            return True
+
+        except nxw_utils.DBException as err:
+            LOG.error("(update_dpid_db) %s" % (err,))
+            return False
 
     def __update_port_db(self, info):
-        LOG.error('Not supported yet!')
-        return False
+        try:
+            PROXY_DB.port_update(d_id=self.seq_val(info, 0),
+                                 port_no=self.seq_val(info, 1),
+                                 name=self.seq_val(info, 2),
+                                 curr=self.seq_val(info, 3),
+                                 supported=self.seq_val(info, 4),
+                                 peer_dpath_id=self.seq_val(info, 5),
+                                 peer_port_no=self.seq_val(info, 6))
+            return True
+
+        except nxw_utils.DBException as err:
+            LOG.error("(update_port_db) %s" % (err,))
+            return False
 
     def __update_link_db(self, info):
-        LOG.error('Not supported yet!')
-        return False
+        try:
+            bw_ = self.seq_val(info, 4) if self.seq_val(info, 4) else 1000
+
+            PROXY_DB.link_update(src_dpid=self.seq_val(info, 0),
+                                 src_pno=self.seq_val(info, 1),
+                                 dst_dpid=self.seq_val(info, 2),
+                                 dst_pno=self.seq_val(info, 3),
+                                 bandwidth=bw_)
+            return True
+
+        except nxw_utils.DBException as err:
+            LOG.error("(update_link_db) %s" % (err,))
+            return False
 
     def onupdate(self, e):
         LOG.debug("FSM-update: src=%s, dst=%s" % (e.src, e.dst,))
