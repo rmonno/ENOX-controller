@@ -1417,13 +1417,16 @@ def delete_entry(id):
         PROXY_DB.open_transaction()
         info_ = PROXY_DB.flow_id_select(flowid=id)
 
-        src_ip_ = info_['nw_src'] if info_['nw_src'] else None
-        dst_ip_ = info_['nw_dst'] if info_['nw_dst'] else None
-        src_tp_ = info_['tp_src'] if info_['tp_src'] else 0xffff
-        dst_tp_ = info_['tp_dst'] if info_['tp_dst'] else 0xffff
-        proto_ = info_['nw_proto'] if info_['nw_proto'] else 0xffff
+        dpid_type_ = PROXY_DB.datapath_get_name(d_id=info_['dpid'])
 
-        evt_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=long(info_['dpid']),
+        if 'packet' in dpid_type_:
+            src_ip_ = info_['nw_src'] if info_['nw_src'] else None
+            dst_ip_ = info_['nw_dst'] if info_['nw_dst'] else None
+            src_tp_ = info_['tp_src'] if info_['tp_src'] else 0xffff
+            dst_tp_ = info_['tp_dst'] if info_['tp_dst'] else 0xffff
+            proto_ = info_['nw_proto'] if info_['nw_proto'] else 0xffff
+
+            evt_ = nxw_utils.Pckt_delFlowEntryEvent(dp_in=long(info_['dpid']),
                                                 port_in=int(info_['in_port']),
                                                 dp_out=long(info_['dpid']),
                                                 port_out=None,
@@ -1433,6 +1436,17 @@ def delete_entry(id):
                                                 tcp_sport=src_tp_,
                                                 tcp_dport=dst_tp_,
                                                 ip_proto=proto_)
+        elif 'circuit' in dpid_type_:
+            evt_ = nxw_utils.Circuit_flowEntryEvent(flow_id=id,
+                                            dpid=info_['dpid'],
+                                            port_in=int(info_['in_port']),
+                                            port_out=None,
+                                            hard=info_['hard_timeout'],
+                                            bandwidth=None,
+                                            command='DROP')
+        else:
+            bottle.abort('Unmanaged device type!')
+
         WLOG.info(str(evt_))
         PROXY_POST(evt_.describe())
 
