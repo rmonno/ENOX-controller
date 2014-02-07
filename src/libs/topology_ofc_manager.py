@@ -197,6 +197,15 @@ class TopologyOFCManager(tofc.TopologyOFCBase):
 
         return ret["dID"]
 
+    def datapath_get_name(self, d_id):
+        """ get datapath name """
+        table = "datapaths"
+
+        statement = "SELECT name FROM " + table + " WHERE id=" + str(d_id)
+        ret = self.__execute_dict(statement, one=True)
+
+        return ret["name"]
+
     def datapath_select(self, d_id=None):
         """ select * from datapath """
         table = "datapaths"

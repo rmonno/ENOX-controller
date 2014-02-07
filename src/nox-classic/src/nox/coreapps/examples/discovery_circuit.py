@@ -18,10 +18,11 @@
 """ Discovey Circuit NOX application """
 
 from nox.lib.core import Component
+from nox.coreapps.pyrt.pycomponent import CONTINUE
 
 import sys
 import os
-#import json
+import json
 import requests
 import logging
 from fysom import Fysom
@@ -330,7 +331,7 @@ class DiscoveryCircuit(Component):
                         self.ccp_.circuit_region)
 
     def configure(self, configuration):
-        LOG.debug('configuring %s' % str(self.__class__.__name__))
+        self.register_python_event(nxw_utils.Circuit_flowEntryEvent.NAME)
 
     def install(self):
         global PROXY_DB
@@ -339,11 +340,36 @@ class DiscoveryCircuit(Component):
                             database=self.db_.name, logger=LOG)
 
         self.post_callback(int(self.timeout), self.timer_handler)
+        self.register_handler(nxw_utils.Circuit_flowEntryEvent.NAME,
+                              self.flow_entry_handler)
 
     def timer_handler(self):
         LOG.debug("%s timeout fired" % str(self.__class__.__name__))
         self.fsm_.click()
         self.post_callback(int(self.timeout), self.timer_handler)
+
+    def flow_entry_handler(self, event):
+        wild_ = event.pyevent.wild if event.pyevent.wild else 0
+        url_ = "http://%s:%s/cflow_mod" % (self.ccp_.address, self.ccp_.port)
+        params_ = {'flow_id': event.pyevent.flow_id,
+                   'dpid': event.pyevent.dpid,
+                   'flow': {'inport': event.pyevent.port_in,
+                            'outport': event.pyevent.port_out,
+                            'hardtime': event.pyevent.hard_timeout,
+                            'wildcards': wild_,
+                            'command': event.pyevent.command,
+                            'bandwidth': event.pyevent.bandwidth}}
+
+        LOG.debug("send put-request: url=%s, params=%s" % (url_, params_,))
+        try:
+            r_ = requests.put(url=url_, data=json.dumps(params_),
+                              headers={'content-type': 'application/json'})
+            LOG.info(r_.text)
+
+        except requests.exceptions.RequestException as exc:
+            LOG.error(str(exc))
+
+        return CONTINUE
 
     def getInterface(self):
         return str(DiscoveryCircuit)

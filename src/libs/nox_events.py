@@ -103,3 +103,29 @@ class Pckt_delFlowEntryEvent(pyevent):
                self.ip_proto, self.tcp_udp_src_port, self.tcp_udp_dst_port)
 
         return msg % val
+
+
+class Circuit_flowEntryEvent(pyevent):
+    NAME = 'circuit_flow_entry_event'
+
+    def __init__(self, flow_id, dpid, port_in, port_out, hard, bandwidth,
+                 command, wild=None):
+        self.flow_id = flow_id
+        self.dpid = dpid
+        self.port_in = port_in
+        self.port_out = port_out
+        self.hard_timeout = hard
+        self.bandwidth = bandwidth
+        self.command = command
+        self.wild = wild
+
+    def describe(self):
+        return pyevent(Circuit_flowEntryEvent.NAME, self)
+
+    def __str__(self):
+        msg = "flow_id=%s,dpid=%s,port_in=%s,port_out=%s,hard_timeout=%s,"
+        msg += "bandwidth=%s,command=%s,wildcards=%s"
+        val = (self.flow_id, self.dpid, self.port_in, self.port_out,
+               self.hard_timeout, self.bandwidth, self.command, self.wild)
+
+        return msg % val

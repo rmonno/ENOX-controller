@@ -755,9 +755,9 @@ class EntriesEnvButton(Button):
 
         self.__c.clear()
         self.__c.setRowCount(2+int(entries_))
-        self.__c.setColumnCount(9)
+        self.__c.setColumnCount(11)
         self.__c.setHorizontalHeaderLabels(['DPID','IN_PORT','OUT_PORT','VLAN',
-                                 'SRC_IP','DST_IP','SRC_TCP','DST_TCP','IDLE'])
+                     'SRC_IP','DST_IP','SRC_TCP','DST_TCP','IDLE','HARD','BW'])
         i = 0
         for x_ in range(0, int(entries_)):
             self.__c.setCellWidget(i,0,QtGui.QLineEdit('dpid-'+str(x_)))
@@ -769,6 +769,8 @@ class EntriesEnvButton(Button):
             self.__c.setCellWidget(i,6,QtGui.QLineEdit('src-tcp-'+str(x_)))
             self.__c.setCellWidget(i,7,QtGui.QLineEdit('dst-tcp-'+str(x_)))
             self.__c.setCellWidget(i,8,QtGui.QLineEdit('idle-'+str(x_)))
+            self.__c.setCellWidget(i,9,QtGui.QLineEdit('hard-'+str(x_)))
+            self.__c.setCellWidget(i,10,QtGui.QLineEdit('bw-'+str(x_)))
             i = i + 1
 
         i = i + 1
@@ -804,6 +806,10 @@ class EntriesButton(Button):
                 tmp_['dst_tcp_port'] = self.__c.cellWidget(start,7).text()
             if self.__c.cellWidget(start,8).text():
                 tmp_['idle_timeout'] = self.__c.cellWidget(start,8).text()
+            if self.__c.cellWidget(start,9).text():
+                tmp_['hard_timeout'] = self.__c.cellWidget(start,9).text()
+            if self.__c.cellWidget(start,10).text():
+                tmp_['bandwidth'] = self.__c.cellWidget(start,10).text()
 
             params.append(tmp_)
             start = start + 1

@@ -55,7 +55,7 @@ PROXY_DB = None
 PROXY_PCE_CHECK = None
 PROXY_PCE = None
 PROXY_OSCARS_PUSH_ALARM = None
-
+LATEST_REQ_BW = None
 
 # utilities
 def create_node_ipv4(dpid, portno):
@@ -1266,6 +1266,7 @@ def get_topology():
 
 @bottle.post('/route_hosts')
 def post_route_hosts():
+    global LATEST_REQ_BW
     WLOG.info("Enter http (extensions) post_route_hosts")
 
     if bottle.request.headers['content-type'] != 'application/json':
@@ -1286,9 +1287,9 @@ def post_route_hosts():
 
         s_ = bottle.request.json['endpoints']['src_ip_addr']
         d_ = bottle.request.json['endpoints']['dst_ip_addr']
-        bw_ = bottle.request.json['endpoints']['bw_constraint']
+        LATEST_REQ_BW = bottle.request.json['endpoints']['bw_constraint']
 
-        resp_ = route_calc_from_hosts_bw(s_, d_, bw_,
+        resp_ = route_calc_from_hosts_bw(s_, d_, LATEST_REQ_BW,
                                          dpids, ports, links, hosts)
         return bottle.HTTPResponse(body=resp_.body(), status=201)
 
@@ -1297,6 +1298,7 @@ def post_route_hosts():
 
 @bottle.post('/route_ports')
 def post_route_ports():
+    global LATEST_REQ_BW
     WLOG.info("Enter http (extensions) post_route_ports")
 
     if bottle.request.headers['content-type'] != 'application/json':
@@ -1317,15 +1319,15 @@ def post_route_ports():
         s_port_ = long(bottle.request.json['endpoints']['src_port_no'])
         d_dpid_ = bottle.request.json['endpoints']['dst_dpid']
         d_port_ = long(bottle.request.json['endpoints']['dst_port_no'])
-        bw_ = bottle.request.json['endpoints']['bw_constraint']
+        LATEST_REQ_BW = bottle.request.json['endpoints']['bw_constraint']
 
         hosts.append(('255.0.0.1', dpids.index(s_dpid_), s_port_))
         hosts.append(('255.0.0.2', dpids.index(d_dpid_), d_port_))
 
         create_pce_topology(ports, links, hosts)
 
-        resp_ = route_calc_from_hosts_bw('255.0.0.1', '255.0.0.2', bw_,
-                                         dpids, ports, links, hosts)
+        resp_ = route_calc_from_hosts_bw('255.0.0.1', '255.0.0.2',
+                        LATEST_REQ_BW, dpids, ports, links, hosts)
         return bottle.HTTPResponse(body=resp_.body(), status=201)
 
     finally:
@@ -1348,41 +1350,53 @@ def post_entry():
             src_tcp_ = int(r_.get('src_tcp_port', 0xffff))
             dst_tcp_ = int(r_.get('dst_tcp_port', 0xffff))
             idle_    = int(r_.get('idle_timeout', 300))
+            hard_    = int(r_.get('hard_timeout', openflow.OFP_FLOW_PERMANENT))
+            bw_      = r_.get('bandwidth', LATEST_REQ_BW)
 
-            evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=long(r_['dpid']),
-                                    port_in=int(r_['in_port_no']),
-                                    dp_out=long(r_['dpid']),
-                                    port_out=int(r_['out_port_no']),
-                                    vid=int(r_['vlan_id']),
-                                    ip_src=src_ip_,
-                                    ip_dst=dst_ip_,
-                                    tcp_sport=src_tcp_,
-                                    tcp_dport=dst_tcp_,
-                                    idle=idle_,
-                                    hard=openflow.OFP_FLOW_PERMANENT,
-                                    prio=openflow.OFP_DEFAULT_PRIORITY,
-                                    action=openflow.OFPAT_OUTPUT)
-            WLOG.info(str(evt_))
-            PROXY_POST(evt_.describe())
+            dpid_type_ = PROXY_DB.datapath_get_name(d_id=r_['dpid'])
 
-            PROXY_DB.flow_insert(dpid=r_['dpid'],
-                                 in_port=r_['in_port_no'],
-                                 dl_vlan=r_['vlan_id'],
-                                 nw_src=src_ip_,
-                                 nw_dst=dst_ip_,
-                                 tp_src=src_tcp_,
-                                 tp_dst=dst_tcp_,
-                                 idle_timeout=idle_,
-                                 hard_timeout=openflow.OFP_FLOW_PERMANENT,
+            PROXY_DB.flow_insert(dpid=r_['dpid'], in_port=r_['in_port_no'],
+                                 dl_vlan=r_['vlan_id'], nw_src=src_ip_,
+                                 nw_dst=dst_ip_, tp_src=src_tcp_,
+                                 tp_dst=dst_tcp_, idle_timeout=idle_,
+                                 hard_timeout=hard_,
                                  priority=openflow.OFP_DEFAULT_PRIORITY,
                                  action=openflow.OFPAT_OUTPUT)
-            fid_ = PROXY_DB.flow_get_index(dpid=r_['dpid'],
-                                           nw_src=src_ip_,
-                                           nw_dst=dst_ip_,
-                                           tp_src=src_tcp_,
+
+            fid_ = PROXY_DB.flow_get_index(dpid=r_['dpid'], nw_src=src_ip_,
+                                           nw_dst=dst_ip_, tp_src=src_tcp_,
                                            tp_dst=dst_tcp_,
                                            dl_vlan=r_['vlan_id'],
                                            in_port=r_['in_port_no'])
+            if 'packet' in dpid_type_:
+                evt_ = nxw_utils.Pckt_flowEntryEvent(dp_in=long(r_['dpid']),
+                                            port_in=int(r_['in_port_no']),
+                                            dp_out=long(r_['dpid']),
+                                            port_out=int(r_['out_port_no']),
+                                            vid=int(r_['vlan_id']),
+                                            ip_src=src_ip_,
+                                            ip_dst=dst_ip_,
+                                            tcp_sport=src_tcp_,
+                                            tcp_dport=dst_tcp_,
+                                            idle=idle_,
+                                            hard=hard_,
+                                            prio=openflow.OFP_DEFAULT_PRIORITY,
+                                            action=openflow.OFPAT_OUTPUT)
+            elif 'circuit' in dpid_type_:
+                evt_ = nxw_utils.Circuit_flowEntryEvent(flow_id=fid_,
+                                            dpid=r_['dpid'],
+                                            port_in=int(r_['in_port_no']),
+                                            port_out=int(r_['out_port_no']),
+                                            hard=hard_,
+                                            bandwidth=bw_,
+                                            command='ADD')
+            else:
+                WLOG.error('Unmanaged device type!')
+                continue
+
+            WLOG.info(str(evt_))
+            PROXY_POST(evt_.describe())
+
             resp_.update(r_, fid_)
 
         PROXY_DB.commit()
