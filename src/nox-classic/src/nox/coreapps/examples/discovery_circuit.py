@@ -143,12 +143,16 @@ class FSM(Fysom):
         else:
             self.__get_links()
 
-    def __update(self, values, types, func):
+    def __update(self, values, types, fget, finsert, fupdate):
         try:
             PROXY_DB.open_transaction()
             ret = False
             for info in values:
-                ret = func(info)
+                action_ = fget(info)
+                if action_ == 'INSERT':
+                    ret = finsert(info)
+                elif action_ == 'UPDATE':
+                    ret = fupdate(info)
 
             if ret is True:
                 PROXY_DB.commit()
@@ -159,16 +163,64 @@ class FSM(Fysom):
         finally:
             PROXY_DB.close()
 
+    def __get_dpid_db(self, info):
+        try:
+            values_ = PROXY_DB.datapath_select(d_id=self.seq_val(info, 0))
+
+            if values_[0]['cports'] != self.seq_val(info, 1) or\
+               values_[0]['ofp_capabilities'] != self.seq_val(info, 3):
+                return 'UPDATE'
+
+        except nxw_utils.DBException:
+            return 'INSERT'
+
+        return 'SKIP'
+
+    def __get_port_db(self, info):
+        try:
+            values_ = PROXY_DB.port_select(d_id=self.seq_val(info, 0),
+                                           port_no=self.seq_val(info, 1))
+
+            if values_[0]['name'] != self.seq_val(info, 2) or\
+               values_[0]['curr'] != self.seq_val(info, 3) or\
+               values_[0]['supported'] != self.seq_val(info, 4) or\
+               values_[0]['peer_dpath_id'] != self.seq_val(info, 5) or\
+               values_[0]['peer_port_no'] != self.seq_val(info, 6):
+                return 'UPDATE'
+
+        except nxw_utils.DBException:
+            return 'INSERT'
+
+        return 'SKIP'
+
+    def __get_link_db(self, info):
+        try:
+            values_ = PROXY_DB.link_select(src_dpid=self.seq_val(info, 0),
+                                           src_pno=self.seq_val(info, 1))
+
+            bw_ = self.seq_val(info, 4) if self.seq_val(info, 4) else 1000
+
+            if values_[0]['dst_dpid'] != self.seq_val(info, 2) or\
+               values_[0]['dst_pno'] != self.seq_val(info, 3) or\
+               values_[0]['available_bw'] != bw_:
+                return 'UPDATE'
+
+        except nxw_utils.DBException:
+            return 'INSERT'
+
+        return 'SKIP'
+
     def __insert_dpid_db(self, info):
         try:
+            name_ = self.seq_val(info, 2) + '_' + self.region
             PROXY_DB.datapath_insert(d_id=self.seq_val(info, 0),
-                            d_name=self.seq_val(info, 2) + '_' + self.region,
-                            caps=self.seq_val(info, 3),
-                            cports=self.seq_val(info, 1))
+                                     d_name=name_,
+                                     caps=self.seq_val(info, 3),
+                                     cports=self.seq_val(info, 1))
             return True
 
         except nxw_utils.DBException as err:
-            LOG.warning("(insert_dpid_db) %s" % (err,))
+            LOG.error("(insert_dpid_db) %s" % (err,))
             return False
 
     def __insert_port_db(self, info):
@@ -183,36 +235,51 @@ class FSM(Fysom):
             return True
 
         except nxw_utils.DBException as err:
-            LOG.warning("(insert_port_db) %s" % (err,))
+            LOG.error("(insert_port_db) %s" % (err,))
             return False
 
     def __insert_link_db(self, info):
         try:
             # default value: 1000 - 1 Gb half/full-duplex
-            bw = self.seq_val(info, 4) if self.seq_val(info, 4) else 1000
+            bw_ = self.seq_val(info, 4) if self.seq_val(info, 4) else 1000
             PROXY_DB.link_insert(src_dpid=self.seq_val(info, 0),
                                  src_pno=self.seq_val(info, 1),
                                  dst_dpid=self.seq_val(info, 2),
                                  dst_pno=self.seq_val(info, 3),
-                                 bandwidth=bw,
+                                 bandwidth=bw_,
                                  domain="circuit")
             return True
 
         except nxw_utils.DBException as err:
-            LOG.warning("(insert_link_db) %s" % (err,))
+            LOG.error("(insert_link_db) %s" % (err,))
             return False
+
+    def __update_dpid_db(self, info):
+        LOG.error('Not supported yet!')
+        return False
+
+    def __update_port_db(self, info):
+        LOG.error('Not supported yet!')
+        return False
+
+    def __update_link_db(self, info):
+        LOG.error('Not supported yet!')
+        return False
 
     def onupdate(self, e):
         LOG.debug("FSM-update: src=%s, dst=%s" % (e.src, e.dst,))
 
         if len(self.dpids):
-            self.__update(self.dpids, "dpids", self.__insert_dpid_db)
+            self.__update(self.dpids, "dpids", self.__get_dpid_db,
+                          self.__insert_dpid_db, self.__update_dpid_db)
 
         elif len(self.ports):
-            self.__update(self.ports, "ports", self.__insert_port_db)
+            self.__update(self.ports, "ports", self.__get_port_db,
+                          self.__insert_port_db, self.__update_port_db)
 
         elif len(self.links):
-            self.__update(self.links, "links", self.__insert_link_db)
+            self.__update(self.links, "links", self.__get_link_db,
+                          self.__insert_link_db, self.__update_link_db)
 
     def onclean(self, e):
         LOG.debug("FSM-clean: src=%s, dst=%s" % (e.src, e.dst,))
