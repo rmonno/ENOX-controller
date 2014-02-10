@@ -1294,7 +1294,7 @@ def post_route_hosts():
         return bottle.HTTPResponse(body=resp_.body(), status=201)
 
     finally:
-        delete_pce_topology(ports, links, hosts)
+        PROXY_PCE.flush_topology()
 
 @bottle.post('/route_ports')
 def post_route_ports():
@@ -1331,7 +1331,7 @@ def post_route_ports():
         return bottle.HTTPResponse(body=resp_.body(), status=201)
 
     finally:
-        delete_pce_topology(ports, links, hosts)
+        PROXY_PCE.flush_topology()
 
 @bottle.post('/entry')
 def post_entry():
