@@ -1283,11 +1283,20 @@ def post_route_hosts():
     dpids, ports, links, hosts = transform_pce_topology(ps, ls, hs)
 
     try:
-        create_pce_topology(ports, links, hosts)
-
         s_ = bottle.request.json['endpoints']['src_ip_addr']
         d_ = bottle.request.json['endpoints']['dst_ip_addr']
         LATEST_REQ_BW = bottle.request.json['endpoints']['bw_constraint']
+
+        # check input parameters
+        ips_ = [ip for ip, dpid_idx, port_no in hosts]
+
+        if s_ not in ips_:
+            bottle.abort(500, 'Unknown Source IP Address!')
+
+        if d_ not in ips_:
+            bottle.abort(500, 'Unknown Destination IP Address!')
+
+        create_pce_topology(ports, links, hosts)
 
         resp_ = route_calc_from_hosts_bw(s_, d_, LATEST_REQ_BW,
                                          dpids, ports, links, hosts)
@@ -1320,6 +1329,19 @@ def post_route_ports():
         d_dpid_ = bottle.request.json['endpoints']['dst_dpid']
         d_port_ = long(bottle.request.json['endpoints']['dst_port_no'])
         LATEST_REQ_BW = bottle.request.json['endpoints']['bw_constraint']
+
+        # check input parameters
+        if s_dpid_ not in dpids:
+            bottle.abort(500, 'Unknown Source Datapath Identifier!')
+
+        if d_dpid_ not in dpids:
+            bottle.abort(500, 'Unknown Destination Datapath Identifier!')
+
+        if s_port_ not in ports[dpids.index(s_dpid_)]:
+            bottle.abort(500, 'Unknown Source Port Number!')
+
+        if d_port_ not in ports[dpids.index(d_dpid_)]:
+            bottle.abort(500, 'Unknown Destination Port Number!')
 
         hosts.append(('255.0.0.1', dpids.index(s_dpid_), s_port_))
         hosts.append(('255.0.0.2', dpids.index(d_dpid_), d_port_))
