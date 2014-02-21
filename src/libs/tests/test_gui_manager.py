@@ -1452,7 +1452,7 @@ class GUIManager(QtGui.QMainWindow):
         self.centralWidget().setHorizontalHeaderLabels(['Insert DPID',
                                                         'Insert PORTNO' ,''])
 
-        c2_ = PcktPortStatsButton(self.__url + 'pckt_port_stats_info/',
+        c2_ = PcktPortStatsButton(self.__url + 'pckt_port_stats_info',
                                   self.centralWidget(), self)
         self.centralWidget().setCellWidget(0, 0, QtGui.QLineEdit('FFFF'))
         self.centralWidget().setCellWidget(0, 1, QtGui.QLineEdit('FFFF'))

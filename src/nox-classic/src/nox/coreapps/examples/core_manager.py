@@ -889,7 +889,7 @@ def pckt_port_create():
     finally:
         PROXY_DB.close()
 
-@bottle.get('/pckt_port_stats_info/')
+@bottle.get('/pckt_port_stats_info')
 def pckt_port_stats_info():
     dpid_   = int(bottle.request.query.dpid)
     portno_ = int(bottle.request.query.portno)
@@ -1546,7 +1546,8 @@ class CoreService(threading.Thread):
 
     def run(self):
         WLOG.debug("Starting core-service thread")
-        bottle.run(host=self._host, port=self._port, debug=self._debug)
+        bottle.run(host=self._host, port=self._port, debug=self._debug,
+                   server='paste')
 
 
 class CoreManager(Component):
