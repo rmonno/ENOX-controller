@@ -806,7 +806,7 @@ def pckt_flows(id):
 
 @bottle.delete('/pckt_flows/<id>')
 def pckt_flow_delete(id):
-    WLOG.info("Enter http pckt_flow_delete: dpid=%d", id)
+    WLOG.info("Enter http pckt_flow_delete: dpid=%s", str(id))
     try:
         PROXY_DB.open_transaction()
         PROXY_DB.flow_delete(dpid=id)

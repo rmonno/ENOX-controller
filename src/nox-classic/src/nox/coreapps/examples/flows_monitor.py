@@ -44,12 +44,6 @@ import libs as nxw_utils
 
 FFLOG = nxw_utils.ColorLog(logging.getLogger('flows-monitor'))
 
-def opt(key_, dict_):
-    if key_ in dict_:
-        return dict_[key_]
-
-    return None
-
 
 class FlowsMonitor(Component):
     """ Flows-Monitor Class """
@@ -72,12 +66,11 @@ class FlowsMonitor(Component):
                 return
 
             if rtype == 'flows':
-                self._queue = [long(id_['dpid'], 16)
-                               for id_ in r_.json()['dpids']]
+                self._queue = [id_['dpid'] for id_ in r_.json()['dpids']]
 
             elif rtype == 'tables':
-                self._table_queue = [long(id_['dpid'], 16)
-                                     for id_ in r_.json()['dpids']]
+                self._table_queue = [id_['dpid'] for id_ in r_.json()['dpids']]
+
             else:
                 FFLOG.error("Unmanaged request-type!")
 
@@ -98,7 +91,7 @@ class FlowsMonitor(Component):
 
     def __dpid_request(self):
         try:
-            dpid = datapathid.from_host(self._queue.pop())
+            dpid = datapathid.from_host(long(self._queue.pop()))
             FFLOG.debug("Request flows for dpid=%s", str(dpid))
             ff = self._ffa.fetch(dpid, {},
                                  lambda: self.__flows_replay(dpid, ff))
@@ -110,7 +103,7 @@ class FlowsMonitor(Component):
         try:
             dpid = self._table_queue.pop()
             FFLOG.debug("Request table-stats for dpid=%s", str(dpid))
-            self.ctxt.send_table_stats_request(dpid)
+            self.ctxt.send_table_stats_request(long(dpid))
 
         except Exception as e:
             FFLOG.error(str(e))
@@ -120,7 +113,7 @@ class FlowsMonitor(Component):
             (dpid, portno) = self._port_queue.pop()
             FFLOG.debug("Request port-stats for dpid=%s, portno=%s",
                         str(dpid), str(portno))
-            self.ctxt.send_port_stats_request(long(str(dpid), 16), portno)
+            self.ctxt.send_port_stats_request(long(dpid), portno)
 
         except Exception as e:
             FFLOG.error(str(e))
@@ -148,34 +141,36 @@ class FlowsMonitor(Component):
 
     def __flow_create(self, dpid, info):
         try:
-            nw_src = opt('nw_src', info['match'])
+            nw_src = info['match'].get('nw_src')
             if nw_src:
                 nw_src = nxw_utils.convert_ipv4_to_str(nw_src)
 
-            nw_dst = opt('nw_dst', info['match'])
+            nw_dst = info['match'].get('nw_dst')
             if nw_dst:
                 nw_dst = nxw_utils.convert_ipv4_to_str(nw_dst)
 
             payload = {"dpid": dpid,
-                "table_id": info['table_id'],
-                "input_port": opt('in_port', info['match']),
-                "idle_timeout": info['idle_timeout'],
-                "hard_timeout": info['hard_timeout'],
-                "priority": info['priority'],
-                "cookie": info['cookie'],
-                "datalink_type": opt('dl_type', info['match']),
-                "datalink_vlan": opt('dl_vlan', info['match']),
-                "datalink_vlan_priority": opt('dl_vlan_pcp', info['match']),
-                "datalink_source": opt('dl_src', info['match']),
-                "datalink_destination": opt('dl_dst', info['match']),
-                "network_source": nw_src,
-                "network_destination": nw_dst,
-                "network_source_num_wild": opt('nw_src_n_wild', info['match']),
-                "network_destination_num_wild": opt('nw_dst_n_wild',
-                                                    info['match']),
-                "network_protocol": opt('nw_proto', info['match']),
-                "transport_source": opt('tp_src', info['match']),
-                "transport_destination": opt('tp_dst', info['match'])}
+                       "table_id": info['table_id'],
+                       "input_port": info['match'].get('in_port'),
+                       "idle_timeout": info['idle_timeout'],
+                       "hard_timeout": info['hard_timeout'],
+                       "priority": info['priority'],
+                       "cookie": info['cookie'],
+                       "datalink_type": info['match'].get('dl_type'),
+                       "datalink_vlan": info['match'].get('dl_vlan'),
+                       "datalink_vlan_priority":
+                            info['match'].get('dl_vlan_pcp'),
+                       "datalink_source": info['match'].get('dl_src'),
+                       "datalink_destination": info['match'].get('dl_dst'),
+                       "network_source": nw_src,
+                       "network_destination": nw_dst,
+                       "network_source_num_wild":
+                            info['match'].get('nw_src_n_wild'),
+                       "network_destination_num_wild":
+                            info['match'].get('nw_dst_n_wild'),
+                       "network_protocol": info['match'].get('nw_proto'),
+                       "transport_source": info['match'].get('tp_src'),
+                       "transport_destination": info['match'].get('tp_dst')}
 
             r_ = requests.post(url=self._url + 'pckt_flows', params=payload)
             if r_.text != 'Operation completed':
@@ -253,25 +248,22 @@ class FlowsMonitor(Component):
         return CONTINUE
 
     def table_stats_handler(self, dpid, tables):
-        dpid_ = str(datapathid.from_host(dpid))
-        FFLOG.debug("TABLE_STATS dpid=%s, tables=%s", dpid_, str(tables))
-        requests.delete(url=self._url + 'pckt_table_stats/' + dpid_)
+        FFLOG.debug("TABLE_STATS dpid=%s, tables=%s", str(dpid), str(tables))
+        requests.delete(url=self._url + 'pckt_table_stats/' + str(dpid))
 
         for table_ in tables:
-            self.__table_stats_create(dpid_, table_)
+            self.__table_stats_create(dpid, table_)
 
     def port_stats_handler(self, dpid, ports):
-        dpid_ = str(datapathid.from_host(dpid))
-        FFLOG.debug("PORT_STATS dpid=%s, ports=%s", dpid_, str(ports))
+        FFLOG.debug("PORT_STATS dpid=%s, ports=%s", str(dpid), str(ports))
         h_ = {'content-type': 'application/json'}
 
         for port_ in ports:
-            payload = {"dpid": dpid_,
-                       "portno": port_['port_no']}
+            payload = {"dpid": str(dpid), "portno": port_['port_no']}
             requests.delete(url=self._url + 'pckt_port_stats', headers=h_,
                             data=json.dumps(payload))
 
-            self.__port_stats_create(dpid_, port_)
+            self.__port_stats_create(dpid, port_)
 
     def timer_handler(self):
         FFLOG.debug("FlowsMonitor timeout fired")
