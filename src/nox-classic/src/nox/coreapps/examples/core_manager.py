@@ -1115,15 +1115,15 @@ def decode_link_id(l_id):
     if id1_ == -1 or id2_ == -1 or id3_ == -1:
         return (None, None, None, None)
 
-    return (l_id[:id2_], long(l_id[id2_+1:id1_]),
-            l_id[id1_+1:id3_], long(l_id[id3_+1:]))
+    return (str(l_id[:id2_]), long(l_id[id2_+1:id1_]),
+            str(l_id[id1_+1:id3_]), long(l_id[id3_+1:]))
 
 def check_pce_topology(topology):
     ports_ = {}
     for ds_ in topology['dpids']:
-        ports_[ds_['dpid']] = []
+        ports_[str(ds_['dpid'])] = []
         for ps_ in ds_['ports']:
-            ports_[ds_['dpid']].append(long(ps_['port_no']))
+            ports_[str(ds_['dpid'])].append(long(ps_['port_no']))
 
     WLOG.info("PORTs=%s" % (ports_,))
 
@@ -1317,30 +1317,39 @@ def post_route_ports():
     if PROXY_PCE.flush_topology() == False:
         bottle.abort(500, 'Unable to flush FPCE topology')
 
+    WLOG.info('%s' % (bottle.request.json['topology'],))
+
     err, ps, ls, hs = check_pce_topology(bottle.request.json['topology'])
     if err != 'ok':
+        WLOG.error("%s" % str(err))
         bottle.abort(500, str(err))
 
     dpids, ports, links, hosts = transform_pce_topology(ps, ls, hs)
 
     try:
-        s_dpid_ = bottle.request.json['endpoints']['src_dpid']
+        WLOG.info('%s' % (bottle.request.json['endpoints'],))
+
+        s_dpid_ = str(bottle.request.json['endpoints']['src_dpid'])
         s_port_ = long(bottle.request.json['endpoints']['src_port_no'])
-        d_dpid_ = bottle.request.json['endpoints']['dst_dpid']
+        d_dpid_ = str(bottle.request.json['endpoints']['dst_dpid'])
         d_port_ = long(bottle.request.json['endpoints']['dst_port_no'])
         LATEST_REQ_BW = bottle.request.json['endpoints']['bw_constraint']
 
         # check input parameters
         if s_dpid_ not in dpids:
+            WLOG.error('Unknown Source Datapath Identifier!')
             bottle.abort(500, 'Unknown Source Datapath Identifier!')
 
         if d_dpid_ not in dpids:
+            WLOG.error('Unknown Destination Datapath Identifier!')
             bottle.abort(500, 'Unknown Destination Datapath Identifier!')
 
         if s_port_ not in ports[dpids.index(s_dpid_)]:
+            WLOG.error('Unknown Source Port Number!')
             bottle.abort(500, 'Unknown Source Port Number!')
 
         if d_port_ not in ports[dpids.index(d_dpid_)]:
+            WLOG.error('Unknown Destination Port Number!')
             bottle.abort(500, 'Unknown Destination Port Number!')
 
         hosts.append(('255.0.0.1', dpids.index(s_dpid_), s_port_))
@@ -1365,6 +1374,8 @@ def post_entry():
     try:
         PROXY_DB.open_transaction()
         resp_ = nxw_utils.HTTPResponsePostENTRY()
+
+        WLOG.info('%s' % (bottle.request.json['routes'],))
 
         for r_ in bottle.request.json['routes']:
             src_ip_  = r_.get('src_ip_addr', None)
