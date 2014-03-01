@@ -31,7 +31,7 @@ FLOOD_WAIT_TIME = 10
 # Minimum LLDP packet send period
 MIN_LLDP_SEND_PERIOD = 0.05
 
-stp_logger = logging.getLogger('nox.netapps.spanning_tree.spanning_tree')
+stp_logger = logging.getLogger('spanning_tree')
 
 class Spanning_Tree(Component):
     def __init__(self, ctxt):
