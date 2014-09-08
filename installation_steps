@@ -1,0 +1,89 @@
+* install nox-classic dependencies
+==================================
+cd /etc/apt/sources.list.d/
+sudo wget http://openflowswitch.org/downloads/debian/nox.list
+sudo apt-get update
+sudo apt-get install nox-dependencies
+sudo apt-get install libtbb-dev
+sudo apt-get install libboost-serialization-dev libboost-all-dev
+
+sudo apt-get install mysql-server (pswd root)
+sudo apt-get install python-mysqldb
+sudo pip install bottle requests watchdog paste
+
+
+* download ENOX-controller software
+===================================
+git clone https://github.com/rmonno/ENOX-controller
+
+
+* install the nox-classic controller
+====================================
+cd <base-dir>/ENOX-controller/src/nox-classic
+./boot.sh
+mkdir build/
+cd build/
+../configure
+make
+cd src/
+make check
+
+
+* install gmpls dependencies
+============================
+sudo apt-get install unifdef omniorb4 omniidl python-omniorb omniorb-idl
+sudo apt-get install omniidl-python libboost-all-dev autogen flex bison
+sudo apt-get install python-pip
+
+
+* install gmpls through gmpls-build
+===================================
+Note: you need to obtain gmpls-build_892014.tar.bz2 source files!
+
+tar -xjvf gmpls-build_892014.tar.bz2
+cd gmpls-build
+./bootstrap
+./configure --prefix=<>/ENOX-controller/src/nox-classic/build/src
+./builder --bootstrap nox
+./builder --config
+
+
+* install the f-pce
+===================
+cd /opt && sudo mkdir fpce && sudo chown -R nextworks:nextworks fpce
+./bootstrap
+./configure --prefix=/opt/fpce
+./builder --bootstrap fibre
+./builder --config
+
+
+* run the f-pce
+===============
+sudo chown root:root /opt/fpce/etc/gmpls-manager.conf
+cp <>/ENOX/gmpls-build/tools/fibreCtrl /opt/fpce/bin
+vi fibreCtrl (update address "127.0.0.1")
+sudo ./fibreCtrl start
+
+
+* verify f-pce is running (something like this)
+===============================================
+[nextworks@debian609 bin]$ ps aux | grep gmpls
+root  /opt/fpce/bin/monit -c /opt/fpce/etc/gmpls-manager.conf
+root  /opt/fpce/bin/gmpls-ips -o /opt/fpce/var/gmpls
+root  /opt/fpce/bin/gmpls-pcera -o /opt/fpce/var/gmpls
+root  /usr/bin/python ./gmpls-ior-dispatcher -a 127.0.0.1. -d ../var/gmpls
+
+
+* run the discovery_packet & core_manager modules
+=================================================
+cd <>/ENOX-controller/src/libs/
+vi nox_topologymgr.cfg (update oscars address)
+mysql -u root -proot < topology_ofc_db.sql
+
+cd /home/nextworks/workspace/ENOX/ENOX-controller/src/nox-classic/build/src
+./nox_core -i ptcp:6633 discovery_packet core_manager
+
+
+* verify discovered topology
+============================
+curl -X GET http://127.0.0.1:8080/topology
